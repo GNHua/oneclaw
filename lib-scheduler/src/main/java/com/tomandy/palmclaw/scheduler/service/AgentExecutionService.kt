@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.tomandy.palmclaw.scheduler.AgentExecutor
 import com.tomandy.palmclaw.scheduler.CronjobManager
 import com.tomandy.palmclaw.scheduler.R
 import com.tomandy.palmclaw.scheduler.data.ExecutionStatus
@@ -91,8 +92,8 @@ class AgentExecutionService : Service() {
         val logId = cronjobManager.recordExecutionStart(cronjobId)
 
         try {
-            // TODO: Integrate with actual agent execution system
-            val result = executeAgentTask(cronjob.instruction)
+            // Execute the agent task
+            val result = executeAgentTask(cronjob.instruction, cronjobId)
 
             // Record successful execution
             cronjobManager.recordExecutionComplete(
@@ -121,13 +122,18 @@ class AgentExecutionService : Service() {
 
     /**
      * Execute the agent task
-     *
-     * TODO: This is a placeholder. Integrate with the actual agent loop.
      */
-    private suspend fun executeAgentTask(instruction: String): String {
-        // Placeholder - simulate work
-        delay(2000)
-        return "Task executed: $instruction (placeholder - needs agent integration)"
+    private suspend fun executeAgentTask(instruction: String, cronjobId: String): String {
+        val executor = AgentExecutor.instance
+            ?: return "Error: Agent executor not configured"
+
+        val result = executor.executeTask(
+            instruction = instruction,
+            cronjobId = cronjobId,
+            triggerTime = System.currentTimeMillis()
+        )
+
+        return result.getOrThrow()
     }
 
     /**

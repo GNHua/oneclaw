@@ -53,6 +53,9 @@ dependencies {
     // Module dependencies (core-agent transitively provides plugin-runtime, networking, LLM SDKs)
     implementation(project(":core-agent"))
 
+    // Scheduler
+    implementation(project(":lib-scheduler"))
+
     // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

@@ -8,6 +8,7 @@ import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.ForegroundInfo
+import com.tomandy.palmclaw.scheduler.AgentExecutor
 import com.tomandy.palmclaw.scheduler.CronjobManager
 import com.tomandy.palmclaw.scheduler.R
 import com.tomandy.palmclaw.scheduler.data.ExecutionStatus
@@ -134,18 +135,20 @@ class AgentTaskWorker(
 
     /**
      * Execute the agent task
-     *
-     * TODO: This is a placeholder. Integrate with the actual agent loop.
-     * The agent should:
-     * 1. Load conversation context (if any)
-     * 2. Execute the instruction using the LLM
-     * 3. Execute any tool calls
-     * 4. Return a summary of what was done
      */
     private suspend fun executeAgentTask(instruction: String): String {
-        // Placeholder implementation
-        // This will be replaced with actual agent execution
-        return "Task executed: $instruction (placeholder - needs agent integration)"
+        val executor = AgentExecutor.instance
+            ?: return "Error: Agent executor not configured"
+
+        val result = executor.executeTask(
+            instruction = instruction,
+            cronjobId = inputData.getString(KEY_CRONJOB_ID) ?: "",
+            triggerTime = System.currentTimeMillis()
+        )
+
+        return result.getOrElse { e ->
+            throw e // Re-throw to trigger retry
+        }
     }
 
     companion object {

@@ -3,11 +3,13 @@ package com.tomandy.palmclaw
 import android.app.Application
 import android.util.Log
 import com.tomandy.palmclaw.agent.MessageStore
+import com.tomandy.palmclaw.agent.ScheduledAgentExecutor
 import com.tomandy.palmclaw.agent.ToolExecutor
 import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.data.AppDatabase
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.RoomMessageStore
+import com.tomandy.palmclaw.engine.LoadedPlugin
 import com.tomandy.palmclaw.engine.PluginContext
 import com.tomandy.palmclaw.engine.PluginEngine
 import com.tomandy.palmclaw.llm.AnthropicClient
@@ -15,7 +17,11 @@ import com.tomandy.palmclaw.llm.GeminiClient
 import com.tomandy.palmclaw.llm.LlmClient
 import com.tomandy.palmclaw.llm.LlmProvider
 import com.tomandy.palmclaw.llm.OpenAiClient
+import com.tomandy.palmclaw.scheduler.AgentExecutor
+import com.tomandy.palmclaw.scheduler.plugin.SchedulerPlugin
+import com.tomandy.palmclaw.scheduler.plugin.SchedulerPluginMetadata
 import com.tomandy.palmclaw.security.CredentialVault
+import com.tomandy.palmclaw.security.CredentialVaultAdapter
 import com.tomandy.palmclaw.security.CredentialVaultImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -88,14 +94,50 @@ class PalmClawApp : Application() {
             messageStore = messageStore
         )
 
-        // Load API keys from vault and set active provider
+        // Initialize agent executor for scheduled tasks
+        AgentExecutor.instance = ScheduledAgentExecutor(this)
+
+        // Register built-in plugins
         CoroutineScope(Dispatchers.Main).launch {
+            registerBuiltInPlugins()
             loadApiKeys()
         }
 
         // Load sample plugins
         CoroutineScope(Dispatchers.Main).launch {
             loadSamplePlugins()
+        }
+    }
+
+    /**
+     * Register built-in plugins (plugins that come with the app)
+     */
+    private suspend fun registerBuiltInPlugins() {
+        // Register SchedulerPlugin
+        try {
+            val schedulerPlugin = SchedulerPlugin()
+            val pluginContext = PluginContext.create(
+                androidContext = applicationContext,
+                pluginId = "scheduler",
+                credentialVault = CredentialVaultAdapter(credentialVault)
+            )
+
+            // Initialize the plugin
+            schedulerPlugin.onLoad(pluginContext)
+
+            // Create LoadedPlugin wrapper (use app's classloader since it's built-in)
+            val loadedPlugin = LoadedPlugin(
+                metadata = SchedulerPluginMetadata.get(),
+                instance = schedulerPlugin,
+                classLoader = javaClass.classLoader!!
+            )
+
+            // Register with tool registry
+            toolRegistry.registerPlugin(loadedPlugin)
+
+        } catch (e: Exception) {
+            // Log error but don't crash the app
+            e.printStackTrace()
         }
     }
 

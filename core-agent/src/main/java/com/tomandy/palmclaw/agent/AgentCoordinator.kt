@@ -69,12 +69,14 @@ class AgentCoordinator(
      * @param userMessage The user's input message
      * @param systemPrompt Optional system prompt to guide the AI's behavior
      * @param model The LLM model to use (default: gpt-4o-mini)
+     * @param context The execution context (interactive or scheduled)
      * @return Result containing the final response or error
      */
     suspend fun execute(
         userMessage: String,
         systemPrompt: String = DEFAULT_SYSTEM_PROMPT,
-        model: String = ""
+        model: String = "",
+        context: ExecutionContext = ExecutionContext.Interactive
     ): Result<String> {
         Log.d("AgentCoordinator", "execute called with message: $userMessage, model: $model")
 
@@ -90,13 +92,20 @@ class AgentCoordinator(
             val messages = buildList {
                 // Add system prompt if conversation is empty
                 if (conversationHistory.isEmpty()) {
-                    add(Message(role = "system", content = systemPrompt))
+                    val contextualPrompt = when (context) {
+                        is ExecutionContext.Interactive -> systemPrompt
+                        is ExecutionContext.Scheduled ->
+                            "$systemPrompt\n\nIMPORTANT: You are executing a scheduled task. " +
+                            "Do not ask clarification questions. Use your best judgment and proceed autonomously. " +
+                            "If you need to inform the user of something, include it in your response."
+                    }
+                    add(Message(role = "system", content = contextualPrompt))
                 }
 
                 // Add conversation history
                 addAll(conversationHistory)
 
-                // Add user message
+                // Add user message (or task instruction in scheduled context)
                 add(Message(role = "user", content = userMessage))
             }
 
@@ -159,19 +168,22 @@ class AgentCoordinator(
      * @param userMessage The user's input message
      * @param systemPrompt Optional system prompt
      * @param model The LLM model to use
+     * @param context The execution context (interactive or scheduled)
      * @param onComplete Optional callback invoked with the result
      */
     fun executeAsync(
         userMessage: String,
         systemPrompt: String = DEFAULT_SYSTEM_PROMPT,
         model: String = "gpt-4o-mini",
+        context: ExecutionContext = ExecutionContext.Interactive,
         onComplete: ((Result<String>) -> Unit)? = null
     ) {
         currentJob = scope.launch {
             val result = execute(
                 userMessage = userMessage,
                 systemPrompt = systemPrompt,
-                model = model
+                model = model,
+                context = context
             )
             onComplete?.invoke(result)
         }

@@ -85,6 +85,9 @@ dependencies {
     // AI/LLM
     implementation(libs.google.generativeai)
 
+    // Markdown
+    implementation(libs.compose.markdown)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

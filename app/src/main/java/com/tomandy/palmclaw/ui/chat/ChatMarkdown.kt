@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,14 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -37,179 +30,79 @@ fun ChatMarkdown(
     modifier: Modifier = Modifier,
     textColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
-    val blocks = remember(text) { splitMarkdown(text) }
-    val inlineCodeBg = MaterialTheme.colorScheme.surfaceContainerLow
+    val blocks = remember(text) { parseMarkdownWithImages(text) }
 
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        for (b in blocks) {
-            when (b) {
-                is ChatMarkdownBlock.Text -> {
-                    val trimmed = b.text.trimEnd()
-                    if (trimmed.isEmpty()) continue
-                    Text(
-                        text = parseInlineMarkdown(trimmed, inlineCodeBg = inlineCodeBg),
-                        style = MaterialTheme.typography.bodyMedium,
+        for (block in blocks) {
+            when (block) {
+                is MarkdownBlock.Markdown -> {
+                    MarkdownText(
+                        markdown = block.content,
                         color = textColor,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
-                is ChatMarkdownBlock.Code -> {
-                    SelectionContainer(modifier = Modifier.fillMaxWidth()) {
-                        ChatCodeBlock(code = b.code, language = b.language)
-                    }
-                }
-                is ChatMarkdownBlock.InlineImage -> {
-                    InlineBase64Image(base64 = b.base64, mimeType = b.mimeType)
+                is MarkdownBlock.InlineImage -> {
+                    InlineBase64Image(base64 = block.base64, mimeType = block.mimeType)
                 }
             }
         }
     }
 }
 
-private sealed interface ChatMarkdownBlock {
-    data class Text(val text: String) : ChatMarkdownBlock
-    data class Code(val code: String, val language: String?) : ChatMarkdownBlock
-    data class InlineImage(val mimeType: String?, val base64: String) : ChatMarkdownBlock
+private sealed interface MarkdownBlock {
+    data class Markdown(val content: String) : MarkdownBlock
+    data class InlineImage(val mimeType: String?, val base64: String) : MarkdownBlock
 }
 
-private fun splitMarkdown(raw: String): List<ChatMarkdownBlock> {
-    if (raw.isEmpty()) return emptyList()
-
-    val out = ArrayList<ChatMarkdownBlock>()
-    var idx = 0
-    while (idx < raw.length) {
-        val fenceStart = raw.indexOf("```", startIndex = idx)
-        if (fenceStart < 0) {
-            out.addAll(splitInlineImages(raw.substring(idx)))
-            break
-        }
-
-        if (fenceStart > idx) {
-            out.addAll(splitInlineImages(raw.substring(idx, fenceStart)))
-        }
-
-        val langLineStart = fenceStart + 3
-        val langLineEnd = raw.indexOf('\n', startIndex = langLineStart).let { if (it < 0) raw.length else it }
-        val language = raw.substring(langLineStart, langLineEnd).trim().ifEmpty { null }
-
-        val codeStart = if (langLineEnd < raw.length && raw[langLineEnd] == '\n') langLineEnd + 1 else langLineEnd
-        val fenceEnd = raw.indexOf("```", startIndex = codeStart)
-        if (fenceEnd < 0) {
-            out.addAll(splitInlineImages(raw.substring(fenceStart)))
-            break
-        }
-        val code = raw.substring(codeStart, fenceEnd)
-        out.add(ChatMarkdownBlock.Code(code = code, language = language))
-
-        idx = fenceEnd + 3
-    }
-
-    return out
-}
-
-private fun splitInlineImages(text: String): List<ChatMarkdownBlock> {
+/**
+ * Parses markdown text and extracts inline base64 images.
+ * Returns a list of blocks alternating between markdown content and images.
+ */
+private fun parseMarkdownWithImages(text: String): List<MarkdownBlock> {
     if (text.isEmpty()) return emptyList()
+
     val regex = Regex("data:image/([a-zA-Z0-9+.-]+);base64,([A-Za-z0-9+/=\\n\\r]+)")
-    val out = ArrayList<ChatMarkdownBlock>()
+    val blocks = mutableListOf<MarkdownBlock>()
+    var lastIndex = 0
 
-    var idx = 0
-    while (idx < text.length) {
-        val m = regex.find(text, startIndex = idx) ?: break
-        val start = m.range.first
-        val end = m.range.last + 1
-        if (start > idx) out.add(ChatMarkdownBlock.Text(text.substring(idx, start)))
-
-        val mime = "image/" + (m.groupValues.getOrNull(1)?.trim()?.ifEmpty { "png" } ?: "png")
-        val b64 = m.groupValues.getOrNull(2)?.replace("\n", "")?.replace("\r", "")?.trim().orEmpty()
-        if (b64.isNotEmpty()) {
-            out.add(ChatMarkdownBlock.InlineImage(mimeType = mime, base64 = b64))
+    regex.findAll(text).forEach { match ->
+        // Add markdown content before the image
+        if (match.range.first > lastIndex) {
+            val markdownContent = text.substring(lastIndex, match.range.first).trim()
+            if (markdownContent.isNotEmpty()) {
+                blocks.add(MarkdownBlock.Markdown(markdownContent))
+            }
         }
-        idx = end
+
+        // Add the image
+        val mimeType = "image/" + (match.groupValues.getOrNull(1)?.trim()?.ifEmpty { "png" } ?: "png")
+        val base64 = match.groupValues.getOrNull(2)?.replace("\n", "")?.replace("\r", "")?.trim().orEmpty()
+        if (base64.isNotEmpty()) {
+            blocks.add(MarkdownBlock.InlineImage(mimeType = mimeType, base64 = base64))
+        }
+
+        lastIndex = match.range.last + 1
     }
 
-    if (idx < text.length) out.add(ChatMarkdownBlock.Text(text.substring(idx)))
-    return out
-}
-
-private fun parseInlineMarkdown(text: String, inlineCodeBg: Color): AnnotatedString {
-    if (text.isEmpty()) return AnnotatedString("")
-
-    val out = buildAnnotatedString {
-        var i = 0
-        while (i < text.length) {
-            if (text.startsWith("**", startIndex = i)) {
-                val end = text.indexOf("**", startIndex = i + 2)
-                if (end > i + 2) {
-                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
-                        append(text.substring(i + 2, end))
-                    }
-                    i = end + 2
-                    continue
-                }
-            }
-
-            if (text[i] == '`') {
-                val end = text.indexOf('`', startIndex = i + 1)
-                if (end > i + 1) {
-                    withStyle(
-                        SpanStyle(
-                            fontFamily = FontFamily.Monospace,
-                            background = inlineCodeBg,
-                        ),
-                    ) {
-                        append(text.substring(i + 1, end))
-                    }
-                    i = end + 1
-                    continue
-                }
-            }
-
-            if (text[i] == '*' && (i + 1 < text.length && text[i + 1] != '*')) {
-                val end = text.indexOf('*', startIndex = i + 1)
-                if (end > i + 1) {
-                    withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
-                        append(text.substring(i + 1, end))
-                    }
-                    i = end + 1
-                    continue
-                }
-            }
-
-            append(text[i])
-            i += 1
+    // Add remaining markdown content after the last image
+    if (lastIndex < text.length) {
+        val markdownContent = text.substring(lastIndex).trim()
+        if (markdownContent.isNotEmpty()) {
+            blocks.add(MarkdownBlock.Markdown(markdownContent))
         }
     }
-    return out
-}
 
-@Composable
-private fun ChatCodeBlock(code: String, language: String?) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        if (language != null) {
-            Text(
-                text = language,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-        }
-        Text(
-            text = code,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontFamily = FontFamily.Monospace
-            ),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-        )
+    // If no images were found, return the whole text as markdown
+    if (blocks.isEmpty() && text.isNotBlank()) {
+        blocks.add(MarkdownBlock.Markdown(text))
     }
+
+    return blocks
 }
 
 @Composable

@@ -21,7 +21,12 @@ import java.util.UUID
 data class MessageEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val conversationId: String,
-    val role: String, // "user", "assistant", "system"
+    val role: String, // "user", "assistant", "system", "tool"
     val content: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+
+    // Tool support fields
+    val toolCallId: String? = null,    // Links tool result to assistant's tool call
+    val toolName: String? = null,      // Name of tool that was executed
+    val toolCalls: String? = null      // JSON serialized List<ToolCall> for assistant messages
 )

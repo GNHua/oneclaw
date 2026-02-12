@@ -1,7 +1,8 @@
 package com.tomandy.palmclaw
 
 import android.app.Application
-import com.tomandy.palmclaw.agent.AgentCoordinator
+import com.tomandy.palmclaw.agent.ToolExecutor
+import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.data.AppDatabase
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.llm.GeminiClient
@@ -25,7 +26,8 @@ import kotlinx.coroutines.launch
  * - Database (Room)
  * - Credential vault (encrypted storage)
  * - LLM clients (OpenAI, Gemini, etc.)
- * - Agent coordinator (AI orchestrator)
+ * - Tool registry (plugin management)
+ * - Tool executor (tool execution)
  *
  * All dependencies are initialized once on app startup and shared across components.
  */
@@ -46,7 +48,10 @@ class PalmClawApp : Application() {
     private val openAiClient = OpenAiClient(apiKey = "")
     private val geminiClient = GeminiClient(apiKey = "")
 
-    lateinit var agentCoordinator: AgentCoordinator
+    lateinit var toolRegistry: ToolRegistry
+        private set
+
+    lateinit var toolExecutor: ToolExecutor
         private set
 
     override fun onCreate() {
@@ -61,9 +66,13 @@ class PalmClawApp : Application() {
         // Initialize model preferences
         modelPreferences = ModelPreferences(this)
 
-        // Initialize agent coordinator with client provider (dynamic switching)
-        agentCoordinator = AgentCoordinator(
-            clientProvider = { getCurrentLlmClient() }
+        // Initialize tool registry (shared across all conversations)
+        toolRegistry = ToolRegistry()
+
+        // Initialize tool executor (shared, uses database for persistence)
+        toolExecutor = ToolExecutor(
+            toolRegistry = toolRegistry,
+            messageDao = database.messageDao()
         )
 
         // Load API keys from vault and set active provider

@@ -1,79 +1,163 @@
 package com.tomandy.palmclaw.agent
 
+import com.tomandy.palmclaw.data.dao.MessageDao
+import com.tomandy.palmclaw.data.entity.MessageEntity
+import com.tomandy.palmclaw.engine.ToolResult
+import com.tomandy.palmclaw.llm.ToolCall
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import java.util.UUID
+
 /**
- * Tool executor for Phase 2 implementation.
+ * Executes tools from registered plugins.
  *
- * Phase 1: Returns stub responses for demonstration purposes.
- * Phase 2: Will implement actual tool execution with registered handlers.
+ * The ToolExecutor bridges the agent layer and the plugin engine:
+ * 1. Receives ToolCall from LLM
+ * 2. Looks up tool in ToolRegistry
+ * 3. Executes plugin with timeout and error handling
+ * 4. Saves result to database
+ * 5. Returns ToolExecutionResult to ReActLoop
+ *
+ * Key features:
+ * - 30-second timeout per tool execution
+ * - Automatic persistence of tool results
+ * - Comprehensive error handling
+ * - Batch execution support
+ *
+ * Usage:
+ * ```kotlin
+ * val executor = ToolExecutor(toolRegistry, messageDao)
+ *
+ * // Execute single tool
+ * val result = executor.execute(conversationId, toolCall)
+ *
+ * // Execute multiple tools
+ * val results = executor.executeBatch(conversationId, toolCalls)
+ * ```
  */
-class ToolExecutor {
-
-    private val toolHandlers = mutableMapOf<String, suspend (String) -> String>()
-
-    /**
-     * Executes a tool with the given name and arguments.
-     *
-     * Phase 1: Returns a stub response indicating the tool would be executed.
-     * Phase 2: Will execute registered tool handlers.
-     *
-     * @param toolName The name of the tool to execute
-     * @param arguments JSON string containing the tool arguments
-     * @return Result containing the tool execution result or error
-     */
-    suspend fun execute(toolName: String, arguments: String): Result<String> {
-        // Phase 1 stub: Return placeholder
-        return Result.success(
-            "Tool execution stub (Phase 2): $toolName with args $arguments"
-        )
-
-        // Phase 2 implementation will be:
-        // val handler = toolHandlers[toolName]
-        //     ?: return Result.failure(Exception("Tool not found: $toolName"))
-        //
-        // return try {
-        //     Result.success(handler(arguments))
-        // } catch (e: Exception) {
-        //     Result.failure(e)
-        // }
-    }
-
-    /**
-     * Registers a tool handler for execution.
-     *
-     * Phase 2: Will store and use the handler for tool execution.
-     *
-     * @param name The name of the tool
-     * @param handler Suspend function that takes JSON arguments and returns a result string
-     */
-    fun registerTool(name: String, handler: suspend (String) -> String) {
-        // Phase 2: Tool registration logic
-        toolHandlers[name] = handler
-    }
-
-    /**
-     * Unregisters a tool handler.
-     *
-     * @param name The name of the tool to unregister
-     * @return true if the tool was unregistered, false if it didn't exist
-     */
-    fun unregisterTool(name: String): Boolean {
-        return toolHandlers.remove(name) != null
-    }
-
-    /**
-     * Returns the list of registered tool names.
-     */
-    fun getRegisteredTools(): List<String> {
-        return toolHandlers.keys.toList()
-    }
-
+class ToolExecutor(
+    private val toolRegistry: ToolRegistry,
+    private val messageDao: MessageDao
+) {
     companion object {
-        // Phase 2: Built-in tools will be defined here
-        // Example built-in tools:
-        // - get_current_time
-        // - search_contacts
-        // - send_message
-        // - get_device_info
-        // - etc.
+        private const val TOOL_EXECUTION_TIMEOUT_MS = 30_000L
+    }
+
+    /**
+     * Execute a single tool.
+     *
+     * Steps:
+     * 1. Look up tool in registry
+     * 2. Parse arguments from JSON string
+     * 3. Execute with timeout
+     * 4. Save result to database
+     * 5. Return ToolExecutionResult
+     *
+     * @param conversationId The conversation this tool execution belongs to
+     * @param toolCall The tool call from the LLM
+     * @return ToolExecutionResult (Success or Failure)
+     */
+    suspend fun execute(
+        conversationId: String,
+        toolCall: ToolCall
+    ): ToolExecutionResult = withContext(Dispatchers.IO) {
+        try {
+            // 1. Find registered tool
+            val registeredTool = toolRegistry.getTool(toolCall.function.name)
+                ?: return@withContext ToolExecutionResult.Failure(
+                    toolCall = toolCall,
+                    error = "Tool '${toolCall.function.name}' not found"
+                )
+
+            // 2. Parse arguments from JSON string to JsonObject
+            val arguments = try {
+                Json.parseToJsonElement(toolCall.function.arguments).jsonObject
+            } catch (e: Exception) {
+                return@withContext ToolExecutionResult.Failure(
+                    toolCall = toolCall,
+                    error = "Invalid JSON arguments: ${e.message}",
+                    exception = e
+                )
+            }
+
+            // 3. Execute with timeout
+            val result = try {
+                withTimeout(TOOL_EXECUTION_TIMEOUT_MS) {
+                    registeredTool.plugin.execute(toolCall.function.name, arguments)
+                }
+            } catch (e: TimeoutCancellationException) {
+                return@withContext ToolExecutionResult.Failure(
+                    toolCall = toolCall,
+                    error = "Tool execution timed out (${TOOL_EXECUTION_TIMEOUT_MS / 1000}s)",
+                    exception = e
+                )
+            } catch (e: Exception) {
+                return@withContext ToolExecutionResult.Failure(
+                    toolCall = toolCall,
+                    error = "Unexpected error: ${e.message}",
+                    exception = e
+                )
+            }
+
+            // 4. Save tool result to database
+            val resultContent = when (result) {
+                is ToolResult.Success -> result.output
+                is ToolResult.Failure -> "Error: ${result.error}"
+            }
+
+            val resultMessage = MessageEntity(
+                id = UUID.randomUUID().toString(),
+                conversationId = conversationId,
+                role = "tool",
+                content = resultContent,
+                toolCallId = toolCall.id,
+                toolName = toolCall.function.name,
+                timestamp = System.currentTimeMillis()
+            )
+            messageDao.insert(resultMessage)
+
+            // 5. Return execution result
+            when (result) {
+                is ToolResult.Success -> ToolExecutionResult.Success(
+                    toolCall = toolCall,
+                    output = result.output,
+                    metadata = result.metadata
+                )
+                is ToolResult.Failure -> ToolExecutionResult.Failure(
+                    toolCall = toolCall,
+                    error = result.error,
+                    exception = result.exception
+                )
+            }
+
+        } catch (e: Exception) {
+            // Catch-all for any unexpected errors
+            ToolExecutionResult.Failure(
+                toolCall = toolCall,
+                error = "Unexpected error: ${e.message}",
+                exception = e
+            )
+        }
+    }
+
+    /**
+     * Execute multiple tools sequentially.
+     *
+     * Note: Tools are executed sequentially, not in parallel.
+     * This ensures database consistency and prevents race conditions.
+     *
+     * @param conversationId The conversation this tool execution belongs to
+     * @param toolCalls List of tool calls from the LLM
+     * @return List of ToolExecutionResult in the same order as toolCalls
+     */
+    suspend fun executeBatch(
+        conversationId: String,
+        toolCalls: List<ToolCall>
+    ): List<ToolExecutionResult> {
+        return toolCalls.map { execute(conversationId, it) }
     }
 }

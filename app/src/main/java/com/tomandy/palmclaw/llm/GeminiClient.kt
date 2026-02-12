@@ -52,12 +52,14 @@ class GeminiClient(
             val currentModel = generativeModel
                 ?: return Result.failure(Exception("API key not set. Please configure your Google AI API key in Settings."))
 
-            // Convert messages to Gemini format
-            val history = messages.dropLast(1).map { msg ->
-                content(role = if (msg.role == "user") "user" else "model") {
-                    text(msg.content)
+            // Convert messages to Gemini format (filter out tool messages and messages without content)
+            val history = messages.dropLast(1)
+                .filter { it.role != "tool" && !it.content.isNullOrBlank() }
+                .map { msg ->
+                    content(role = if (msg.role == "user") "user" else "model") {
+                        text(msg.content!!)
+                    }
                 }
-            }
 
             val lastMessage = messages.lastOrNull()
                 ?: return Result.failure(Exception("No messages provided"))
@@ -76,7 +78,9 @@ class GeminiClient(
             val chat = modelToUse.startChat(history = history)
 
             // Send the last message
-            val response = chat.sendMessage(lastMessage.content)
+            val messageContent = lastMessage.content
+                ?: return Result.failure(Exception("Last message has no content"))
+            val response = chat.sendMessage(messageContent)
 
             // Convert response
             Result.success(convertResponse(response))

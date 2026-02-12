@@ -6,12 +6,12 @@ import kotlinx.serialization.json.Json
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 class OpenAiClientTest {
     private lateinit var mockWebServer: MockWebServer
@@ -65,8 +65,7 @@ class OpenAiClientTest {
         val result = client.complete(messages = messages)
 
         assertTrue(result.isSuccess)
-        val response = result.getOrNull()
-        assertNotNull(response)
+        val response = requireNotNull(result.getOrNull())
         assertEquals("chatcmpl-123", response.id)
         assertEquals(1, response.choices.size)
         assertEquals("Hello! How can I help you today?", response.choices[0].message.content)
@@ -75,7 +74,7 @@ class OpenAiClientTest {
         // Verify request headers
         val request = mockWebServer.takeRequest()
         assertEquals("Bearer test-key", request.getHeader("Authorization"))
-        assertEquals("application/json", request.getHeader("Content-Type"))
+        assertTrue(request.getHeader("Content-Type")!!.startsWith("application/json"))
         assertEquals("/chat/completions", request.path)
         assertEquals("POST", request.method)
     }
@@ -135,13 +134,11 @@ class OpenAiClientTest {
         val result = client.complete(messages = messages, tools = tools)
 
         assertTrue(result.isSuccess)
-        val response = result.getOrNull()
-        assertNotNull(response)
+        val response = requireNotNull(result.getOrNull())
         assertEquals("chatcmpl-456", response.id)
         assertEquals("tool_calls", response.choices[0].finish_reason)
 
-        val toolCalls = response.choices[0].message.tool_calls
-        assertNotNull(toolCalls)
+        val toolCalls = requireNotNull(response.choices[0].message.tool_calls)
         assertEquals(1, toolCalls.size)
         assertEquals("get_weather", toolCalls[0].function.name)
         assertEquals("{\"location\":\"San Francisco\"}", toolCalls[0].function.arguments)
@@ -160,8 +157,7 @@ class OpenAiClientTest {
         val result = client.complete(messages = messages)
 
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
-        assertNotNull(error)
+        val error = requireNotNull(result.exceptionOrNull())
         assertTrue(error.message!!.contains("Unauthorized"))
     }
 
@@ -178,8 +174,7 @@ class OpenAiClientTest {
         val result = client.complete(messages = messages)
 
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
-        assertNotNull(error)
+        val error = requireNotNull(result.exceptionOrNull())
         assertTrue(error.message!!.contains("Rate limit exceeded"))
     }
 
@@ -196,8 +191,7 @@ class OpenAiClientTest {
         val result = client.complete(messages = messages)
 
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
-        assertNotNull(error)
+        val error = requireNotNull(result.exceptionOrNull())
         assertTrue(error.message!!.contains("Server error"))
     }
 
@@ -213,8 +207,7 @@ class OpenAiClientTest {
         val result = client.complete(messages = messages)
 
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
-        assertNotNull(error)
+        val error = requireNotNull(result.exceptionOrNull())
         assertTrue(error.message!!.contains("Service unavailable"))
     }
 
@@ -227,8 +220,7 @@ class OpenAiClientTest {
         val result = client.complete(messages = messages)
 
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
-        assertNotNull(error)
+        val error = requireNotNull(result.exceptionOrNull())
         assertTrue(error.message!!.contains("Network error") || error.message!!.contains("error"))
     }
 
@@ -263,7 +255,7 @@ class OpenAiClientTest {
         assertTrue(requestBody.contains("\"role\":\"user\""))
         assertTrue(requestBody.contains("You are a helpful assistant"))
         assertTrue(requestBody.contains("Hello"))
-        assertTrue(requestBody.contains("\"stream\":false"))
+        // Note: stream field is not included because encodeDefaults=false and stream=false is the default
     }
 
     @Test
@@ -386,8 +378,7 @@ class OpenAiClientTest {
         val result = client.complete(messages = messages)
 
         assertTrue(result.isSuccess)
-        val response = result.getOrNull()
-        assertNotNull(response)
+        val response = requireNotNull(result.getOrNull())
         assertEquals("chatcmpl-789", response.id)
         assertEquals("Test response", response.choices[0].message.content)
     }

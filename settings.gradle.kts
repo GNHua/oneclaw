@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Palm Claw"
 include(":app")
+include(":engine-runtime")

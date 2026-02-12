@@ -62,10 +62,12 @@ fun PalmClawNavGraph(
         composable(Screen.Chat.route) {
             val viewModel = remember {
                 ChatViewModel(
-                    agentCoordinator = app.agentCoordinator,
+                    toolRegistry = app.toolRegistry,
+                    toolExecutor = app.toolExecutor,
                     messageDao = app.database.messageDao(),
                     conversationDao = app.database.conversationDao(),
                     modelPreferences = app.modelPreferences,
+                    getCurrentClient = { app.getCurrentLlmClient() },
                     getCurrentProvider = { app.selectedProvider.value }
                 )
             }

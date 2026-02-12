@@ -19,23 +19,23 @@ import kotlinx.coroutines.launch
  * - Orchestrating the ReAct (Reasoning + Acting) loop
  * - Maintaining conversation history
  * - Handling cancellation and errors
+ * - Coordinating tool execution via ToolRegistry
  *
- * Phase 1: Simple request-response with tool call detection (no execution)
- * Phase 2: Full ReAct loop with tool execution
+ * Phase 2: Full ReAct loop with tool execution and multi-turn reasoning
  *
  * @param clientProvider Function that provides the current LLM client (supports dynamic switching)
+ * @param toolRegistry Registry of available tools from loaded plugins
+ * @param toolExecutor Executor for running tool calls
+ * @param conversationId The conversation ID for persisting messages
  * @param scope The coroutine scope for managing async operations
  */
 class AgentCoordinator(
     private val clientProvider: () -> LlmClient,
+    private val toolRegistry: ToolRegistry,
+    private val toolExecutor: ToolExecutor,
+    private val conversationId: String,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 ) {
-
-    // Alternate constructor for backwards compatibility
-    constructor(
-        llmClient: LlmClient,
-        scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-    ) : this(clientProvider = { llmClient }, scope = scope)
 
     private val _state = MutableStateFlow<AgentState>(AgentState.Idle)
     val state: StateFlow<AgentState> = _state.asStateFlow()
@@ -44,22 +44,24 @@ class AgentCoordinator(
 
     private val conversationHistory = mutableListOf<Message>()
 
-    private val toolExecutor = ToolExecutor()
+    // ReActLoop with tool execution support
+    private val reActLoop: ReActLoop by lazy {
+        ReActLoop(
+            llmClient = clientProvider(),
+            toolExecutor = toolExecutor
+        )
+    }
 
     /**
      * Executes an AI agent request with the given user message.
      *
-     * Phase 1 Behavior:
+     * Phase 2 Behavior:
      * - Adds user message to conversation history
      * - Updates state to Thinking
-     * - Calls LLM via ReActLoop
-     * - If tool calls detected, returns their description
+     * - Calls LLM via ReActLoop with available tools
+     * - Executes tools when the LLM requests them
+     * - Iterates through multiple ReAct cycles until completion
      * - Returns final response and updates state to Completed
-     *
-     * Phase 2 Behavior (future):
-     * - Will execute tools when detected
-     * - Will iterate through multiple ReAct cycles
-     * - Will maintain full conversation context with tool results
      *
      * @param userMessage The user's input message
      * @param systemPrompt Optional system prompt to guide the AI's behavior
@@ -95,10 +97,14 @@ class AgentCoordinator(
             // Store user message in history
             conversationHistory.add(Message(role = "user", content = userMessage))
 
-            // Execute ReAct step with current client
-            val reActLoop = ReActLoop(clientProvider())
+            // Get available tools from registry
+            val tools = toolRegistry.getToolDefinitions()
+
+            // Execute ReAct loop with tools
             val result = reActLoop.step(
                 messages = messages,
+                tools = tools,
+                conversationId = conversationId,
                 model = model
             )
 
@@ -198,15 +204,6 @@ class AgentCoordinator(
      */
     fun getConversationSize(): Int {
         return conversationHistory.size
-    }
-
-    /**
-     * Provides access to the tool executor for Phase 2 tool registration.
-     *
-     * @return The tool executor instance
-     */
-    fun getToolExecutor(): ToolExecutor {
-        return toolExecutor
     }
 
     companion object {

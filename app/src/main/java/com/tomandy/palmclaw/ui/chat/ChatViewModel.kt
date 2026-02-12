@@ -4,11 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomandy.palmclaw.agent.AgentCoordinator
 import com.tomandy.palmclaw.agent.AgentState
+import com.tomandy.palmclaw.agent.ToolExecutor
+import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.dao.ConversationDao
 import com.tomandy.palmclaw.data.dao.MessageDao
 import com.tomandy.palmclaw.data.entity.ConversationEntity
 import com.tomandy.palmclaw.data.entity.MessageEntity
+import com.tomandy.palmclaw.llm.LlmClient
 import com.tomandy.palmclaw.llm.LlmProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,20 +24,27 @@ import java.util.UUID
  * ViewModel for managing chat screen state and orchestrating message flow.
  *
  * This is the state management hub that connects:
- * - AgentCoordinator for AI processing
+ * - AgentCoordinator for AI processing (created per conversation)
+ * - ToolRegistry for available tools
  * - Database DAOs for persistence
  * - UI components for reactive updates
  *
- * @param agentCoordinator The agent coordinator for AI processing
+ * @param toolRegistry Registry of available tools from loaded plugins
+ * @param toolExecutor Executor for running tool calls
  * @param messageDao DAO for message persistence
  * @param conversationDao DAO for conversation management
+ * @param modelPreferences Model preferences
+ * @param getCurrentClient Function to get the current LLM client
+ * @param getCurrentProvider Function to get the current provider
  * @param conversationId Optional conversation ID (creates new if null)
  */
 class ChatViewModel(
-    private val agentCoordinator: AgentCoordinator,
+    private val toolRegistry: ToolRegistry,
+    private val toolExecutor: ToolExecutor,
     private val messageDao: MessageDao,
     private val conversationDao: ConversationDao,
     private val modelPreferences: ModelPreferences,
+    private val getCurrentClient: () -> LlmClient,
     private val getCurrentProvider: () -> LlmProvider,
     conversationId: String? = null
 ) : ViewModel() {
@@ -55,6 +65,15 @@ class ChatViewModel(
 
     private val _agentState = MutableStateFlow<AgentState>(AgentState.Idle)
     val agentState: StateFlow<AgentState> = _agentState.asStateFlow()
+
+    // Create AgentCoordinator for this conversation
+    private val agentCoordinator = AgentCoordinator(
+        clientProvider = getCurrentClient,
+        toolRegistry = toolRegistry,
+        toolExecutor = toolExecutor,
+        conversationId = _conversationId.value,
+        scope = viewModelScope
+    )
 
     init {
         // Load messages from database

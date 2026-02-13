@@ -24,6 +24,8 @@ quickjs = "1.0.0-alpha13"
 googleGenai = "1.39.0"
 anthropic = "2.11.1"
 work = "2.9.1"
+paging = "3.3.6"
+roomPaging = "2.7.0-alpha11"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -62,7 +64,12 @@ androidx-security-crypto = { group = "androidx.security", name = "security-crypt
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+androidx-room-paging = { group = "androidx.room", name = "room-paging", version.ref = "roomPaging" }
 androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
+
+# Paging
+androidx-paging-runtime = { group = "androidx.paging", name = "paging-runtime", version.ref = "paging" }
+androidx-paging-compose = { group = "androidx.paging", name = "paging-compose", version.ref = "paging" }
 
 # WorkManager
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }

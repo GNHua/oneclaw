@@ -1,5 +1,11 @@
 package com.tomandy.palmclaw.ui.chat
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import android.util.Log
 import com.tomandy.palmclaw.data.entity.MessageEntity
@@ -36,6 +43,7 @@ import com.tomandy.palmclaw.util.formatTimestamp
  * - Rounded corners for modern appearance
  * - Material3 theming support
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageBubble(
     message: MessageEntity,
@@ -43,6 +51,7 @@ fun MessageBubble(
     modifier: Modifier = Modifier
 ) {
     val isUser = message.role == "user"
+    val context = LocalContext.current
 
     val toolCalls: List<ToolCall>? = remember(message.toolCalls) {
         message.toolCalls?.let {
@@ -68,7 +77,16 @@ fun MessageBubble(
             } else {
                 MaterialTheme.colorScheme.surfaceVariant
             },
-            modifier = Modifier.widthIn(max = 280.dp)
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
+                        Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
+                    }
+                )
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 if (!toolCalls.isNullOrEmpty()) {

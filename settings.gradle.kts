@@ -27,3 +27,4 @@ rootProject.name = "Palm Claw"
 include(":app")
 include(":plugin-runtime")
 include(":core-agent")
+include(":lib-scheduler")

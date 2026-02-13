@@ -22,6 +22,8 @@ import androidx.navigation.compose.composable
 import com.tomandy.palmclaw.PalmClawApp
 import com.tomandy.palmclaw.ui.chat.ChatScreen
 import com.tomandy.palmclaw.ui.chat.ChatViewModel
+import com.tomandy.palmclaw.ui.cronjobs.CronjobsScreen
+import com.tomandy.palmclaw.ui.cronjobs.CronjobsViewModel
 import com.tomandy.palmclaw.ui.settings.SettingsScreen
 import com.tomandy.palmclaw.ui.settings.SettingsViewModel
 
@@ -30,7 +32,8 @@ import com.tomandy.palmclaw.ui.settings.SettingsViewModel
  */
 enum class Screen(val route: String) {
     Chat("chat"),
-    Settings("settings")
+    Settings("settings"),
+    Cronjobs("cronjobs")
 }
 
 /**
@@ -78,6 +81,9 @@ fun PalmClawNavGraph(
                 app = app,
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
+                },
+                onNavigateToCronjobs = {
+                    navController.navigate(Screen.Cronjobs.route)
                 }
             )
         }
@@ -109,6 +115,30 @@ fun PalmClawNavGraph(
                 }
             ) { paddingValues ->
                 SettingsScreen(
+                    viewModel = viewModel,
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
+        }
+
+        composable(Screen.Cronjobs.route) {
+            val viewModel = remember {
+                CronjobsViewModel(cronjobManager = app.cronjobManager)
+            }
+
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Scheduled Tasks") },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            }
+                        }
+                    )
+                }
+            ) { paddingValues ->
+                CronjobsScreen(
                     viewModel = viewModel,
                     modifier = Modifier.padding(paddingValues)
                 )

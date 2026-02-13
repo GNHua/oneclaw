@@ -38,6 +38,25 @@ class PluginContext(
     private val pluginId: String,
     private val credentialVault: CredentialVault
 ) {
+    companion object {
+        /**
+         * Create a new PluginContext for a plugin.
+         *
+         * This is the public factory method for creating plugin contexts.
+         *
+         * @param androidContext The Android application context
+         * @param pluginId Unique plugin identifier
+         * @param credentialVault The credential vault for secure storage
+         * @return A new PluginContext instance
+         */
+        fun create(
+            androidContext: Context,
+            pluginId: String,
+            credentialVault: CredentialVault
+        ): PluginContext {
+            return PluginContext(androidContext, pluginId, credentialVault)
+        }
+    }
     /**
      * Pre-configured HTTP client with timeouts and logging.
      *

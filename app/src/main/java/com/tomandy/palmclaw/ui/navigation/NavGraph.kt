@@ -55,6 +55,7 @@ fun PalmClawNavGraph(
             modelPreferences = app.modelPreferences,
             pluginPreferences = app.pluginPreferences,
             loadedPlugins = app.pluginEngine.getAllPlugins(),
+            userPluginManager = app.userPluginManager,
             onApiKeyChanged = {
                 scope.launch {
                     app.reloadApiKeys()

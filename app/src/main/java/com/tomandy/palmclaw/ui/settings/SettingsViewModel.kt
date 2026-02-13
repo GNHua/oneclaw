@@ -1,13 +1,16 @@
 package com.tomandy.palmclaw.ui.settings
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.PluginPreferences
+import com.tomandy.palmclaw.data.UserPluginManager
 import com.tomandy.palmclaw.engine.LoadedPlugin
 import com.tomandy.palmclaw.engine.PluginMetadata
 import com.tomandy.palmclaw.llm.LlmProvider
 import com.tomandy.palmclaw.security.CredentialVault
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +24,7 @@ class SettingsViewModel(
     private val modelPreferences: ModelPreferences,
     private val pluginPreferences: PluginPreferences,
     private val loadedPlugins: List<LoadedPlugin>,
+    private val userPluginManager: UserPluginManager,
     private val onApiKeyChanged: suspend () -> Unit,
     private val onPluginToggled: (String, Boolean) -> Unit
 ) : ViewModel() {
@@ -37,16 +41,21 @@ class SettingsViewModel(
     private val _plugins = MutableStateFlow<List<PluginUiState>>(emptyList())
     val plugins: StateFlow<List<PluginUiState>> = _plugins.asStateFlow()
 
+    private val _importStatus = MutableStateFlow<ImportStatus>(ImportStatus.Idle)
+    val importStatus: StateFlow<ImportStatus> = _importStatus.asStateFlow()
+
     init {
         loadProviders()
         loadPlugins()
     }
 
     private fun loadPlugins() {
+        val userPluginIds = userPluginManager.getUserPluginIds()
         _plugins.value = loadedPlugins.map { loaded ->
             PluginUiState(
                 metadata = loaded.metadata,
-                enabled = pluginPreferences.isPluginEnabled(loaded.metadata.id)
+                enabled = pluginPreferences.isPluginEnabled(loaded.metadata.id),
+                isUserPlugin = loaded.metadata.id in userPluginIds
             )
         }
     }
@@ -56,6 +65,61 @@ class SettingsViewModel(
         _plugins.value = _plugins.value.map { state ->
             if (state.metadata.id == pluginId) state.copy(enabled = enabled) else state
         }
+    }
+
+    fun importPluginFromZip(uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _importStatus.value = ImportStatus.Importing
+            userPluginManager.importFromZip(uri)
+                .onSuccess { loaded ->
+                    addPluginToList(loaded)
+                    _importStatus.value = ImportStatus.Success(loaded.metadata.name)
+                    kotlinx.coroutines.delay(2000)
+                    _importStatus.value = ImportStatus.Idle
+                }
+                .onFailure { error ->
+                    _importStatus.value = ImportStatus.Error(error.message ?: "Unknown error")
+                }
+        }
+    }
+
+    fun importPluginFromUrl(url: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _importStatus.value = ImportStatus.Importing
+            userPluginManager.importFromUrl(url)
+                .onSuccess { loaded ->
+                    addPluginToList(loaded)
+                    _importStatus.value = ImportStatus.Success(loaded.metadata.name)
+                    kotlinx.coroutines.delay(2000)
+                    _importStatus.value = ImportStatus.Idle
+                }
+                .onFailure { error ->
+                    _importStatus.value = ImportStatus.Error(error.message ?: "Unknown error")
+                }
+        }
+    }
+
+    fun deletePlugin(pluginId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (userPluginManager.deletePlugin(pluginId)) {
+                _plugins.value = _plugins.value.filter { it.metadata.id != pluginId }
+            }
+        }
+    }
+
+    fun resetImportStatus() {
+        _importStatus.value = ImportStatus.Idle
+    }
+
+    private fun addPluginToList(loaded: LoadedPlugin) {
+        val existing = _plugins.value.filter { it.metadata.id != loaded.metadata.id }
+        _plugins.value = existing + PluginUiState(
+            metadata = loaded.metadata,
+            enabled = pluginPreferences.isPluginEnabled(loaded.metadata.id),
+            isUserPlugin = true
+        )
+        // Auto-enable newly imported plugins
+        onPluginToggled(loaded.metadata.id, true)
     }
 
     /**
@@ -210,7 +274,15 @@ sealed class DeleteStatus {
     data class Error(val message: String) : DeleteStatus()
 }
 
+sealed class ImportStatus {
+    object Idle : ImportStatus()
+    object Importing : ImportStatus()
+    data class Success(val pluginName: String) : ImportStatus()
+    data class Error(val message: String) : ImportStatus()
+}
+
 data class PluginUiState(
     val metadata: PluginMetadata,
-    val enabled: Boolean
+    val enabled: Boolean,
+    val isUserPlugin: Boolean = false
 )

@@ -2,6 +2,7 @@ package com.tomandy.palmclaw.engine
 
 import android.content.Context
 import kotlinx.serialization.json.Json
+import java.io.File
 
 /**
  * High-level API for the plugin system.
@@ -68,6 +69,59 @@ class PluginEngine(
             Result.failure(
                 PluginException(
                     "Failed to load plugin from assets '$assetPath': ${e.message}",
+                    e
+                )
+            )
+        }
+    }
+
+    /**
+     * Load a plugin from a filesystem directory.
+     *
+     * @param directory Directory containing plugin.json and plugin.js
+     * @param pluginContext The context to pass to the plugin's onLoad method
+     * @return Result containing LoadedPlugin or error
+     */
+    suspend fun loadFromDirectory(
+        directory: File,
+        pluginContext: PluginContext
+    ): Result<LoadedPlugin> {
+        return try {
+            val metadataFile = File(directory, "plugin.json")
+            val scriptFile = File(directory, "plugin.js")
+
+            if (!metadataFile.exists()) {
+                return Result.failure(PluginException("plugin.json not found in ${directory.absolutePath}"))
+            }
+            if (!scriptFile.exists()) {
+                return Result.failure(PluginException("plugin.js not found in ${directory.absolutePath}"))
+            }
+
+            val metadataJson = metadataFile.readText()
+            val metadata = Json.decodeFromString<PluginMetadata>(metadataJson)
+
+            // Check if already loaded
+            loadedPlugins[metadata.id]?.let {
+                return Result.success(it)
+            }
+
+            val scriptSource = scriptFile.readText()
+
+            val jsPlugin = JsPlugin(scriptSource, metadata)
+            jsPlugin.onLoad(pluginContext)
+
+            val loadedPlugin = LoadedPlugin(
+                metadata = metadata,
+                instance = jsPlugin
+            )
+            loadedPlugins[metadata.id] = loadedPlugin
+
+            Result.success(loadedPlugin)
+
+        } catch (e: Exception) {
+            Result.failure(
+                PluginException(
+                    "Failed to load plugin from directory '${directory.absolutePath}': ${e.message}",
                     e
                 )
             )

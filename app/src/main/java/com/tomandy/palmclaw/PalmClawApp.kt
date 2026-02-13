@@ -6,11 +6,13 @@ import com.tomandy.palmclaw.agent.MessageStore
 import com.tomandy.palmclaw.agent.ScheduledAgentExecutor
 import com.tomandy.palmclaw.agent.ToolExecutor
 import com.tomandy.palmclaw.agent.ToolRegistry
+import com.tomandy.palmclaw.agent.InstallPluginTool
 import com.tomandy.palmclaw.data.AppDatabase
 import com.tomandy.palmclaw.data.ConversationPreferences
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.PluginPreferences
 import com.tomandy.palmclaw.data.RoomMessageStore
+import com.tomandy.palmclaw.data.UserPluginManager
 import com.tomandy.palmclaw.engine.LoadedPlugin
 import com.tomandy.palmclaw.engine.PluginContext
 import com.tomandy.palmclaw.engine.PluginEngine
@@ -85,6 +87,9 @@ class PalmClawApp : Application() {
     lateinit var cronjobManager: CronjobManager
         private set
 
+    lateinit var userPluginManager: UserPluginManager
+        private set
+
     val pendingConversationId = MutableStateFlow<String?>(null)
 
     override fun onCreate() {
@@ -121,18 +126,29 @@ class PalmClawApp : Application() {
         // Initialize cronjob manager
         cronjobManager = CronjobManager(this)
 
+        // Initialize user plugin manager
+        userPluginManager = UserPluginManager(
+            context = this,
+            pluginEngine = pluginEngine,
+            toolRegistry = toolRegistry,
+            pluginPreferences = pluginPreferences,
+            credentialVault = credentialVault
+        )
+
         // Initialize agent executor for scheduled tasks
         AgentExecutor.instance = ScheduledAgentExecutor(this)
 
         // Register built-in plugins
         CoroutineScope(Dispatchers.Main).launch {
             registerBuiltInPlugins()
+            registerInstallPluginTool()
             loadApiKeys()
         }
 
-        // Load sample plugins
+        // Load sample plugins and user plugins
         CoroutineScope(Dispatchers.Main).launch {
             loadSamplePlugins()
+            userPluginManager.loadAllUserPlugins()
         }
     }
 
@@ -165,6 +181,18 @@ class PalmClawApp : Application() {
             // Log error but don't crash the app
             e.printStackTrace()
         }
+    }
+
+    /**
+     * Register the install_plugin tool so the LLM can create plugins.
+     */
+    private fun registerInstallPluginTool() {
+        val installTool = InstallPluginTool(userPluginManager)
+        val loadedPlugin = LoadedPlugin(
+            metadata = InstallPluginTool.metadata(),
+            instance = installTool
+        )
+        toolRegistry.registerPlugin(loadedPlugin)
     }
 
     /**

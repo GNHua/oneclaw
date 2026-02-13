@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun MessageList(
     messages: List<MessageEntity>,
+    isProcessing: Boolean = false,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState()
 ) {
@@ -49,11 +50,14 @@ fun MessageList(
         messages.filter { it.role != "tool" }
     }
 
-    // Auto-scroll to bottom when new messages arrive
-    LaunchedEffect(displayedMessages.size) {
-        if (displayedMessages.isNotEmpty()) {
+    // Total item count including typing indicator
+    val totalItems = displayedMessages.size + if (isProcessing) 1 else 0
+
+    // Auto-scroll to bottom when new messages arrive or typing starts
+    LaunchedEffect(totalItems) {
+        if (totalItems > 0) {
             coroutineScope.launch {
-                listState.animateScrollToItem(displayedMessages.size - 1)
+                listState.animateScrollToItem(totalItems - 1)
             }
         }
     }
@@ -71,6 +75,12 @@ fun MessageList(
                 message = message,
                 toolResults = toolResultsMap
             )
+        }
+
+        if (isProcessing) {
+            item(key = "typing_indicator") {
+                TypingIndicator()
+            }
         }
     }
 }

@@ -22,7 +22,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -43,7 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tomandy.palmclaw.PalmClawApp
-import com.tomandy.palmclaw.agent.AgentState
 import kotlinx.coroutines.launch
 
 /**
@@ -73,7 +71,6 @@ fun ChatScreen(
     val messages by viewModel.messages.collectAsState()
     val isProcessing by viewModel.isProcessing.collectAsState()
     val error by viewModel.error.collectAsState()
-    val agentState by viewModel.agentState.collectAsState()
 
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -181,16 +178,9 @@ fun ChatScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Status indicator
-            if (agentState is AgentState.Thinking) {
-                LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
             // Message list
             Box(modifier = Modifier.weight(1f)) {
-                if (messages.isEmpty()) {
+                if (messages.isEmpty() && !isProcessing) {
                     // Empty state
                     Column(
                         modifier = Modifier
@@ -221,6 +211,7 @@ fun ChatScreen(
                 } else {
                     MessageList(
                         messages = messages,
+                        isProcessing = isProcessing,
                         listState = listState
                     )
                 }

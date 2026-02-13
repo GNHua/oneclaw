@@ -16,12 +16,14 @@ interface AgentExecutor {
      * @param instruction The task instruction in natural language
      * @param cronjobId The ID of the cronjob being executed
      * @param triggerTime When the task was triggered (Unix timestamp in millis)
+     * @param conversationId The original conversation to post results to (null = no posting)
      * @return A summary of what the agent did
      */
     suspend fun executeTask(
         instruction: String,
         cronjobId: String,
-        triggerTime: Long
+        triggerTime: Long,
+        conversationId: String? = null
     ): Result<String>
 
     companion object {

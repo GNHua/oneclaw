@@ -111,6 +111,7 @@ class SchedulerPlugin : Plugin {
             val maxExecutions = arguments["max_executions"]?.jsonPrimitive?.intOrNull
             val requireNetwork = arguments["require_network"]?.jsonPrimitive?.booleanOrNull ?: false
             val requireCharging = arguments["require_charging"]?.jsonPrimitive?.booleanOrNull ?: false
+            val conversationId = arguments["_conversation_id"]?.jsonPrimitive?.content
 
             // Build constraints JSON
             val constraints = buildJsonObject {
@@ -121,7 +122,8 @@ class SchedulerPlugin : Plugin {
             // Update cronjob with optional fields
             val finalCronjob = cronjob.copy(
                 maxExecutions = maxExecutions,
-                constraints = constraints
+                constraints = constraints,
+                conversationId = conversationId
             )
 
             // Schedule the cronjob

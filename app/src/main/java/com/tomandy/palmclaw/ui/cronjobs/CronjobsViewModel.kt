@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.tomandy.palmclaw.scheduler.CronjobManager
 import com.tomandy.palmclaw.scheduler.data.CronjobEntity
 import com.tomandy.palmclaw.scheduler.data.ExecutionLog
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -17,7 +19,14 @@ class CronjobsViewModel(
     private val cronjobManager: CronjobManager
 ) : ViewModel() {
 
-    val cronjobs: StateFlow<List<CronjobEntity>> = cronjobManager.getAll()
+    private val _showAll = MutableStateFlow(false)
+    val showAll: StateFlow<Boolean> = _showAll.asStateFlow()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val cronjobs: StateFlow<List<CronjobEntity>> = _showAll
+        .flatMapLatest { all ->
+            if (all) cronjobManager.getAll() else cronjobManager.getAllEnabled()
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _selectedCronjobId = MutableStateFlow<String?>(null)
@@ -82,6 +91,10 @@ class CronjobsViewModel(
                 }
             }
         }
+    }
+
+    fun toggleShowAll() {
+        _showAll.value = !_showAll.value
     }
 
     fun clearError() {

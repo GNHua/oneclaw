@@ -11,6 +11,7 @@ import com.tomandy.palmclaw.scheduler.AgentExecutor
 import com.tomandy.palmclaw.scheduler.CronjobManager
 import com.tomandy.palmclaw.scheduler.R
 import com.tomandy.palmclaw.scheduler.data.ExecutionStatus
+import com.tomandy.palmclaw.scheduler.data.ScheduleType
 import kotlinx.coroutines.*
 
 /**
@@ -93,7 +94,11 @@ class AgentExecutionService : Service() {
 
         try {
             // Execute the agent task
-            val result = executeAgentTask(cronjob.instruction, cronjobId)
+            val result = executeAgentTask(
+                cronjob.instruction,
+                cronjobId,
+                cronjob.conversationId
+            )
 
             // Record successful execution
             cronjobManager.recordExecutionComplete(
@@ -118,19 +123,29 @@ class AgentExecutionService : Service() {
             // Send error notification
             sendErrorNotification(cronjob.instruction, e.message ?: "Unknown error")
         }
+
+        // Disable one-time tasks after execution (keep for history)
+        if (cronjob.scheduleType == ScheduleType.ONE_TIME) {
+            cronjobManager.setEnabled(cronjobId, false)
+        }
     }
 
     /**
      * Execute the agent task
      */
-    private suspend fun executeAgentTask(instruction: String, cronjobId: String): String {
+    private suspend fun executeAgentTask(
+        instruction: String,
+        cronjobId: String,
+        conversationId: String?
+    ): String {
         val executor = AgentExecutor.instance
             ?: return "Error: Agent executor not configured"
 
         val result = executor.executeTask(
             instruction = instruction,
             cronjobId = cronjobId,
-            triggerTime = System.currentTimeMillis()
+            triggerTime = System.currentTimeMillis(),
+            conversationId = conversationId
         )
 
         return result.getOrThrow()

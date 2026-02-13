@@ -8,6 +8,8 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import java.util.UUID
 
@@ -88,11 +90,15 @@ class ToolExecutor(
                 )
             }
 
-            // 3. Execute with timeout
-            Log.d("ToolExecutor", "Calling plugin.execute with arguments: $arguments")
+            // 3. Execute with timeout (inject conversation context for built-in plugins)
+            val enrichedArguments = buildJsonObject {
+                arguments.forEach { (key, value) -> put(key, value) }
+                put("_conversation_id", JsonPrimitive(conversationId))
+            }
+            Log.d("ToolExecutor", "Calling plugin.execute with arguments: $enrichedArguments")
             val result = try {
                 withTimeout(TOOL_EXECUTION_TIMEOUT_MS) {
-                    registeredTool.plugin.execute(toolCall.function.name, arguments)
+                    registeredTool.plugin.execute(toolCall.function.name, enrichedArguments)
                 }
             } catch (e: TimeoutCancellationException) {
                 Log.e("ToolExecutor", "Tool execution timed out", e)

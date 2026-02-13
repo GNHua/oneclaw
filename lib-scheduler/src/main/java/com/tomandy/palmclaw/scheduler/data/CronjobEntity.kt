@@ -80,5 +80,11 @@ data class CronjobEntity(
      * Reference to WorkManager work request ID
      * Used for cancelling WorkManager jobs
      */
-    val workManagerId: String? = null
+    val workManagerId: String? = null,
+
+    /**
+     * The conversation ID where this task was scheduled.
+     * Used to post execution results back to the original conversation.
+     */
+    val conversationId: String? = null
 )

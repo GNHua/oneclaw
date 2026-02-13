@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,6 +61,7 @@ fun CronjobsScreen(
     viewModel: CronjobsViewModel,
     modifier: Modifier = Modifier
 ) {
+    val showAll by viewModel.showAll.collectAsState()
     val cronjobs by viewModel.cronjobs.collectAsState()
     val selectedCronjobId by viewModel.selectedCronjobId.collectAsState()
     val executionLogs by viewModel.executionLogs.collectAsState()
@@ -124,22 +126,40 @@ fun CronjobsScreen(
                 }
             }
         } else {
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(cronjobs, key = { it.id }) { cronjob ->
-                    CronjobCard(
-                        cronjob = cronjob,
-                        isExpanded = selectedCronjobId == cronjob.id,
-                        executionLogs = if (selectedCronjobId == cronjob.id) executionLogs else emptyList(),
-                        onToggleEnabled = { viewModel.toggleEnabled(cronjob) },
-                        onToggleLogs = { viewModel.toggleExecutionLogs(cronjob.id) },
-                        onDelete = { viewModel.requestDelete(cronjob.id) }
+                // Filter chip
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    FilterChip(
+                        selected = showAll,
+                        onClick = { viewModel.toggleShowAll() },
+                        label = { Text("Show completed") }
                     )
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(cronjobs, key = { it.id }) { cronjob ->
+                        CronjobCard(
+                            cronjob = cronjob,
+                            isExpanded = selectedCronjobId == cronjob.id,
+                            executionLogs = if (selectedCronjobId == cronjob.id) executionLogs else emptyList(),
+                            onToggleEnabled = { viewModel.toggleEnabled(cronjob) },
+                            onToggleLogs = { viewModel.toggleExecutionLogs(cronjob.id) },
+                            onDelete = { viewModel.requestDelete(cronjob.id) }
+                        )
+                    }
                 }
             }
         }
@@ -188,6 +208,22 @@ private fun CronjobCard(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Completed badge for disabled one-time tasks
+            if (!cronjob.enabled && cronjob.scheduleType == ScheduleType.ONE_TIME && cronjob.executionCount > 0) {
+                Surface(
+                    color = Color(0xFF4CAF50).copy(alpha = 0.15f),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = "Completed",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF4CAF50),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
 
             // Row 2: Schedule description + execution count
             Row(

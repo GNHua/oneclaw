@@ -16,11 +16,13 @@ class ScheduledAgentExecutor(
     override suspend fun executeTask(
         instruction: String,
         cronjobId: String,
-        triggerTime: Long
+        triggerTime: Long,
+        conversationId: String?
     ): Result<String> {
         return try {
-            // Create a temporary conversation for this scheduled task
-            val conversationId = "scheduled_${cronjobId}_${System.currentTimeMillis()}"
+            // Use a temporary conversation for agent execution
+            // (keeps intermediate tool calls out of the user's conversation)
+            val tempConversationId = "scheduled_${cronjobId}_${System.currentTimeMillis()}"
 
             // Create agent coordinator for this execution
             val coordinator = AgentCoordinator(
@@ -28,7 +30,7 @@ class ScheduledAgentExecutor(
                 toolRegistry = app.toolRegistry,
                 toolExecutor = app.toolExecutor,
                 messageStore = app.messageStore,
-                conversationId = conversationId
+                conversationId = tempConversationId
             )
 
             // Execute with scheduled context
@@ -40,13 +42,27 @@ class ScheduledAgentExecutor(
             // Get the selected model from preferences
             val model = app.modelPreferences.getSelectedModel() ?: ""
 
-            coordinator.execute(
+            val result = coordinator.execute(
                 userMessage = instruction,
                 systemPrompt = AgentCoordinator.TOOL_AWARE_SYSTEM_PROMPT,
                 model = model,
                 context = context
             )
 
+            // Post result to the original conversation
+            if (conversationId != null && result.isSuccess) {
+                val summary = result.getOrNull() ?: ""
+                app.messageStore.insert(
+                    MessageRecord(
+                        id = UUID.randomUUID().toString(),
+                        conversationId = conversationId,
+                        role = "assistant",
+                        content = "[Scheduled Task] $instruction\n\n$summary"
+                    )
+                )
+            }
+
+            result
         } catch (e: Exception) {
             Result.failure(e)
         }

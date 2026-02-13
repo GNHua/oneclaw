@@ -35,10 +35,8 @@ android {
 }
 
 dependencies {
-    // Note: Kotlin Scripting and R8 dependencies removed for simplified implementation
-    // TODO: Add back when implementing full KTS compilation and DEX conversion
-    //   implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host:1.9.25")
-    //   implementation("com.android.tools:r8:8.6.44")
+    // QuickJS (JavaScript engine for plugins)
+    implementation(libs.quickjs.android)
 
     // Serialization
     implementation(libs.kotlinx.serialization.json)

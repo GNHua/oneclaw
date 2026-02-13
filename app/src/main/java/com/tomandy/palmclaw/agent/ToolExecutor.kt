@@ -1,5 +1,6 @@
 package com.tomandy.palmclaw.agent
 
+import android.util.Log
 import com.tomandy.palmclaw.data.dao.MessageDao
 import com.tomandy.palmclaw.data.entity.MessageEntity
 import com.tomandy.palmclaw.engine.ToolResult
@@ -65,13 +66,18 @@ class ToolExecutor(
         conversationId: String,
         toolCall: ToolCall
     ): ToolExecutionResult = withContext(Dispatchers.IO) {
+        Log.d("ToolExecutor", "Executing tool: ${toolCall.function.name}")
         try {
             // 1. Find registered tool
             val registeredTool = toolRegistry.getTool(toolCall.function.name)
-                ?: return@withContext ToolExecutionResult.Failure(
+            if (registeredTool == null) {
+                Log.e("ToolExecutor", "Tool '${toolCall.function.name}' not found in registry")
+                return@withContext ToolExecutionResult.Failure(
                     toolCall = toolCall,
                     error = "Tool '${toolCall.function.name}' not found"
                 )
+            }
+            Log.d("ToolExecutor", "Found registered tool: ${toolCall.function.name}")
 
             // 2. Parse arguments from JSON string to JsonObject
             val arguments = try {
@@ -85,17 +91,20 @@ class ToolExecutor(
             }
 
             // 3. Execute with timeout
+            Log.d("ToolExecutor", "Calling plugin.execute with arguments: $arguments")
             val result = try {
                 withTimeout(TOOL_EXECUTION_TIMEOUT_MS) {
                     registeredTool.plugin.execute(toolCall.function.name, arguments)
                 }
             } catch (e: TimeoutCancellationException) {
+                Log.e("ToolExecutor", "Tool execution timed out", e)
                 return@withContext ToolExecutionResult.Failure(
                     toolCall = toolCall,
                     error = "Tool execution timed out (${TOOL_EXECUTION_TIMEOUT_MS / 1000}s)",
                     exception = e
                 )
             } catch (e: Exception) {
+                Log.e("ToolExecutor", "Unexpected error during tool execution: ${e.message}", e)
                 return@withContext ToolExecutionResult.Failure(
                     toolCall = toolCall,
                     error = "Unexpected error: ${e.message}",
@@ -103,11 +112,14 @@ class ToolExecutor(
                 )
             }
 
+            Log.d("ToolExecutor", "Tool execution completed, result type: ${result::class.simpleName}")
+
             // 4. Save tool result to database
             val resultContent = when (result) {
                 is ToolResult.Success -> result.output
                 is ToolResult.Failure -> "Error: ${result.error}"
             }
+            Log.d("ToolExecutor", "Saving tool result to database")
 
             val resultMessage = MessageEntity(
                 id = UUID.randomUUID().toString(),
@@ -158,6 +170,7 @@ class ToolExecutor(
         conversationId: String,
         toolCalls: List<ToolCall>
     ): List<ToolExecutionResult> {
+        Log.d("ToolExecutor", "executeBatch called with ${toolCalls.size} tool calls")
         return toolCalls.map { execute(conversationId, it) }
     }
 }

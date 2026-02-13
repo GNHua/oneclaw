@@ -36,6 +36,7 @@ android {
         compose = true
         buildConfig = true
     }
+
 }
 
 dependencies {
@@ -81,9 +82,6 @@ dependencies {
 
     // Navigation
     implementation(libs.androidx.navigation.compose)
-
-    // AI/LLM
-    implementation(libs.google.generativeai)
 
     // Markdown
     implementation(libs.compose.markdown)

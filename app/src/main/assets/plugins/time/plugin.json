@@ -1,0 +1,39 @@
+{
+  "id": "time",
+  "name": "Time",
+  "version": "1.0.0",
+  "description": "Time and date utilities",
+  "author": "PalmClaw Team",
+  "entryPoint": "TimePlugin",
+  "tools": [
+    {
+      "name": "get_current_time",
+      "description": "Get the current time in HH:mm:ss format",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "get_current_date",
+      "description": "Get the current date in yyyy-MM-dd format",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "get_timestamp",
+      "description": "Get the current Unix timestamp in milliseconds with formatted date",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    }
+  ],
+  "permissions": [],
+  "dependencies": []
+}

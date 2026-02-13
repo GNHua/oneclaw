@@ -1,138 +1,73 @@
 package com.tomandy.palmclaw.engine
 
 import android.content.Context
+import kotlinx.serialization.json.Json
 
 /**
  * High-level API for the plugin system.
  *
- * PluginEngine orchestrates the complete plugin lifecycle:
- * 1. Check cache (CacheManager)
- * 2. Compile KTS to JAR (KtsCompiler) - if needed
- * 3. Convert JAR to DEX (DexConverter) - if needed
- * 4. Load DEX (PluginLoader)
- * 5. Initialize plugin (call Plugin.onLoad)
+ * PluginEngine loads JavaScript plugins from app assets using QuickJS.
+ * Each plugin is a plain .js file alongside a plugin.json metadata file.
  *
- * Performance Targets:
- * - **Cold path** (first load): < 5s (compilation + dexing)
- * - **Hot path** (cached): < 150ms (DEX loading only)
- *
- * This is the main entry point for plugin management. Other classes are
- * implementation details.
- *
- * Example Usage:
- * ```kotlin
- * val pluginEngine = PluginEngine(context)
- *
- * // Load a plugin
- * val metadata = Json.decodeFromString<PluginMetadata>(
- *     File("gmail_api/plugin.json").readText()
- * )
- * val source = File("gmail_api/GmailPlugin.kts").readText()
- *
- * val result = pluginEngine.loadPlugin(source, metadata)
- * when (result) {
- *     is Result.success -> {
- *         val plugin = result.value
- *         plugin.instance.execute("search_gmail", args)
- *     }
- *     is Result.failure -> println("Error: ${result.exceptionOrNull()}")
- * }
+ * Expected asset structure:
+ * ```
+ * assets/plugins/{pluginId}/
+ *   ├── plugin.json
+ *   └── plugin.js
  * ```
  */
 class PluginEngine(
-    context: Context
+    private val context: Context
 ) {
-    private val cacheManager = CacheManager(context)
-    private val compiler = KtsCompiler(cacheManager.getJarFile("").parentFile!!)
-    private val dexConverter = DexConverter(cacheManager.getDexFile("").parentFile!!)
-    private val loader = PluginLoader(context, cacheManager.getDexFile("").parentFile!!)
+    private val loadedPlugins = mutableMapOf<String, LoadedPlugin>()
 
     /**
-     * Load a plugin from source code.
+     * Load a plugin from app assets.
      *
-     * This is the main entry point for loading plugins. The engine automatically:
-     * - Checks if the plugin is already loaded (instant return)
-     * - Checks if compilation is needed (via MD5 hash)
-     * - Compiles and caches if needed (cold path)
-     * - Loads from cache if available (hot path)
-     *
-     * @param scriptSource The plugin's .kts source code
-     * @param metadata The plugin's metadata from plugin.json
+     * @param assetPath Path to the plugin directory in assets (e.g., "plugins/calculator")
+     * @param pluginContext The context to pass to the plugin's onLoad method
      * @return Result containing LoadedPlugin or error
-     *
-     * Performance:
-     * - First load (cold): 2-5 seconds
-     * - Subsequent loads (hot): < 150ms
-     *
-     * Example:
-     * ```kotlin
-     * val source = """
-     *     import com.tomandy.palmclaw.engine.*
-     *
-     *     class MyPlugin : Plugin {
-     *         override suspend fun onLoad(context: PluginContext) { }
-     *         override suspend fun execute(toolName: String, arguments: JsonObject): ToolResult {
-     *             return ToolResult.Success("Hello from plugin!")
-     *         }
-     *         override suspend fun onUnload() { }
-     *     }
-     * """.trimIndent()
-     *
-     * val metadata = PluginMetadata(
-     *     id = "my_plugin",
-     *     name = "My Plugin",
-     *     version = "1.0.0",
-     *     description = "A test plugin",
-     *     author = "Me",
-     *     entryPoint = "MyPlugin",
-     *     tools = listOf(...)
-     * )
-     *
-     * pluginEngine.loadPlugin(source, metadata)
-     * ```
      */
-    suspend fun loadPlugin(
-        scriptSource: String,
-        metadata: PluginMetadata
+    suspend fun loadFromAssets(
+        assetPath: String,
+        pluginContext: PluginContext
     ): Result<LoadedPlugin> {
-        val pluginId = metadata.id
-
         return try {
+            val assets = context.assets
+
+            // 1. Read plugin.json
+            val metadataJson = assets.open("$assetPath/plugin.json")
+                .bufferedReader()
+                .use { it.readText() }
+            val metadata = Json.decodeFromString<PluginMetadata>(metadataJson)
+
             // Check if already loaded
-            loader.getPlugin(pluginId)?.let {
+            loadedPlugins[metadata.id]?.let {
                 return Result.success(it)
             }
 
-            // Check if we need to recompile
-            val needsCompilation = cacheManager.shouldRecompile(pluginId, scriptSource)
+            // 2. Read plugin.js
+            val scriptSource = assets.open("$assetPath/plugin.js")
+                .bufferedReader()
+                .use { it.readText() }
 
-            val dexFile = if (needsCompilation) {
-                // Cold path: Compile, convert, and cache
+            // 3. Create JsPlugin and initialize
+            val jsPlugin = JsPlugin(scriptSource, metadata)
+            jsPlugin.onLoad(pluginContext)
 
-                // Step 1: Compile KTS to JAR
-                val compiledScript = compiler.compile(scriptSource, pluginId)
-                    .getOrElse { return Result.failure(it) }
+            // 4. Wrap and cache
+            val loadedPlugin = LoadedPlugin(
+                metadata = metadata,
+                instance = jsPlugin
+            )
+            loadedPlugins[metadata.id] = loadedPlugin
 
-                // Step 2: Convert JAR to DEX
-                val dex = dexConverter.convertToDex(compiledScript.jarFile, pluginId)
-                    .getOrElse { return Result.failure(it) }
-
-                // Step 3: Save cache metadata
-                cacheManager.saveCacheMetadata(pluginId, scriptSource)
-
-                dex
-            } else {
-                // Hot path: Load from cache
-                cacheManager.getDexFile(pluginId)
-            }
-
-            // Step 4: Load the plugin
-            loader.load(pluginId, dexFile, metadata)
+            Result.success(loadedPlugin)
 
         } catch (e: Exception) {
             Result.failure(
                 PluginException(
-                    "Failed to load plugin '${metadata.id}': ${e.message}",
+                    "Failed to load plugin from assets '$assetPath': ${e.message}",
                     e
                 )
             )
@@ -140,145 +75,31 @@ class PluginEngine(
     }
 
     /**
-     * Reload a plugin, forcing recompilation.
-     *
-     * This is useful when:
-     * - Plugin source code changed
-     * - Plugin had an error and was fixed
-     * - Cache is suspected to be corrupt
-     *
-     * @param pluginId The plugin to reload
-     * @param scriptSource The updated source code
-     * @param metadata The updated metadata
-     * @return Result containing LoadedPlugin or error
-     */
-    suspend fun reloadPlugin(
-        pluginId: String,
-        scriptSource: String,
-        metadata: PluginMetadata
-    ): Result<LoadedPlugin> {
-        // Unload existing plugin
-        unloadPlugin(pluginId)
-
-        // Clear cache to force recompilation
-        cacheManager.clearCache(pluginId)
-
-        // Load plugin (will recompile)
-        return loadPlugin(scriptSource, metadata)
-    }
-
-    /**
-     * Unload a plugin.
-     *
-     * Removes the plugin from memory. The cache remains intact, so reloading
-     * the same plugin will use the hot path.
-     *
-     * @param pluginId The plugin to unload
-     */
-    fun unloadPlugin(pluginId: String) {
-        loader.unload(pluginId)
-    }
-
-    /**
      * Get a loaded plugin.
-     *
-     * @param pluginId The plugin identifier
-     * @return The LoadedPlugin, or null if not loaded
      */
     fun getLoadedPlugin(pluginId: String): LoadedPlugin? {
-        return loader.getPlugin(pluginId)
+        return loadedPlugins[pluginId]
     }
 
     /**
      * Get all loaded plugins.
-     *
-     * @return List of all currently loaded plugins
      */
     fun getAllPlugins(): List<LoadedPlugin> {
-        return loader.getAllPlugins()
+        return loadedPlugins.values.toList()
     }
 
     /**
-     * Check if a plugin is loaded.
-     *
-     * @param pluginId The plugin identifier
-     * @return True if the plugin is loaded
+     * Unload a plugin.
      */
-    fun isPluginLoaded(pluginId: String): Boolean {
-        return loader.isLoaded(pluginId)
-    }
-
-    /**
-     * Clear all caches.
-     *
-     * This removes all compiled and cached plugins. Next load will use cold path.
-     * Useful for:
-     * - Freeing disk space
-     * - Resetting after corruption
-     * - Testing
-     */
-    fun clearAllCache() {
-        cacheManager.clearCache()
-    }
-
-    /**
-     * Get cache statistics.
-     *
-     * @return CacheStatistics with size and plugin info
-     */
-    fun getCacheStatistics(): CacheStatistics {
-        val totalSize = cacheManager.getCacheSize()
-        val pluginIds = cacheManager.getCachedPluginIds()
-        val pluginSizes = pluginIds.associateWith { pluginId ->
-            cacheManager.getPluginCacheSize(pluginId)
-        }
-
-        return CacheStatistics(
-            totalSizeBytes = totalSize,
-            pluginCount = pluginIds.size,
-            cachedPlugins = pluginIds,
-            pluginSizes = pluginSizes
-        )
+    suspend fun unloadPlugin(pluginId: String) {
+        loadedPlugins.remove(pluginId)?.instance?.onUnload()
     }
 
     /**
      * Unload all plugins.
-     *
-     * Removes all plugins from memory but keeps cache intact.
      */
-    fun unloadAllPlugins() {
-        loader.clear()
-    }
-}
-
-/**
- * Statistics about the plugin cache.
- *
- * @param totalSizeBytes Total cache size in bytes
- * @param pluginCount Number of cached plugins
- * @param cachedPlugins List of cached plugin IDs
- * @param pluginSizes Map of plugin ID to cache size in bytes
- */
-data class CacheStatistics(
-    val totalSizeBytes: Long,
-    val pluginCount: Int,
-    val cachedPlugins: List<String>,
-    val pluginSizes: Map<String, Long>
-) {
-    /**
-     * Total cache size in megabytes.
-     */
-    val totalSizeMB: Double
-        get() = totalSizeBytes / (1024.0 * 1024.0)
-
-    /**
-     * Human-readable size string.
-     */
-    fun formatSize(): String {
-        return when {
-            totalSizeBytes < 1024 -> "$totalSizeBytes B"
-            totalSizeBytes < 1024 * 1024 -> "%.2f KB".format(totalSizeBytes / 1024.0)
-            else -> "%.2f MB".format(totalSizeMB)
-        }
+    suspend fun unloadAllPlugins() {
+        loadedPlugins.values.forEach { it.instance.onUnload() }
+        loadedPlugins.clear()
     }
 }

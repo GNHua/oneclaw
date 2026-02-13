@@ -1,0 +1,26 @@
+{
+  "id": "echo",
+  "name": "Echo",
+  "version": "1.0.0",
+  "description": "Simple echo plugin for testing",
+  "author": "PalmClaw Team",
+  "entryPoint": "EchoPlugin",
+  "tools": [
+    {
+      "name": "echo",
+      "description": "Echo back the provided message",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The message to echo back"
+          }
+        },
+        "required": ["message"]
+      }
+    }
+  ],
+  "permissions": [],
+  "dependencies": []
+}

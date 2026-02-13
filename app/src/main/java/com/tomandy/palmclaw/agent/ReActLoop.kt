@@ -1,5 +1,6 @@
 package com.tomandy.palmclaw.agent
 
+import android.util.Log
 import com.tomandy.palmclaw.engine.ToolDefinition
 import com.tomandy.palmclaw.llm.LlmClient
 import com.tomandy.palmclaw.llm.Message
@@ -66,21 +67,26 @@ class ReActLoop(
         model: String = "gpt-4o-mini",
         maxIterations: Int = 5
     ): Result<String> {
+        Log.d("ReActLoop", "step called with ${messages.size} messages, ${tools.size} tools, model: $model")
         val workingMessages = messages.toMutableList()
         var iterations = 0
 
         // Convert ToolDefinition to LLM Tool format
         val llmTools = tools.map { toolDefToLlmTool(it) }
+        Log.d("ReActLoop", "Converted to ${llmTools.size} LLM tools")
 
         while (iterations < maxIterations) {
             iterations++
+            Log.d("ReActLoop", "Starting iteration $iterations/$maxIterations")
 
             // 1. Call LLM with tools
+            Log.d("ReActLoop", "Calling llmClient.complete with ${workingMessages.size} messages")
             val result = llmClient.complete(
                 messages = workingMessages,
                 model = model,
                 tools = if (llmTools.isNotEmpty()) llmTools else null
             )
+            Log.d("ReActLoop", "llmClient.complete returned")
 
             if (result.isFailure) {
                 return Result.failure(result.exceptionOrNull()!!)
@@ -93,9 +99,11 @@ class ReActLoop(
             val message = choice.message
 
             // 2. Check finish reason
+            Log.d("ReActLoop", "Finish reason: ${choice.finish_reason}")
             when (choice.finish_reason) {
                 "stop" -> {
                     // Final answer - LLM has completed the task
+                    Log.d("ReActLoop", "LLM returned final answer")
                     val content = message.content
                     if (content.isNullOrBlank()) {
                         return Result.failure(Exception("Empty final response from LLM"))
@@ -105,10 +113,12 @@ class ReActLoop(
 
                 "tool_calls" -> {
                     // LLM wants to call tools
+                    Log.d("ReActLoop", "LLM requested tool calls")
                     val toolCalls = message.tool_calls
                         ?: return Result.failure(
                             Exception("finish_reason=tool_calls but no tool_calls in message")
                         )
+                    Log.d("ReActLoop", "Executing ${toolCalls.size} tool calls")
 
                     // Add assistant message with tool calls to history
                     workingMessages.add(
@@ -121,6 +131,7 @@ class ReActLoop(
 
                     // Execute all tool calls
                     val toolResults = toolExecutor.executeBatch(conversationId, toolCalls)
+                    Log.d("ReActLoop", "Tool execution completed, got ${toolResults.size} results")
 
                     // Add tool results to history as observations
                     toolResults.forEach { result ->

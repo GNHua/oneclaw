@@ -1,5 +1,6 @@
 package com.tomandy.palmclaw.ui.chat
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomandy.palmclaw.agent.AgentCoordinator
@@ -119,9 +120,11 @@ class ChatViewModel(
      * @param text The user's message text
      */
     fun sendMessage(text: String) {
+        Log.d("ChatViewModel", "sendMessage called with text: $text")
         if (text.isBlank()) return
 
         viewModelScope.launch {
+            Log.d("ChatViewModel", "Starting message processing")
             _isProcessing.value = true
             _error.value = null
 
@@ -145,6 +148,9 @@ class ChatViewModel(
                 val selectedModel = modelPreferences.getSelectedModel()
                     ?: modelPreferences.getModel(getCurrentProvider())
 
+                Log.d("ChatViewModel", "Selected model: $selectedModel")
+                Log.d("ChatViewModel", "Calling agentCoordinator.execute")
+
                 // Execute agent with selected model
                 val result = agentCoordinator.execute(
                     userMessage = text,
@@ -152,8 +158,11 @@ class ChatViewModel(
                     model = selectedModel
                 )
 
+                Log.d("ChatViewModel", "agentCoordinator.execute returned")
+
                 result.fold(
                     onSuccess = { response ->
+                        Log.d("ChatViewModel", "Agent success, response length: ${response.length}")
                         // Save assistant message
                         val assistantMessage = MessageEntity(
                             id = UUID.randomUUID().toString(),
@@ -170,12 +179,15 @@ class ChatViewModel(
                         }
                     },
                     onFailure = { e ->
+                        Log.e("ChatViewModel", "Agent failure: ${e.message}", e)
                         _error.value = e.message ?: "Unknown error occurred"
                     }
                 )
             } catch (e: Exception) {
+                Log.e("ChatViewModel", "Exception in sendMessage: ${e.message}", e)
                 _error.value = e.message ?: "Unknown error occurred"
             } finally {
+                Log.d("ChatViewModel", "Message processing complete")
                 _isProcessing.value = false
             }
         }

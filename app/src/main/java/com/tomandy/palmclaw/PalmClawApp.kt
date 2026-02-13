@@ -1,10 +1,13 @@
 package com.tomandy.palmclaw
 
 import android.app.Application
+import android.util.Log
 import com.tomandy.palmclaw.agent.ToolExecutor
 import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.data.AppDatabase
 import com.tomandy.palmclaw.data.ModelPreferences
+import com.tomandy.palmclaw.engine.PluginContext
+import com.tomandy.palmclaw.engine.PluginEngine
 import com.tomandy.palmclaw.llm.GeminiClient
 import com.tomandy.palmclaw.llm.LlmClient
 import com.tomandy.palmclaw.llm.LlmProvider
@@ -78,6 +81,11 @@ class PalmClawApp : Application() {
         // Load API keys from vault and set active provider
         CoroutineScope(Dispatchers.Main).launch {
             loadApiKeys()
+        }
+
+        // Load sample plugins
+        CoroutineScope(Dispatchers.Main).launch {
+            loadSamplePlugins()
         }
     }
 
@@ -166,6 +174,38 @@ class PalmClawApp : Application() {
         if (provider != null) {
             _selectedProvider.value = provider
             modelPreferences.saveSelectedModel(model)
+        }
+    }
+
+    /**
+     * Load sample plugins from JavaScript files in assets.
+     *
+     * Plugins loaded:
+     * - calculator: Basic math operations
+     * - time: Current time and date
+     * - notes: Simple note-taking
+     * - echo: Echo back messages
+     */
+    private suspend fun loadSamplePlugins() {
+        val pluginEngine = PluginEngine(this)
+        val pluginPaths = listOf(
+            "plugins/calculator",
+            "plugins/time",
+            "plugins/notes",
+            "plugins/echo"
+        )
+
+        pluginPaths.forEach { path ->
+            val pluginId = path.substringAfterLast("/")
+            val pluginContext = PluginContext(this, pluginId, credentialVault)
+            pluginEngine.loadFromAssets(path, pluginContext)
+                .onSuccess { loadedPlugin ->
+                    toolRegistry.registerPlugin(loadedPlugin)
+                    Log.i("PalmClaw", "Loaded plugin: ${loadedPlugin.metadata.name}")
+                }
+                .onFailure { error ->
+                    Log.e("PalmClaw", "Failed to load $pluginId: ${error.message}", error)
+                }
         }
     }
 }

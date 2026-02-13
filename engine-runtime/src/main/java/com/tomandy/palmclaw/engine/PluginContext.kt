@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit
  * - HTTP client has timeouts to prevent abuse
  * - No direct access to Android Context (except for intents)
  */
-class PluginContext internal constructor(
+class PluginContext(
     private val androidContext: Context,
     private val pluginId: String,
     private val credentialVault: CredentialVault
@@ -258,3 +258,4 @@ interface CredentialVault {
     suspend fun saveApiKey(key: String, value: String)
     suspend fun deleteApiKey(key: String)
 }
+

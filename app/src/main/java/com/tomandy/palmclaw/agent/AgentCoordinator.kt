@@ -1,5 +1,6 @@
 package com.tomandy.palmclaw.agent
 
+import android.util.Log
 import com.tomandy.palmclaw.llm.LlmClient
 import com.tomandy.palmclaw.llm.Message
 import kotlinx.coroutines.CoroutineScope
@@ -73,11 +74,14 @@ class AgentCoordinator(
         systemPrompt: String = DEFAULT_SYSTEM_PROMPT,
         model: String = ""
     ): Result<String> {
+        Log.d("AgentCoordinator", "execute called with message: $userMessage, model: $model")
+
         // Cancel any existing job
         currentJob?.cancel()
 
         return try {
             // Update state to Thinking
+            Log.d("AgentCoordinator", "State changed to Thinking")
             _state.value = AgentState.Thinking
 
             // Build messages list
@@ -99,17 +103,21 @@ class AgentCoordinator(
 
             // Get available tools from registry
             val tools = toolRegistry.getToolDefinitions()
+            Log.d("AgentCoordinator", "Retrieved ${tools.size} tool definitions from registry")
 
             // Execute ReAct loop with tools
+            Log.d("AgentCoordinator", "Calling reActLoop.step")
             val result = reActLoop.step(
                 messages = messages,
                 tools = tools,
                 conversationId = conversationId,
                 model = model
             )
+            Log.d("AgentCoordinator", "reActLoop.step completed")
 
             result.fold(
                 onSuccess = { response ->
+                    Log.d("AgentCoordinator", "ReAct loop success, response length: ${response.length}")
                     // Add assistant response to history
                     conversationHistory.add(Message(role = "assistant", content = response))
 
@@ -119,6 +127,7 @@ class AgentCoordinator(
                     Result.success(response)
                 },
                 onFailure = { error ->
+                    Log.e("AgentCoordinator", "ReAct loop failure: ${error.message}", error)
                     // Update state to Error
                     _state.value = AgentState.Error(
                         message = error.message ?: "Unknown error",
@@ -129,6 +138,7 @@ class AgentCoordinator(
                 }
             )
         } catch (e: Exception) {
+            Log.e("AgentCoordinator", "Unexpected error in execute: ${e.message}", e)
             // Handle unexpected errors
             _state.value = AgentState.Error(
                 message = e.message ?: "Unexpected error",

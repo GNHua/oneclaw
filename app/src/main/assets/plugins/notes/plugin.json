@@ -1,0 +1,44 @@
+{
+  "id": "notes",
+  "name": "Notes",
+  "version": "1.0.0",
+  "description": "Simple in-memory note-taking plugin",
+  "author": "PalmClaw Team",
+  "entryPoint": "NotesPlugin",
+  "tools": [
+    {
+      "name": "save_note",
+      "description": "Save a note to memory",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "description": "The note content to save"
+          }
+        },
+        "required": ["note"]
+      }
+    },
+    {
+      "name": "get_notes",
+      "description": "Retrieve all saved notes",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "clear_notes",
+      "description": "Clear all saved notes",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    }
+  ],
+  "permissions": [],
+  "dependencies": []
+}

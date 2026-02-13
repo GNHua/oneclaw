@@ -43,7 +43,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.tomandy.palmclaw.PalmClawApp
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import com.tomandy.palmclaw.notification.ChatScreenTracker
@@ -80,11 +83,31 @@ fun ChatScreen(
     val error by viewModel.error.collectAsState()
     val currentConversationId by viewModel.conversationId.collectAsState()
 
-    // Track whether this screen is visible and dismiss any pending notification
-    DisposableEffect(currentConversationId) {
-        ChatScreenTracker.activeConversationId = currentConversationId
-        ChatNotificationHelper.dismiss(app.applicationContext, currentConversationId)
+    // Track whether this screen is visible and dismiss any pending notification.
+    // Uses lifecycle observer so that going to home screen or locking the device
+    // clears the tracker, allowing notifications to fire.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(currentConversationId, lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    ChatScreenTracker.activeConversationId = currentConversationId
+                    ChatNotificationHelper.dismiss(app.applicationContext, currentConversationId)
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    ChatScreenTracker.activeConversationId = null
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        // Set immediately if already resumed
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            ChatScreenTracker.activeConversationId = currentConversationId
+            ChatNotificationHelper.dismiss(app.applicationContext, currentConversationId)
+        }
         onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
             ChatScreenTracker.activeConversationId = null
         }
     }

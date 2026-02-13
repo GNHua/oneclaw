@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -24,30 +25,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 
-/**
- * Chat input field component with send button.
- *
- * Features:
- * - Multi-line text input (max 4 lines)
- * - Send button enabled only when text is not blank
- * - IME action for keyboard send
- * - Disabled state during message processing
- * - Rounded corners for modern appearance
- * - Material3 design system
- * - Keyboard integration with ImeAction.Send
- *
- * @param value Current input text value
- * @param onValueChange Callback when text changes
- * @param onSend Callback when send button is clicked
- * @param enabled Whether input is enabled (false during processing)
- * @param modifier Modifier for styling
- */
 @Composable
 fun ChatInput(
     value: String,
     onValueChange: (String) -> Unit,
     onSend: () -> Unit,
-    enabled: Boolean = true,
+    onStop: () -> Unit = {},
+    isProcessing: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -61,7 +45,6 @@ fun ChatInput(
             onValueChange = onValueChange,
             modifier = Modifier.weight(1f),
             placeholder = { Text("Type a message...") },
-            enabled = enabled,
             maxLines = 4,
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Sentences,
@@ -73,26 +56,35 @@ fun ChatInput(
             shape = RoundedCornerShape(24.dp),
             colors = TextFieldDefaults.colors(
                 focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                disabledIndicatorColor = Color.Transparent
+                unfocusedIndicatorColor = Color.Transparent
             )
         )
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        IconButton(
-            onClick = onSend,
-            enabled = enabled && value.isNotBlank()
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
-                contentDescription = "Send message",
-                tint = if (enabled && value.isNotBlank()) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
-            )
+        if (isProcessing && value.isBlank()) {
+            IconButton(onClick = onStop) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Stop generation",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        } else {
+            IconButton(
+                onClick = onSend,
+                enabled = value.isNotBlank()
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Send message",
+                    tint = if (value.isNotBlank()) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            }
         }
     }
 }

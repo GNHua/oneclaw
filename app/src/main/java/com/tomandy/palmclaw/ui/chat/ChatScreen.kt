@@ -273,7 +273,8 @@ fun ChatScreen(
                     viewModel.sendMessage(inputText)
                     inputText = ""
                 },
-                enabled = !isProcessing
+                onStop = { viewModel.cancelRequest() },
+                isProcessing = isProcessing
             )
         }
     }

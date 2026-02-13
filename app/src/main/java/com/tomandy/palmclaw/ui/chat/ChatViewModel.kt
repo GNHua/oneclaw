@@ -121,7 +121,7 @@ class ChatViewModel(
                 ))
             }
 
-            // Persist user message
+            // Persist user message (always -- so it shows in the chat immediately)
             val userMessage = MessageEntity(
                 id = UUID.randomUUID().toString(),
                 conversationId = convId,
@@ -131,8 +131,13 @@ class ChatViewModel(
             )
             messageDao.insert(userMessage)
 
-            // Delegate execution to the foreground service
-            ChatExecutionService.startExecution(appContext, convId, text)
+            // If already processing, inject into the running loop; otherwise start new execution
+            if (_isProcessing.value) {
+                Log.d("ChatViewModel", "Injecting message into active loop: $text")
+                ChatExecutionService.injectMessage(appContext, convId, text)
+            } else {
+                ChatExecutionService.startExecution(appContext, convId, text)
+            }
         }
     }
 

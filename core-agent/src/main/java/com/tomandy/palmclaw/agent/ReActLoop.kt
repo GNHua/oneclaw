@@ -8,6 +8,7 @@ import com.tomandy.palmclaw.llm.NetworkConfig
 import com.tomandy.palmclaw.llm.Tool
 import com.tomandy.palmclaw.llm.ToolFunction
 import java.util.UUID
+import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
  * Implements the ReAct (Reasoning + Acting) cycle for the agent.
@@ -31,6 +32,11 @@ class ReActLoop(
     private val toolExecutor: ToolExecutor,
     private val messageStore: MessageStore
 ) {
+    private val pendingUserMessages = ConcurrentLinkedQueue<String>()
+
+    fun injectMessage(text: String) {
+        pendingUserMessages.add(text)
+    }
 
     /**
      * Execute the ReAct loop with tool execution.
@@ -69,6 +75,14 @@ class ReActLoop(
             iterations++
             Log.d("ReActLoop", "Starting iteration $iterations/$maxIterations")
 
+            // Drain any user messages injected mid-loop
+            var injected: String? = pendingUserMessages.poll()
+            while (injected != null) {
+                Log.d("ReActLoop", "Injecting user message into loop: $injected")
+                workingMessages.add(Message(role = "user", content = injected))
+                injected = pendingUserMessages.poll()
+            }
+
             // 1. Call LLM with tools
             Log.d("ReActLoop", "Calling llmClient.complete with ${workingMessages.size} messages")
             val result = llmClient.complete(
@@ -98,6 +112,25 @@ class ReActLoop(
                     if (content.isNullOrBlank()) {
                         return Result.failure(Exception("Empty final response from LLM"))
                     }
+
+                    // If user messages were injected while we were working,
+                    // add the assistant answer to history and continue the loop
+                    if (pendingUserMessages.isNotEmpty()) {
+                        Log.d("ReActLoop", "Pending user messages found, continuing loop")
+                        workingMessages.add(Message(role = "assistant", content = content))
+                        // Persist intermediate final answer to DB
+                        messageStore.insert(
+                            MessageRecord(
+                                id = UUID.randomUUID().toString(),
+                                conversationId = conversationId,
+                                role = "assistant",
+                                content = content,
+                                timestamp = System.currentTimeMillis()
+                            )
+                        )
+                        continue
+                    }
+
                     return Result.success(content)
                 }
 

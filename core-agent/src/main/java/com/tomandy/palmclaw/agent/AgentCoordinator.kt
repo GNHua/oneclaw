@@ -192,6 +192,14 @@ class AgentCoordinator(
     }
 
     /**
+     * Injects a user message into the currently running ReAct loop.
+     * The message will be picked up on the next iteration.
+     */
+    fun injectMessage(text: String) {
+        reActLoop.injectMessage(text)
+    }
+
+    /**
      * Cancels the current agent execution.
      *
      * This will stop any in-progress LLM calls or tool executions

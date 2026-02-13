@@ -53,6 +53,15 @@ class ChatExecutionService : Service() {
                     cancelExecution(conversationId)
                 }
             }
+            ACTION_INJECT -> {
+                val conversationId = intent.getStringExtra(EXTRA_CONVERSATION_ID)
+                val message = intent.getStringExtra(EXTRA_USER_MESSAGE)
+                if (conversationId != null && message != null) {
+                    synchronized(activeCoordinators) {
+                        activeCoordinators[conversationId]
+                    }?.injectMessage(message)
+                }
+            }
             else -> stopSelfIfIdle()
         }
         return START_NOT_STICKY
@@ -221,6 +230,7 @@ class ChatExecutionService : Service() {
         private const val TAG = "ChatExecService"
         const val ACTION_EXECUTE = "com.tomandy.palmclaw.service.EXECUTE_CHAT"
         const val ACTION_CANCEL = "com.tomandy.palmclaw.service.CANCEL_CHAT"
+        const val ACTION_INJECT = "com.tomandy.palmclaw.service.INJECT_MESSAGE"
         const val EXTRA_CONVERSATION_ID = "conversation_id"
         const val EXTRA_USER_MESSAGE = "user_message"
         private const val CHANNEL_ID = "chat_processing_channel"
@@ -243,6 +253,15 @@ class ChatExecutionService : Service() {
             val intent = Intent(context, ChatExecutionService::class.java).apply {
                 action = ACTION_CANCEL
                 putExtra(EXTRA_CONVERSATION_ID, conversationId)
+            }
+            context.startService(intent)
+        }
+
+        fun injectMessage(context: Context, conversationId: String, message: String) {
+            val intent = Intent(context, ChatExecutionService::class.java).apply {
+                action = ACTION_INJECT
+                putExtra(EXTRA_CONVERSATION_ID, conversationId)
+                putExtra(EXTRA_USER_MESSAGE, message)
             }
             context.startService(intent)
         }

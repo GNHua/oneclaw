@@ -176,12 +176,48 @@ class SchedulerPlugin : Plugin {
         return try {
             val includeDisabled = arguments["include_disabled"]?.jsonPrimitive?.booleanOrNull ?: false
 
-            // Note: Since Flow doesn't work well with synchronous tool execution,
-            // we'll need to collect once
-            // TODO: Consider making this return a snapshot
+            val tasks = if (includeDisabled) {
+                cronjobManager.getAllSnapshot()
+            } else {
+                cronjobManager.getAllEnabledSnapshot()
+            }
 
-            return ToolResult.Success(
-                output = "Listing scheduled tasks (feature in progress - need to integrate with Flow collection)"
+            if (tasks.isEmpty()) {
+                return ToolResult.Success(
+                    output = "No scheduled tasks found."
+                )
+            }
+
+            val taskList = tasks.joinToString("\n\n") { task ->
+                val schedule = when (task.scheduleType) {
+                    ScheduleType.ONE_TIME -> {
+                        val time = task.executeAt?.let {
+                            LocalDateTime.ofInstant(
+                                java.time.Instant.ofEpochMilli(it),
+                                ZoneId.systemDefault()
+                            ).toString()
+                        } ?: "unknown"
+                        "One-time at $time"
+                    }
+                    ScheduleType.RECURRING -> when {
+                        task.cronExpression != null -> "Cron: ${task.cronExpression}"
+                        task.intervalMinutes != null -> "Every ${task.intervalMinutes} minutes"
+                        else -> "Recurring"
+                    }
+                    ScheduleType.CONDITIONAL -> "Conditional"
+                }
+
+                val status = if (task.enabled) "Enabled" else "Disabled"
+
+                """- ID: ${task.id}
+                    |  Instruction: "${task.instruction}"
+                    |  Schedule: $schedule
+                    |  Status: $status
+                    |  Executions: ${task.executionCount}""".trimMargin()
+            }
+
+            ToolResult.Success(
+                output = "Scheduled tasks (${tasks.size} total):\n\n$taskList"
             )
 
         } catch (e: Exception) {

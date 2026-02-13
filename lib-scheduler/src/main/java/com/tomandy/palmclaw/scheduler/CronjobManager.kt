@@ -113,6 +113,20 @@ class CronjobManager(private val context: Context) {
     }
 
     /**
+     * Get a snapshot of all cronjobs (enabled and disabled)
+     */
+    suspend fun getAllSnapshot(): List<CronjobEntity> {
+        return cronjobDao.getAllSnapshot()
+    }
+
+    /**
+     * Get a snapshot of all enabled cronjobs
+     */
+    suspend fun getAllEnabledSnapshot(): List<CronjobEntity> {
+        return cronjobDao.getAllEnabledSnapshot()
+    }
+
+    /**
      * Get disabled cronjobs with pagination
      */
     suspend fun getDisabledPaged(limit: Int, offset: Int): List<CronjobEntity> {

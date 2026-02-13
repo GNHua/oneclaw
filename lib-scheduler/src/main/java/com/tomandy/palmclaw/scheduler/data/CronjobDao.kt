@@ -18,6 +18,12 @@ interface CronjobDao {
     @Query("SELECT * FROM cronjobs ORDER BY createdAt DESC")
     fun getAll(): Flow<List<CronjobEntity>>
 
+    @Query("SELECT * FROM cronjobs ORDER BY createdAt DESC")
+    suspend fun getAllSnapshot(): List<CronjobEntity>
+
+    @Query("SELECT * FROM cronjobs WHERE enabled = 1 ORDER BY createdAt DESC")
+    suspend fun getAllEnabledSnapshot(): List<CronjobEntity>
+
     @Query("SELECT * FROM cronjobs WHERE scheduleType = :scheduleType AND enabled = 1")
     suspend fun getByType(scheduleType: ScheduleType): List<CronjobEntity>
 

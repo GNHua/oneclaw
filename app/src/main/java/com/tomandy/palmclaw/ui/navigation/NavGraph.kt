@@ -94,10 +94,15 @@ fun PalmClawNavGraph(
                 SettingsViewModel(
                     credentialVault = app.credentialVault,
                     modelPreferences = app.modelPreferences,
+                    pluginPreferences = app.pluginPreferences,
+                    loadedPlugins = app.pluginEngine.getAllPlugins(),
                     onApiKeyChanged = {
                         scope.launch {
                             app.reloadApiKeys()
                         }
+                    },
+                    onPluginToggled = { id, enabled ->
+                        app.setPluginEnabled(id, enabled)
                     }
                 )
             }

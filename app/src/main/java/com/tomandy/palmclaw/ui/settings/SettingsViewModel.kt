@@ -3,6 +3,9 @@ package com.tomandy.palmclaw.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomandy.palmclaw.data.ModelPreferences
+import com.tomandy.palmclaw.data.PluginPreferences
+import com.tomandy.palmclaw.engine.LoadedPlugin
+import com.tomandy.palmclaw.engine.PluginMetadata
 import com.tomandy.palmclaw.llm.LlmProvider
 import com.tomandy.palmclaw.security.CredentialVault
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +19,10 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(
     private val credentialVault: CredentialVault,
     private val modelPreferences: ModelPreferences,
-    private val onApiKeyChanged: suspend () -> Unit
+    private val pluginPreferences: PluginPreferences,
+    private val loadedPlugins: List<LoadedPlugin>,
+    private val onApiKeyChanged: suspend () -> Unit,
+    private val onPluginToggled: (String, Boolean) -> Unit
 ) : ViewModel() {
 
     private val _providers = MutableStateFlow<List<String>>(emptyList())
@@ -28,8 +34,28 @@ class SettingsViewModel(
     private val _deleteStatus = MutableStateFlow<DeleteStatus>(DeleteStatus.Idle)
     val deleteStatus: StateFlow<DeleteStatus> = _deleteStatus.asStateFlow()
 
+    private val _plugins = MutableStateFlow<List<PluginUiState>>(emptyList())
+    val plugins: StateFlow<List<PluginUiState>> = _plugins.asStateFlow()
+
     init {
         loadProviders()
+        loadPlugins()
+    }
+
+    private fun loadPlugins() {
+        _plugins.value = loadedPlugins.map { loaded ->
+            PluginUiState(
+                metadata = loaded.metadata,
+                enabled = pluginPreferences.isPluginEnabled(loaded.metadata.id)
+            )
+        }
+    }
+
+    fun togglePlugin(pluginId: String, enabled: Boolean) {
+        onPluginToggled(pluginId, enabled)
+        _plugins.value = _plugins.value.map { state ->
+            if (state.metadata.id == pluginId) state.copy(enabled = enabled) else state
+        }
     }
 
     /**
@@ -183,3 +209,8 @@ sealed class DeleteStatus {
     object Success : DeleteStatus()
     data class Error(val message: String) : DeleteStatus()
 }
+
+data class PluginUiState(
+    val metadata: PluginMetadata,
+    val enabled: Boolean
+)

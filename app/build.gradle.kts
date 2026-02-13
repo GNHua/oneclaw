@@ -42,14 +42,16 @@ android {
             excludes += listOf(
                 "META-INF/INDEX.LIST",
                 "META-INF/DEPENDENCIES",
+                "META-INF/io.netty.versions.properties",
+                "mozilla/public-suffix-list.txt",
             )
         }
     }
 }
 
 dependencies {
-    // Plugin Engine
-    implementation(project(":engine-runtime"))
+    // QuickJS (JavaScript engine for plugins)
+    implementation(libs.quickjs.android)
 
     // Core Android
     implementation(libs.androidx.core.ktx)
@@ -93,6 +95,7 @@ dependencies {
 
     // AI/LLM
     implementation(libs.google.genai)
+    implementation(libs.anthropic.java)
 
     // Markdown
     implementation(libs.compose.markdown)

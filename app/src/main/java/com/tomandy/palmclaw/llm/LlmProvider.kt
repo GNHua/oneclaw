@@ -7,7 +7,8 @@ enum class LlmProvider(
     val displayName: String,
     val apiKeyLabel: String,
     val defaultModel: String,
-    val availableModels: List<String>
+    val availableModels: List<String>,
+    val supportsBaseUrl: Boolean = false
 ) {
     OPENAI(
         displayName = "OpenAI",
@@ -28,6 +29,17 @@ enum class LlmProvider(
             "gemini-3-flash",
             "gemini-3-flash-preview"
         )
+    ),
+    ANTHROPIC(
+        displayName = "Anthropic",
+        apiKeyLabel = "Anthropic API Key",
+        defaultModel = "claude-sonnet-4-5",
+        availableModels = listOf(
+            "claude-sonnet-4-5",
+            "claude-opus-4-6",
+            "claude-haiku-4-5"
+        ),
+        supportsBaseUrl = true
     );
 
     companion object {

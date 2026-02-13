@@ -1,5 +1,6 @@
 package com.tomandy.palmclaw.engine
 
+import com.tomandy.palmclaw.BuildConfig
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context

@@ -130,6 +130,26 @@ class SettingsViewModel(
     }
 
     /**
+     * Saves a base URL for a specific provider.
+     */
+    fun saveBaseUrl(provider: String, url: String) {
+        viewModelScope.launch {
+            try {
+                credentialVault.saveApiKey("${provider}_baseUrl", url)
+            } catch (_: Exception) {
+                // Base URL save failure is non-critical
+            }
+        }
+    }
+
+    /**
+     * Gets the saved base URL for a specific provider.
+     */
+    suspend fun getBaseUrl(provider: String): String {
+        return credentialVault.getApiKey("${provider}_baseUrl") ?: ""
+    }
+
+    /**
      * Save the selected model for a provider
      */
     fun saveModel(provider: LlmProvider, model: String) {

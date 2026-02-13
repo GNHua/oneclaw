@@ -8,6 +8,7 @@ import com.tomandy.palmclaw.data.AppDatabase
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.engine.PluginContext
 import com.tomandy.palmclaw.engine.PluginEngine
+import com.tomandy.palmclaw.llm.AnthropicClient
 import com.tomandy.palmclaw.llm.GeminiClient
 import com.tomandy.palmclaw.llm.LlmClient
 import com.tomandy.palmclaw.llm.LlmProvider
@@ -50,6 +51,7 @@ class PalmClawApp : Application() {
 
     private val openAiClient = OpenAiClient(apiKey = "")
     private val geminiClient = GeminiClient(apiKey = "")
+    private val anthropicClient = AnthropicClient()
 
     lateinit var toolRegistry: ToolRegistry
         private set
@@ -105,8 +107,17 @@ class PalmClawApp : Application() {
             geminiClient.setApiKey(key)
         }
 
+        // Load Anthropic key + base URL if available
+        credentialVault.getApiKey(LlmProvider.ANTHROPIC.displayName)?.let { key ->
+            anthropicClient.setApiKey(key)
+        }
+        credentialVault.getApiKey("${LlmProvider.ANTHROPIC.displayName}_baseUrl")?.let { url ->
+            anthropicClient.setBaseUrl(url)
+        }
+
         // Set default provider based on which keys are available
         val activeProvider = when {
+            providers.contains(LlmProvider.ANTHROPIC.displayName) -> LlmProvider.ANTHROPIC
             providers.contains(LlmProvider.GEMINI.displayName) -> LlmProvider.GEMINI
             providers.contains(LlmProvider.OPENAI.displayName) -> LlmProvider.OPENAI
             else -> LlmProvider.OPENAI // Default to OpenAI
@@ -129,6 +140,7 @@ class PalmClawApp : Application() {
         return when (_selectedProvider.value) {
             LlmProvider.OPENAI -> openAiClient
             LlmProvider.GEMINI -> geminiClient
+            LlmProvider.ANTHROPIC -> anthropicClient
         }
     }
 

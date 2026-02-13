@@ -36,8 +36,18 @@ fun SettingsScreen(
     var selectedProvider by remember { mutableStateOf(LlmProvider.OPENAI) }
     var isProviderDropdownExpanded by remember { mutableStateOf(false) }
     var apiKey by remember { mutableStateOf("") }
+    var baseUrl by remember { mutableStateOf("") }
     var isApiKeyVisible by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    // Load saved base URL when provider changes
+    LaunchedEffect(selectedProvider) {
+        if (selectedProvider.supportsBaseUrl) {
+            baseUrl = viewModel.getBaseUrl(selectedProvider.displayName)
+        } else {
+            baseUrl = ""
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -178,24 +188,57 @@ fun SettingsScreen(
                             },
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Password,
-                                imeAction = ImeAction.Done
+                                imeAction = if (selectedProvider.supportsBaseUrl) ImeAction.Next else ImeAction.Done
                             ),
                             keyboardActions = KeyboardActions(
                                 onDone = {
-                                    keyboardController?.hide()
-                                    if (apiKey.isNotBlank()) {
-                                        viewModel.saveApiKey(selectedProvider.displayName, apiKey)
-                                        apiKey = ""
-                                        isApiKeyVisible = false
+                                    if (!selectedProvider.supportsBaseUrl) {
+                                        keyboardController?.hide()
+                                        if (apiKey.isNotBlank()) {
+                                            viewModel.saveApiKey(selectedProvider.displayName, apiKey)
+                                            apiKey = ""
+                                            isApiKeyVisible = false
+                                        }
                                     }
                                 }
                             )
                         )
 
+                        // Base URL field for providers that support it
+                        if (selectedProvider.supportsBaseUrl) {
+                            OutlinedTextField(
+                                value = baseUrl,
+                                onValueChange = { baseUrl = it },
+                                label = { Text("Base URL (optional)") },
+                                placeholder = { Text("https://api.anthropic.com (default)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = saveStatus !is SaveStatus.Saving,
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Uri,
+                                    imeAction = ImeAction.Done
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onDone = {
+                                        keyboardController?.hide()
+                                        if (apiKey.isNotBlank()) {
+                                            viewModel.saveApiKey(selectedProvider.displayName, apiKey)
+                                            viewModel.saveBaseUrl(selectedProvider.displayName, baseUrl)
+                                            apiKey = ""
+                                            isApiKeyVisible = false
+                                        }
+                                    }
+                                )
+                            )
+                        }
+
                         Button(
                             onClick = {
                                 keyboardController?.hide()
                                 viewModel.saveApiKey(selectedProvider.displayName, apiKey)
+                                if (selectedProvider.supportsBaseUrl) {
+                                    viewModel.saveBaseUrl(selectedProvider.displayName, baseUrl)
+                                }
                                 apiKey = ""
                                 isApiKeyVisible = false
                             },

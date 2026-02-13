@@ -155,22 +155,22 @@ class AgentExecutionService : Service() {
      * Create the foreground notification
      */
     private fun createNotification(text: String) =
-        NotificationCompat.Builder(this, CHANNEL_ID)
+        NotificationCompat.Builder(this, SERVICE_CHANNEL_ID)
             .setContentTitle("PalmClaw Agent")
             .setContentText(text)
-            .setSmallIcon(R.drawable.ic_notification) // TODO: Add actual icon
+            .setSmallIcon(R.drawable.ic_notification)
             .setOngoing(true)
             .build()
-            .also { createNotificationChannel() }
+            .also { createNotificationChannels() }
 
     /**
      * Send completion notification
      */
     private fun sendCompletionNotification(instruction: String, result: String) {
-        createNotificationChannel()
+        createNotificationChannels()
 
         val notificationManager = getSystemService(NotificationManager::class.java)
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, RESULT_CHANNEL_ID)
             .setContentTitle("Task completed")
             .setContentText(instruction.take(50))
             .setStyle(NotificationCompat.BigTextStyle().bigText(result))
@@ -185,10 +185,10 @@ class AgentExecutionService : Service() {
      * Send error notification
      */
     private fun sendErrorNotification(instruction: String, error: String) {
-        createNotificationChannel()
+        createNotificationChannels()
 
         val notificationManager = getSystemService(NotificationManager::class.java)
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, RESULT_CHANNEL_ID)
             .setContentTitle("Task failed")
             .setContentText(instruction.take(50))
             .setStyle(NotificationCompat.BigTextStyle().bigText("Error: $error"))
@@ -200,27 +200,39 @@ class AgentExecutionService : Service() {
     }
 
     /**
-     * Create notification channel
+     * Create notification channels
      */
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Scheduled Tasks",
+            val notificationManager = getSystemService(NotificationManager::class.java)
+
+            // Low-importance channel for the foreground service (ongoing, silent)
+            val serviceChannel = NotificationChannel(
+                SERVICE_CHANNEL_ID,
+                "Task Execution",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Notifications for scheduled agent tasks"
+                description = "Shown while a scheduled task is running"
             }
+            notificationManager.createNotificationChannel(serviceChannel)
 
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
+            // Default-importance channel for completion/error results (sound + heads-up)
+            val resultChannel = NotificationChannel(
+                RESULT_CHANNEL_ID,
+                "Task Results",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Notifications when scheduled tasks complete or fail"
+            }
+            notificationManager.createNotificationChannel(resultChannel)
         }
     }
 
     companion object {
         const val ACTION_EXECUTE_TASK = "com.tomandy.palmclaw.scheduler.EXECUTE_TASK"
         const val EXTRA_CRONJOB_ID = "cronjob_id"
-        private const val CHANNEL_ID = "cronjob_channel"
+        private const val SERVICE_CHANNEL_ID = "cronjob_service_channel"
+        private const val RESULT_CHANNEL_ID = "cronjob_result_channel"
         private const val NOTIFICATION_ID = 1001
     }
 }

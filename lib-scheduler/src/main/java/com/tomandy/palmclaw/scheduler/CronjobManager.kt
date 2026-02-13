@@ -72,6 +72,17 @@ class CronjobManager(private val context: Context) {
     }
 
     /**
+     * Enable or disable a cronjob
+     */
+    suspend fun setEnabled(cronjobId: String, enabled: Boolean) {
+        if (enabled) {
+            cronjobDao.updateEnabled(cronjobId, true)
+        } else {
+            cancel(cronjobId)
+        }
+    }
+
+    /**
      * Delete a cronjob completely
      */
     suspend fun delete(cronjobId: String) {

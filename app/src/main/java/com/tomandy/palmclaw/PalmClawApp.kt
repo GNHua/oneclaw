@@ -18,6 +18,7 @@ import com.tomandy.palmclaw.llm.LlmClient
 import com.tomandy.palmclaw.llm.LlmProvider
 import com.tomandy.palmclaw.llm.OpenAiClient
 import com.tomandy.palmclaw.scheduler.AgentExecutor
+import com.tomandy.palmclaw.scheduler.CronjobManager
 import com.tomandy.palmclaw.scheduler.plugin.SchedulerPlugin
 import com.tomandy.palmclaw.scheduler.plugin.SchedulerPluginMetadata
 import com.tomandy.palmclaw.security.CredentialVault
@@ -70,6 +71,9 @@ class PalmClawApp : Application() {
     lateinit var toolExecutor: ToolExecutor
         private set
 
+    lateinit var cronjobManager: CronjobManager
+        private set
+
     override fun onCreate() {
         super.onCreate()
 
@@ -93,6 +97,9 @@ class PalmClawApp : Application() {
             toolRegistry = toolRegistry,
             messageStore = messageStore
         )
+
+        // Initialize cronjob manager
+        cronjobManager = CronjobManager(this)
 
         // Initialize agent executor for scheduled tasks
         AgentExecutor.instance = ScheduledAgentExecutor(this)

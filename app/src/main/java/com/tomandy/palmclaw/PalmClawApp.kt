@@ -7,6 +7,7 @@ import com.tomandy.palmclaw.agent.ToolExecutor
 import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.data.AppDatabase
 import com.tomandy.palmclaw.data.ModelPreferences
+import com.tomandy.palmclaw.data.PluginPreferences
 import com.tomandy.palmclaw.data.RoomMessageStore
 import com.tomandy.palmclaw.engine.PluginContext
 import com.tomandy.palmclaw.engine.PluginEngine
@@ -48,6 +49,12 @@ class PalmClawApp : Application() {
     lateinit var modelPreferences: ModelPreferences
         private set
 
+    lateinit var pluginPreferences: PluginPreferences
+        private set
+
+    lateinit var pluginEngine: PluginEngine
+        private set
+
     private val _selectedProvider = MutableStateFlow(LlmProvider.OPENAI)
     val selectedProvider: StateFlow<LlmProvider> = _selectedProvider.asStateFlow()
 
@@ -75,6 +82,10 @@ class PalmClawApp : Application() {
 
         // Initialize model preferences
         modelPreferences = ModelPreferences(this)
+
+        // Initialize plugin preferences and engine
+        pluginPreferences = PluginPreferences(this)
+        pluginEngine = PluginEngine(this)
 
         // Initialize tool registry (shared across all conversations)
         toolRegistry = ToolRegistry()
@@ -199,15 +210,10 @@ class PalmClawApp : Application() {
 
     /**
      * Load sample plugins from JavaScript files in assets.
-     *
-     * Plugins loaded:
-     * - calculator: Basic math operations
-     * - time: Current time and date
-     * - notes: Simple note-taking
-     * - echo: Echo back messages
+     * All plugins are loaded into PluginEngine (for metadata), but only
+     * enabled plugins are registered with ToolRegistry.
      */
     private suspend fun loadSamplePlugins() {
-        val pluginEngine = PluginEngine(this)
         val pluginPaths = listOf(
             "plugins/calculator",
             "plugins/time",
@@ -220,12 +226,25 @@ class PalmClawApp : Application() {
             val pluginContext = PluginContext(this, pluginId, credentialVault)
             pluginEngine.loadFromAssets(path, pluginContext)
                 .onSuccess { loadedPlugin ->
-                    toolRegistry.registerPlugin(loadedPlugin)
-                    Log.i("PalmClaw", "Loaded plugin: ${loadedPlugin.metadata.name}")
+                    if (pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {
+                        toolRegistry.registerPlugin(loadedPlugin)
+                    }
+                    Log.i("PalmClaw", "Loaded plugin: ${loadedPlugin.metadata.name} (enabled=${pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)})")
                 }
                 .onFailure { error ->
                     Log.e("PalmClaw", "Failed to load $pluginId: ${error.message}", error)
                 }
+        }
+    }
+
+    fun setPluginEnabled(pluginId: String, enabled: Boolean) {
+        pluginPreferences.setPluginEnabled(pluginId, enabled)
+        if (enabled) {
+            pluginEngine.getLoadedPlugin(pluginId)?.let { loadedPlugin ->
+                toolRegistry.registerPlugin(loadedPlugin)
+            }
+        } else {
+            toolRegistry.unregisterPlugin(pluginId)
         }
     }
 }

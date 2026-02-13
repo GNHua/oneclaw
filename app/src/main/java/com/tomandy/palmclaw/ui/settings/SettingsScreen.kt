@@ -32,6 +32,7 @@ fun SettingsScreen(
     val providers by viewModel.providers.collectAsState()
     val saveStatus by viewModel.saveStatus.collectAsState()
     val deleteStatus by viewModel.deleteStatus.collectAsState()
+    val plugins by viewModel.plugins.collectAsState()
 
     var selectedProvider by remember { mutableStateOf(LlmProvider.OPENAI) }
     var isProviderDropdownExpanded by remember { mutableStateOf(false) }
@@ -307,6 +308,26 @@ fun SettingsScreen(
                     )
                 }
             }
+
+            // Plugins section
+            if (plugins.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Plugins",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                items(plugins, key = { it.metadata.id }) { pluginState ->
+                    PluginCard(
+                        pluginState = pluginState,
+                        onToggle = { enabled ->
+                            viewModel.togglePlugin(pluginState.metadata.id, enabled)
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -363,6 +384,54 @@ private fun ProviderCard(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PluginCard(
+    pluginState: PluginUiState,
+    onToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val metadata = pluginState.metadata
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = metadata.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = metadata.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "v${metadata.version} · ${metadata.tools.size} tool${if (metadata.tools.size != 1) "s" else ""}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Switch(
+                checked = pluginState.enabled,
+                onCheckedChange = onToggle
+            )
         }
     }
 }

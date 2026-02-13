@@ -317,9 +317,15 @@ private fun HistoryCard(
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
+                val executeAt = cronjob.executeAt
+                val isExpiredOneTime = cronjob.scheduleType == ScheduleType.ONE_TIME
+                    && executeAt != null
+                    && executeAt < System.currentTimeMillis()
+
                 Switch(
                     checked = cronjob.enabled,
-                    onCheckedChange = { onToggleEnabled() }
+                    onCheckedChange = { onToggleEnabled() },
+                    enabled = !isExpiredOneTime
                 )
             }
 
@@ -418,9 +424,15 @@ private fun CronjobCard(
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
+                val executeAt = cronjob.executeAt
+                val isExpiredOneTime = cronjob.scheduleType == ScheduleType.ONE_TIME
+                    && executeAt != null
+                    && executeAt < System.currentTimeMillis()
+
                 Switch(
                     checked = cronjob.enabled,
-                    onCheckedChange = { onToggleEnabled() }
+                    onCheckedChange = { onToggleEnabled() },
+                    enabled = !isExpiredOneTime
                 )
             }
 

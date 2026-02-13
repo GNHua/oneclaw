@@ -13,7 +13,7 @@ import com.tomandy.palmclaw.MainActivity
 
 object ChatNotificationHelper {
 
-    private const val CHANNEL_ID = "chat_response_channel"
+    private const val CHANNEL_ID = "chat_response_channel_v2"
     private const val CHANNEL_NAME = "Chat Responses"
     private const val CHANNEL_DESCRIPTION = "Notifications for new AI responses in chat"
     const val EXTRA_CONVERSATION_ID = "extra_conversation_id"
@@ -53,6 +53,8 @@ object ChatNotificationHelper {
             .setSmallIcon(com.tomandy.palmclaw.scheduler.R.drawable.ic_notification)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
 
         val mgr = NotificationManagerCompat.from(context)
@@ -69,12 +71,14 @@ object ChatNotificationHelper {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = CHANNEL_DESCRIPTION
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
             }
-            context.getSystemService(NotificationManager::class.java)
-                .createNotificationChannel(channel)
+            val mgr = context.getSystemService(NotificationManager::class.java)
+            mgr.deleteNotificationChannel("chat_response_channel") // cleanup old channel
+            mgr.createNotificationChannel(channel)
         }
     }
 }

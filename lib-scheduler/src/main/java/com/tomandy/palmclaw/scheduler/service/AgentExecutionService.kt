@@ -2,6 +2,7 @@ package com.tomandy.palmclaw.scheduler.service
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.os.Build
@@ -109,7 +110,7 @@ class AgentExecutionService : Service() {
 
             // Send completion notification
             if (cronjob.notifyOnCompletion) {
-                sendCompletionNotification(cronjob.instruction, result)
+                sendCompletionNotification(cronjob.instruction, result, cronjob.conversationId)
             }
 
         } catch (e: Exception) {
@@ -121,7 +122,7 @@ class AgentExecutionService : Service() {
             )
 
             // Send error notification
-            sendErrorNotification(cronjob.instruction, e.message ?: "Unknown error")
+            sendErrorNotification(cronjob.instruction, e.message ?: "Unknown error", cronjob.conversationId)
         }
 
         // Disable one-time tasks after execution (keep for history)
@@ -166,9 +167,10 @@ class AgentExecutionService : Service() {
     /**
      * Send completion notification
      */
-    private fun sendCompletionNotification(instruction: String, result: String) {
+    private fun sendCompletionNotification(instruction: String, result: String, conversationId: String?) {
         createNotificationChannels()
 
+        val contentIntent = createContentIntent(conversationId)
         val notificationManager = getSystemService(NotificationManager::class.java)
         val notification = NotificationCompat.Builder(this, RESULT_CHANNEL_ID)
             .setContentTitle("Task completed")
@@ -176,6 +178,9 @@ class AgentExecutionService : Service() {
             .setStyle(NotificationCompat.BigTextStyle().bigText(result))
             .setSmallIcon(R.drawable.ic_notification)
             .setAutoCancel(true)
+            .setContentIntent(contentIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
 
         notificationManager.notify(instruction.hashCode(), notification)
@@ -184,9 +189,10 @@ class AgentExecutionService : Service() {
     /**
      * Send error notification
      */
-    private fun sendErrorNotification(instruction: String, error: String) {
+    private fun sendErrorNotification(instruction: String, error: String, conversationId: String?) {
         createNotificationChannels()
 
+        val contentIntent = createContentIntent(conversationId)
         val notificationManager = getSystemService(NotificationManager::class.java)
         val notification = NotificationCompat.Builder(this, RESULT_CHANNEL_ID)
             .setContentTitle("Task failed")
@@ -194,6 +200,9 @@ class AgentExecutionService : Service() {
             .setStyle(NotificationCompat.BigTextStyle().bigText("Error: $error"))
             .setSmallIcon(R.drawable.ic_notification)
             .setAutoCancel(true)
+            .setContentIntent(contentIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
 
         notificationManager.notify(instruction.hashCode(), notification)
@@ -216,23 +225,42 @@ class AgentExecutionService : Service() {
             }
             notificationManager.createNotificationChannel(serviceChannel)
 
-            // Default-importance channel for completion/error results (sound + heads-up)
+            // High-importance channel for results (banner + lockscreen)
             val resultChannel = NotificationChannel(
                 RESULT_CHANNEL_ID,
                 "Task Results",
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Notifications when scheduled tasks complete or fail"
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
             }
             notificationManager.createNotificationChannel(resultChannel)
+
+            // Cleanup old channel
+            notificationManager.deleteNotificationChannel("cronjob_result_channel")
         }
+    }
+
+    private fun createContentIntent(conversationId: String?): PendingIntent? {
+        val intent = packageManager.getLaunchIntentForPackage(packageName)
+            ?.apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                conversationId?.let { putExtra("extra_conversation_id", it) }
+            } ?: return null
+
+        return PendingIntent.getActivity(
+            this,
+            conversationId?.hashCode() ?: 0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
     }
 
     companion object {
         const val ACTION_EXECUTE_TASK = "com.tomandy.palmclaw.scheduler.EXECUTE_TASK"
         const val EXTRA_CRONJOB_ID = "cronjob_id"
         private const val SERVICE_CHANNEL_ID = "cronjob_service_channel"
-        private const val RESULT_CHANNEL_ID = "cronjob_result_channel"
+        private const val RESULT_CHANNEL_ID = "cronjob_result_channel_v2"
         private const val NOTIFICATION_ID = 1001
     }
 }

@@ -71,22 +71,22 @@ fun MessageBubble(
             modifier = Modifier.widthIn(max = 280.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                // Use ChatMarkdown to render content with proper text color
-                ChatMarkdown(
-                    text = message.content,
-                    textColor = if (isUser) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-
                 if (!toolCalls.isNullOrEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    // Tool-call-only bubble
                     ToolCallsSection(
                         toolCalls = toolCalls,
                         toolResults = toolResults,
                         modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    // Regular text bubble
+                    ChatMarkdown(
+                        text = message.content,
+                        textColor = if (isUser) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                     )
                 }
 

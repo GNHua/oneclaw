@@ -72,6 +72,7 @@ class ChatViewModel(
         clientProvider = getCurrentClient,
         toolRegistry = toolRegistry,
         toolExecutor = toolExecutor,
+        messageDao = messageDao,
         conversationId = _conversationId.value,
         scope = viewModelScope
     )

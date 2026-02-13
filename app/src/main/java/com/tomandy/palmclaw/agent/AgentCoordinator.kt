@@ -1,6 +1,7 @@
 package com.tomandy.palmclaw.agent
 
 import android.util.Log
+import com.tomandy.palmclaw.data.dao.MessageDao
 import com.tomandy.palmclaw.llm.LlmClient
 import com.tomandy.palmclaw.llm.Message
 import kotlinx.coroutines.CoroutineScope
@@ -34,6 +35,7 @@ class AgentCoordinator(
     private val clientProvider: () -> LlmClient,
     private val toolRegistry: ToolRegistry,
     private val toolExecutor: ToolExecutor,
+    private val messageDao: MessageDao,
     private val conversationId: String,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 ) {
@@ -49,7 +51,8 @@ class AgentCoordinator(
     private val reActLoop: ReActLoop by lazy {
         ReActLoop(
             llmClient = clientProvider(),
-            toolExecutor = toolExecutor
+            toolExecutor = toolExecutor,
+            messageDao = messageDao
         )
     }
 

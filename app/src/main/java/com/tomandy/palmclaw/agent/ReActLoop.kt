@@ -1,11 +1,15 @@
 package com.tomandy.palmclaw.agent
 
 import android.util.Log
+import com.tomandy.palmclaw.data.dao.MessageDao
+import com.tomandy.palmclaw.data.entity.MessageEntity
 import com.tomandy.palmclaw.engine.ToolDefinition
 import com.tomandy.palmclaw.llm.LlmClient
 import com.tomandy.palmclaw.llm.Message
+import com.tomandy.palmclaw.llm.NetworkConfig
 import com.tomandy.palmclaw.llm.Tool
 import com.tomandy.palmclaw.llm.ToolFunction
+import java.util.UUID
 
 /**
  * Implements the ReAct (Reasoning + Acting) cycle for the agent.
@@ -17,29 +21,17 @@ import com.tomandy.palmclaw.llm.ToolFunction
  *
  * This loop continues until the LLM provides a final answer or maxIterations is reached.
  *
- * Example flow:
- * ```
- * User: "What's the weather in San Francisco?"
- *
- * Iteration 1:
- *   LLM → [Reasoning] I need to get weather data
- *   LLM → [Acting] Call get_weather("San Francisco")
- *   Tool → [Observing] "Sunny, 72°F"
- *
- * Iteration 2:
- *   LLM → [Reasoning] I have the weather data
- *   LLM → [Final Answer] "The weather in San Francisco is sunny and 72°F"
- * ```
- *
  * Key features:
  * - Multi-turn reasoning with tool execution
  * - Automatic loop termination on final answer
  * - Max iteration safety limit (default: 5)
  * - Full conversation context preservation
+ * - Persists intermediate tool-call messages to DB for UI display
  */
 class ReActLoop(
     private val llmClient: LlmClient,
-    private val toolExecutor: ToolExecutor
+    private val toolExecutor: ToolExecutor,
+    private val messageDao: MessageDao
 ) {
 
     /**
@@ -119,6 +111,22 @@ class ReActLoop(
                             Exception("finish_reason=tool_calls but no tool_calls in message")
                         )
                     Log.d("ReActLoop", "Executing ${toolCalls.size} tool calls")
+
+                    // Save intermediate assistant message with tool calls to DB
+                    val toolCallsJson = NetworkConfig.json.encodeToString(
+                        kotlinx.serialization.builtins.ListSerializer(com.tomandy.palmclaw.llm.ToolCall.serializer()),
+                        toolCalls
+                    )
+                    messageDao.insert(
+                        MessageEntity(
+                            id = UUID.randomUUID().toString(),
+                            conversationId = conversationId,
+                            role = "assistant",
+                            content = message.content ?: "",
+                            toolCalls = toolCallsJson,
+                            timestamp = System.currentTimeMillis()
+                        )
+                    )
 
                     // Add assistant message with tool calls to history
                     workingMessages.add(

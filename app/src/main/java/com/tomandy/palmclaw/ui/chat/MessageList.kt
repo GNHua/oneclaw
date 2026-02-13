@@ -44,11 +44,16 @@ fun MessageList(
             .associateBy { it.toolCallId!! }
     }
 
+    // Filter out tool-role messages — they're shown inline within the assistant's ToolCallsSection
+    val displayedMessages = remember(messages) {
+        messages.filter { it.role != "tool" }
+    }
+
     // Auto-scroll to bottom when new messages arrive
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
+    LaunchedEffect(displayedMessages.size) {
+        if (displayedMessages.isNotEmpty()) {
             coroutineScope.launch {
-                listState.animateScrollToItem(messages.size - 1)
+                listState.animateScrollToItem(displayedMessages.size - 1)
             }
         }
     }
@@ -59,7 +64,7 @@ fun MessageList(
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
         items(
-            items = messages,
+            items = displayedMessages,
             key = { it.id }
         ) { message ->
             MessageBubble(

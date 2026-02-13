@@ -2,7 +2,9 @@ package com.tomandy.palmclaw.scheduler.worker
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
@@ -61,7 +63,7 @@ class AgentTaskWorker(
 
             // Send notification if enabled
             if (cronjob.notifyOnCompletion) {
-                sendCompletionNotification(cronjob.instruction, result)
+                sendCompletionNotification(cronjob.instruction, result, cronjob.conversationId)
             }
 
             Result.success()
@@ -82,7 +84,7 @@ class AgentTaskWorker(
      * Create foreground notification to prevent worker from being killed
      */
     private fun createForegroundInfo(instruction: String): ForegroundInfo {
-        createNotificationChannel()
+        createNotificationChannels()
 
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setContentTitle("Executing scheduled task")
@@ -97,39 +99,57 @@ class AgentTaskWorker(
     /**
      * Send notification when task completes
      */
-    private fun sendCompletionNotification(instruction: String, result: String) {
-        createNotificationChannel()
+    private fun sendCompletionNotification(instruction: String, result: String, conversationId: String?) {
+        createNotificationChannels()
 
         val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE)
             as NotificationManager
 
-        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(applicationContext, RESULT_CHANNEL_ID)
             .setContentTitle("Task completed")
             .setContentText(instruction.take(50))
             .setStyle(NotificationCompat.BigTextStyle().bigText(result))
-            .setSmallIcon(R.drawable.ic_notification) // TODO: Add actual icon
+            .setSmallIcon(R.drawable.ic_notification)
             .setAutoCancel(true)
+            .setContentIntent(createContentIntent(conversationId))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
 
         notificationManager.notify(instruction.hashCode(), notification)
     }
 
     /**
-     * Create notification channel for Android O+
+     * Create notification channels for Android O+
      */
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
+            val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE)
+                as NotificationManager
+
+            // Low-importance for foreground service
+            val serviceChannel = NotificationChannel(
                 CHANNEL_ID,
                 "Scheduled Tasks",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Notifications for scheduled agent tasks"
             }
+            notificationManager.createNotificationChannel(serviceChannel)
 
-            val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE)
-                as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+            // High-importance for results (banner + lockscreen)
+            val resultChannel = NotificationChannel(
+                RESULT_CHANNEL_ID,
+                "Task Results",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notifications when scheduled tasks complete or fail"
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+            }
+            notificationManager.createNotificationChannel(resultChannel)
+
+            // Cleanup old channel
+            notificationManager.deleteNotificationChannel("cronjob_result_channel")
         }
     }
 
@@ -151,9 +171,25 @@ class AgentTaskWorker(
         }
     }
 
+    private fun createContentIntent(conversationId: String?): PendingIntent? {
+        val intent = applicationContext.packageManager.getLaunchIntentForPackage(applicationContext.packageName)
+            ?.apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                conversationId?.let { putExtra("extra_conversation_id", it) }
+            } ?: return null
+
+        return PendingIntent.getActivity(
+            applicationContext,
+            conversationId?.hashCode() ?: 0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
     companion object {
         const val KEY_CRONJOB_ID = "cronjob_id"
         private const val CHANNEL_ID = "cronjob_channel"
+        private const val RESULT_CHANNEL_ID = "cronjob_result_channel_v2"
         private const val NOTIFICATION_ID = 1001
     }
 }

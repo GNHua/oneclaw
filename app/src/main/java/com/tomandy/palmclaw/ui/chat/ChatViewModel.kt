@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomandy.palmclaw.agent.AgentCoordinator
 import com.tomandy.palmclaw.agent.AgentState
+import com.tomandy.palmclaw.agent.MessageStore
 import com.tomandy.palmclaw.agent.ToolExecutor
 import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.data.ModelPreferences
@@ -42,6 +43,7 @@ import java.util.UUID
 class ChatViewModel(
     private val toolRegistry: ToolRegistry,
     private val toolExecutor: ToolExecutor,
+    private val messageStore: MessageStore,
     private val messageDao: MessageDao,
     private val conversationDao: ConversationDao,
     private val modelPreferences: ModelPreferences,
@@ -72,7 +74,7 @@ class ChatViewModel(
         clientProvider = getCurrentClient,
         toolRegistry = toolRegistry,
         toolExecutor = toolExecutor,
-        messageDao = messageDao,
+        messageStore = messageStore,
         conversationId = _conversationId.value,
         scope = viewModelScope
     )

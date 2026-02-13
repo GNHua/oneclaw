@@ -1,10 +1,10 @@
 package com.tomandy.palmclaw.engine
 
-import com.tomandy.palmclaw.BuildConfig
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -62,7 +62,8 @@ class PluginContext(
             .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
             .addInterceptor(HttpLoggingInterceptor().apply {
-                level = if (BuildConfig.DEBUG) {
+                val isDebug = androidContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+                level = if (isDebug) {
                     HttpLoggingInterceptor.Level.BODY
                 } else {
                     HttpLoggingInterceptor.Level.NONE

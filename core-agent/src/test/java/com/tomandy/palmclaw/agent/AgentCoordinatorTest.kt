@@ -40,12 +40,27 @@ class AgentCoordinatorTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private val testScope = TestScope(testDispatcher)
 
+    private lateinit var mockToolRegistry: ToolRegistry
+    private lateinit var mockToolExecutor: ToolExecutor
+    private lateinit var mockMessageStore: MessageStore
+
     @Before
     fun setup() {
-        // Create mock LlmClient using MockK
+        // Create mocks using MockK
         mockLlmClient = mockk<LlmClient>()
+        mockToolRegistry = mockk<ToolRegistry>()
+        mockToolExecutor = mockk<ToolExecutor>()
+        mockMessageStore = mockk<MessageStore>(relaxed = true)
+
+        // Default: no tools available
+        coEvery { mockToolRegistry.getToolDefinitions() } returns emptyList()
+
         coordinator = AgentCoordinator(
-            llmClient = mockLlmClient,
+            clientProvider = { mockLlmClient },
+            toolRegistry = mockToolRegistry,
+            toolExecutor = mockToolExecutor,
+            messageStore = mockMessageStore,
+            conversationId = "test-conversation",
             scope = testScope
         )
     }
@@ -343,16 +358,6 @@ class AgentCoordinatorTest {
         val history = coordinator.getConversationHistory()
         val systemMessages = history.filter { it.role == "system" }
         assertEquals(0, systemMessages.size) // System prompt not stored in history
-    }
-
-    @Test
-    fun `getToolExecutor returns valid instance`() {
-        // When: Get tool executor
-        val executor = coordinator.getToolExecutor()
-
-        // Then: Instance is not null and usable
-        assertNotNull(executor)
-        assertTrue(executor is ToolExecutor)
     }
 
     @Test

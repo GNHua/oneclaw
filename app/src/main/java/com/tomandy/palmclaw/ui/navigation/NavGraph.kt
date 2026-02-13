@@ -64,6 +64,7 @@ fun PalmClawNavGraph(
                 ChatViewModel(
                     toolRegistry = app.toolRegistry,
                     toolExecutor = app.toolExecutor,
+                    messageStore = app.messageStore,
                     messageDao = app.database.messageDao(),
                     conversationDao = app.database.conversationDao(),
                     modelPreferences = app.modelPreferences,

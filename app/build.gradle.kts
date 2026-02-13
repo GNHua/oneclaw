@@ -50,8 +50,8 @@ android {
 }
 
 dependencies {
-    // QuickJS (JavaScript engine for plugins)
-    implementation(libs.quickjs.android)
+    // Module dependencies (core-agent transitively provides plugin-runtime, networking, LLM SDKs)
+    implementation(project(":core-agent"))
 
     // Core Android
     implementation(libs.androidx.core.ktx)
@@ -72,12 +72,6 @@ dependencies {
     // Serialization
     implementation(libs.kotlinx.serialization.json)
 
-    // Networking
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.kotlinx.serialization)
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.logging)
-
     // Security
     implementation(libs.androidx.security.crypto)
 
@@ -92,10 +86,6 @@ dependencies {
 
     // Navigation
     implementation(libs.androidx.navigation.compose)
-
-    // AI/LLM
-    implementation(libs.google.genai)
-    implementation(libs.anthropic.java)
 
     // Markdown
     implementation(libs.compose.markdown)

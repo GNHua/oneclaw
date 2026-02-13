@@ -2,10 +2,12 @@ package com.tomandy.palmclaw
 
 import android.app.Application
 import android.util.Log
+import com.tomandy.palmclaw.agent.MessageStore
 import com.tomandy.palmclaw.agent.ToolExecutor
 import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.data.AppDatabase
 import com.tomandy.palmclaw.data.ModelPreferences
+import com.tomandy.palmclaw.data.RoomMessageStore
 import com.tomandy.palmclaw.engine.PluginContext
 import com.tomandy.palmclaw.engine.PluginEngine
 import com.tomandy.palmclaw.llm.AnthropicClient
@@ -56,6 +58,9 @@ class PalmClawApp : Application() {
     lateinit var toolRegistry: ToolRegistry
         private set
 
+    lateinit var messageStore: MessageStore
+        private set
+
     lateinit var toolExecutor: ToolExecutor
         private set
 
@@ -74,10 +79,13 @@ class PalmClawApp : Application() {
         // Initialize tool registry (shared across all conversations)
         toolRegistry = ToolRegistry()
 
-        // Initialize tool executor (shared, uses database for persistence)
+        // Initialize message store (bridges core-agent to Room)
+        messageStore = RoomMessageStore(database.messageDao())
+
+        // Initialize tool executor (shared, uses message store for persistence)
         toolExecutor = ToolExecutor(
             toolRegistry = toolRegistry,
-            messageDao = database.messageDao()
+            messageStore = messageStore
         )
 
         // Load API keys from vault and set active provider

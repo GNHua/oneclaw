@@ -1,8 +1,6 @@
 package com.tomandy.palmclaw.agent
 
 import android.util.Log
-import com.tomandy.palmclaw.data.dao.MessageDao
-import com.tomandy.palmclaw.data.entity.MessageEntity
 import com.tomandy.palmclaw.engine.ToolDefinition
 import com.tomandy.palmclaw.llm.LlmClient
 import com.tomandy.palmclaw.llm.Message
@@ -31,7 +29,7 @@ import java.util.UUID
 class ReActLoop(
     private val llmClient: LlmClient,
     private val toolExecutor: ToolExecutor,
-    private val messageDao: MessageDao
+    private val messageStore: MessageStore
 ) {
 
     /**
@@ -117,8 +115,8 @@ class ReActLoop(
                         kotlinx.serialization.builtins.ListSerializer(com.tomandy.palmclaw.llm.ToolCall.serializer()),
                         toolCalls
                     )
-                    messageDao.insert(
-                        MessageEntity(
+                    messageStore.insert(
+                        MessageRecord(
                             id = UUID.randomUUID().toString(),
                             conversationId = conversationId,
                             role = "assistant",

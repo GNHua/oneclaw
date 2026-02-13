@@ -1,6 +1,5 @@
 package com.tomandy.palmclaw.llm
 
-import com.tomandy.palmclaw.BuildConfig
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.logging.HttpLoggingInterceptor
@@ -18,8 +17,8 @@ object NetworkConfig {
         encodeDefaults = false
     }
 
-    fun createLoggingInterceptor(): HttpLoggingInterceptor? {
-        return if (BuildConfig.DEBUG) {
+    fun createLoggingInterceptor(debug: Boolean = false): HttpLoggingInterceptor? {
+        return if (debug) {
             HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
             }

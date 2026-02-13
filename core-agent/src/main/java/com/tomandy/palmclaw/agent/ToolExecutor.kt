@@ -1,8 +1,6 @@
 package com.tomandy.palmclaw.agent
 
 import android.util.Log
-import com.tomandy.palmclaw.data.dao.MessageDao
-import com.tomandy.palmclaw.data.entity.MessageEntity
 import com.tomandy.palmclaw.engine.ToolResult
 import com.tomandy.palmclaw.llm.ToolCall
 import kotlinx.coroutines.Dispatchers
@@ -31,7 +29,7 @@ import java.util.UUID
  *
  * Usage:
  * ```kotlin
- * val executor = ToolExecutor(toolRegistry, messageDao)
+ * val executor = ToolExecutor(toolRegistry, messageStore)
  *
  * // Execute single tool
  * val result = executor.execute(conversationId, toolCall)
@@ -42,7 +40,7 @@ import java.util.UUID
  */
 class ToolExecutor(
     private val toolRegistry: ToolRegistry,
-    private val messageDao: MessageDao
+    private val messageStore: MessageStore
 ) {
     companion object {
         private const val TOOL_EXECUTION_TIMEOUT_MS = 30_000L
@@ -121,7 +119,7 @@ class ToolExecutor(
             }
             Log.d("ToolExecutor", "Saving tool result to database")
 
-            val resultMessage = MessageEntity(
+            val resultMessage = MessageRecord(
                 id = UUID.randomUUID().toString(),
                 conversationId = conversationId,
                 role = "tool",
@@ -130,7 +128,7 @@ class ToolExecutor(
                 toolName = toolCall.function.name,
                 timestamp = System.currentTimeMillis()
             )
-            messageDao.insert(resultMessage)
+            messageStore.insert(resultMessage)
 
             // 5. Return execution result
             when (result) {

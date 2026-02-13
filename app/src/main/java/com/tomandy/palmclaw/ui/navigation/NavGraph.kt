@@ -24,32 +24,19 @@ import com.tomandy.palmclaw.ui.chat.ChatScreen
 import com.tomandy.palmclaw.ui.chat.ChatViewModel
 import com.tomandy.palmclaw.ui.cronjobs.CronjobsScreen
 import com.tomandy.palmclaw.ui.cronjobs.CronjobsViewModel
+import com.tomandy.palmclaw.ui.settings.PluginsScreen
+import com.tomandy.palmclaw.ui.settings.ProvidersScreen
 import com.tomandy.palmclaw.ui.settings.SettingsScreen
 import com.tomandy.palmclaw.ui.settings.SettingsViewModel
 
-/**
- * Navigation routes for the PalmClaw application.
- */
 enum class Screen(val route: String) {
     Chat("chat"),
     Settings("settings"),
+    Providers("settings/providers"),
+    Plugins("settings/plugins"),
     Cronjobs("cronjobs")
 }
 
-/**
- * Navigation graph for PalmClaw.
- *
- * Defines the navigation structure with two main screens:
- * - Chat: Main conversation screen
- * - Settings: API key management
- *
- * ViewModels are created using remember to ensure they survive recomposition
- * but are recreated when navigating away and back.
- *
- * @param navController The navigation controller
- * @param app The application instance for dependency injection
- * @param modifier Modifier for styling
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PalmClawNavGraph(
@@ -57,6 +44,24 @@ fun PalmClawNavGraph(
     app: PalmClawApp,
     modifier: Modifier = Modifier
 ) {
+    val scope = rememberCoroutineScope()
+    val settingsViewModel = remember {
+        SettingsViewModel(
+            credentialVault = app.credentialVault,
+            modelPreferences = app.modelPreferences,
+            pluginPreferences = app.pluginPreferences,
+            loadedPlugins = app.pluginEngine.getAllPlugins(),
+            onApiKeyChanged = {
+                scope.launch {
+                    app.reloadApiKeys()
+                }
+            },
+            onPluginToggled = { id, enabled ->
+                app.setPluginEnabled(id, enabled)
+            }
+        )
+    }
+
     NavHost(
         navController = navController,
         startDestination = Screen.Chat.route,
@@ -89,24 +94,6 @@ fun PalmClawNavGraph(
         }
 
         composable(Screen.Settings.route) {
-            val scope = rememberCoroutineScope()
-            val viewModel = remember {
-                SettingsViewModel(
-                    credentialVault = app.credentialVault,
-                    modelPreferences = app.modelPreferences,
-                    pluginPreferences = app.pluginPreferences,
-                    loadedPlugins = app.pluginEngine.getAllPlugins(),
-                    onApiKeyChanged = {
-                        scope.launch {
-                            app.reloadApiKeys()
-                        }
-                    },
-                    onPluginToggled = { id, enabled ->
-                        app.setPluginEnabled(id, enabled)
-                    }
-                )
-            }
-
             Scaffold(
                 topBar = {
                     TopAppBar(
@@ -120,7 +107,52 @@ fun PalmClawNavGraph(
                 }
             ) { paddingValues ->
                 SettingsScreen(
-                    viewModel = viewModel,
+                    onNavigateToProviders = {
+                        navController.navigate(Screen.Providers.route)
+                    },
+                    onNavigateToPlugins = {
+                        navController.navigate(Screen.Plugins.route)
+                    },
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
+        }
+
+        composable(Screen.Providers.route) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Providers") },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            }
+                        }
+                    )
+                }
+            ) { paddingValues ->
+                ProvidersScreen(
+                    viewModel = settingsViewModel,
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
+        }
+
+        composable(Screen.Plugins.route) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Plugins") },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            }
+                        }
+                    )
+                }
+            ) { paddingValues ->
+                PluginsScreen(
+                    viewModel = settingsViewModel,
                     modifier = Modifier.padding(paddingValues)
                 )
             }

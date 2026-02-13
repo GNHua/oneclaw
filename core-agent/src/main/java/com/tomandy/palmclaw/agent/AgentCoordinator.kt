@@ -215,6 +215,15 @@ class AgentCoordinator(
     }
 
     /**
+     * Seeds conversation history from persisted messages.
+     * Used when loading an existing conversation from the database.
+     */
+    fun seedHistory(messages: List<Message>) {
+        conversationHistory.clear()
+        conversationHistory.addAll(messages)
+    }
+
+    /**
      * Returns the current conversation history.
      *
      * @return Immutable copy of the conversation history

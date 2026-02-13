@@ -7,6 +7,7 @@ import com.tomandy.palmclaw.agent.ScheduledAgentExecutor
 import com.tomandy.palmclaw.agent.ToolExecutor
 import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.data.AppDatabase
+import com.tomandy.palmclaw.data.ConversationPreferences
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.PluginPreferences
 import com.tomandy.palmclaw.data.RoomMessageStore
@@ -78,6 +79,9 @@ class PalmClawApp : Application() {
     lateinit var toolExecutor: ToolExecutor
         private set
 
+    lateinit var conversationPreferences: ConversationPreferences
+        private set
+
     lateinit var cronjobManager: CronjobManager
         private set
 
@@ -92,6 +96,9 @@ class PalmClawApp : Application() {
 
         // Initialize model preferences
         modelPreferences = ModelPreferences(this)
+
+        // Initialize conversation preferences
+        conversationPreferences = ConversationPreferences(this)
 
         // Initialize plugin preferences and engine
         pluginPreferences = PluginPreferences(this)

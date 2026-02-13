@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.DropdownMenu
@@ -68,6 +69,7 @@ fun ChatScreen(
     app: PalmClawApp,
     onNavigateToSettings: () -> Unit,
     onNavigateToCronjobs: () -> Unit,
+    onNavigateToHistory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val messages by viewModel.messages.collectAsState()
@@ -111,6 +113,11 @@ fun ChatScreen(
             Column {
                 TopAppBar(
                     title = { Text("PalmClaw") },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateToHistory) {
+                            Icon(Icons.Default.Menu, contentDescription = "Conversation history")
+                        }
+                    },
                     actions = {
                         IconButton(onClick = { viewModel.newConversation() }) {
                             Icon(Icons.Default.Add, contentDescription = "New conversation")

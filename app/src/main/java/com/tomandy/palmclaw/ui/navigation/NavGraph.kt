@@ -10,8 +10,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -24,32 +22,18 @@ import com.tomandy.palmclaw.ui.chat.ChatScreen
 import com.tomandy.palmclaw.ui.chat.ChatViewModel
 import com.tomandy.palmclaw.ui.cronjobs.CronjobsScreen
 import com.tomandy.palmclaw.ui.cronjobs.CronjobsViewModel
+import com.tomandy.palmclaw.ui.history.ConversationHistoryScreen
+import com.tomandy.palmclaw.ui.history.ConversationHistoryViewModel
 import com.tomandy.palmclaw.ui.settings.SettingsScreen
 import com.tomandy.palmclaw.ui.settings.SettingsViewModel
 
-/**
- * Navigation routes for the PalmClaw application.
- */
 enum class Screen(val route: String) {
     Chat("chat"),
     Settings("settings"),
-    Cronjobs("cronjobs")
+    Cronjobs("cronjobs"),
+    History("history")
 }
 
-/**
- * Navigation graph for PalmClaw.
- *
- * Defines the navigation structure with two main screens:
- * - Chat: Main conversation screen
- * - Settings: API key management
- *
- * ViewModels are created using remember to ensure they survive recomposition
- * but are recreated when navigating away and back.
- *
- * @param navController The navigation controller
- * @param app The application instance for dependency injection
- * @param modifier Modifier for styling
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PalmClawNavGraph(
@@ -57,33 +41,41 @@ fun PalmClawNavGraph(
     app: PalmClawApp,
     modifier: Modifier = Modifier
 ) {
+    // ChatViewModel is created once and survives across navigation.
+    // It loads the last active conversation from ConversationPreferences.
+    val chatViewModel = remember {
+        val activeId = app.conversationPreferences.getActiveConversationId()
+        ChatViewModel(
+            toolRegistry = app.toolRegistry,
+            toolExecutor = app.toolExecutor,
+            messageStore = app.messageStore,
+            messageDao = app.database.messageDao(),
+            conversationDao = app.database.conversationDao(),
+            modelPreferences = app.modelPreferences,
+            conversationPreferences = app.conversationPreferences,
+            getCurrentClient = { app.getCurrentLlmClient() },
+            getCurrentProvider = { app.selectedProvider.value },
+            conversationId = activeId
+        )
+    }
+
     NavHost(
         navController = navController,
         startDestination = Screen.Chat.route,
         modifier = modifier
     ) {
         composable(Screen.Chat.route) {
-            val viewModel = remember {
-                ChatViewModel(
-                    toolRegistry = app.toolRegistry,
-                    toolExecutor = app.toolExecutor,
-                    messageStore = app.messageStore,
-                    messageDao = app.database.messageDao(),
-                    conversationDao = app.database.conversationDao(),
-                    modelPreferences = app.modelPreferences,
-                    getCurrentClient = { app.getCurrentLlmClient() },
-                    getCurrentProvider = { app.selectedProvider.value }
-                )
-            }
-
             ChatScreen(
-                viewModel = viewModel,
+                viewModel = chatViewModel,
                 app = app,
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
                 },
                 onNavigateToCronjobs = {
                     navController.navigate(Screen.Cronjobs.route)
+                },
+                onNavigateToHistory = {
+                    navController.navigate(Screen.History.route)
                 }
             )
         }
@@ -145,6 +137,38 @@ fun PalmClawNavGraph(
             ) { paddingValues ->
                 CronjobsScreen(
                     viewModel = viewModel,
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
+        }
+
+        composable(Screen.History.route) {
+            val viewModel = remember {
+                ConversationHistoryViewModel(
+                    conversationDao = app.database.conversationDao(),
+                    messageDao = app.database.messageDao()
+                )
+            }
+
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Conversation History") },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            }
+                        }
+                    )
+                }
+            ) { paddingValues ->
+                ConversationHistoryScreen(
+                    viewModel = viewModel,
+                    currentConversationId = chatViewModel.conversationId,
+                    onConversationSelected = { convId ->
+                        chatViewModel.loadConversation(convId)
+                        navController.popBackStack()
+                    },
                     modifier = Modifier.padding(paddingValues)
                 )
             }

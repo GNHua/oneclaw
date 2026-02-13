@@ -1,5 +1,6 @@
 package com.tomandy.palmclaw.data.dao
 
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -13,6 +14,9 @@ import kotlinx.coroutines.flow.Flow
 interface ConversationDao {
     @Query("SELECT * FROM conversations ORDER BY updatedAt DESC")
     fun getAllConversations(): Flow<List<ConversationEntity>>
+
+    @Query("SELECT * FROM conversations ORDER BY updatedAt DESC")
+    fun getAllConversationsPaged(): PagingSource<Int, ConversationEntity>
 
     @Query("SELECT * FROM conversations WHERE id = :id")
     fun getConversation(id: String): Flow<ConversationEntity?>
@@ -28,4 +32,7 @@ interface ConversationDao {
 
     @Query("DELETE FROM conversations WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("SELECT * FROM conversations WHERE id = :id")
+    suspend fun getConversationOnce(id: String): ConversationEntity?
 }

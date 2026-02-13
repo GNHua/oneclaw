@@ -48,8 +48,8 @@ android {
 }
 
 dependencies {
-    // Plugin Engine
-    implementation(project(":engine-runtime"))
+    // QuickJS (JavaScript engine for plugins)
+    implementation(libs.quickjs.android)
 
     // Core Android
     implementation(libs.androidx.core.ktx)

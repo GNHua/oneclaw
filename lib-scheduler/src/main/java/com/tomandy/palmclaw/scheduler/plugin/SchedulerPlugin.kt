@@ -7,7 +7,8 @@ import com.tomandy.palmclaw.scheduler.CronjobManager
 import com.tomandy.palmclaw.scheduler.data.CronjobEntity
 import com.tomandy.palmclaw.scheduler.data.ScheduleType
 import kotlinx.serialization.json.*
-import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeParseException
 
 /**
@@ -64,9 +65,12 @@ class SchedulerPlugin : Plugin {
                         ?: return ToolResult.Failure("Missing required field 'execute_at' for one_time tasks")
 
                     val executeAt = try {
-                        Instant.parse(executeAtStr).toEpochMilli()
+                        LocalDateTime.parse(executeAtStr)
+                            .atZone(ZoneId.systemDefault())
+                            .toInstant()
+                            .toEpochMilli()
                     } catch (e: DateTimeParseException) {
-                        return ToolResult.Failure("Invalid execute_at format. Expected ISO 8601 datetime (e.g., '2026-02-12T18:00:00Z')")
+                        return ToolResult.Failure("Invalid execute_at format. Expected ISO 8601 local datetime (e.g., '2026-02-12T18:00:00')")
                     }
 
                     if (executeAt <= System.currentTimeMillis()) {
@@ -126,8 +130,11 @@ class SchedulerPlugin : Plugin {
             // Build success message
             val scheduleDescription = when (scheduleType) {
                 ScheduleType.ONE_TIME -> {
-                    val instant = Instant.ofEpochMilli(finalCronjob.executeAt!!)
-                    "once at $instant"
+                    val localTime = LocalDateTime.ofInstant(
+                        java.time.Instant.ofEpochMilli(finalCronjob.executeAt!!),
+                        ZoneId.systemDefault()
+                    )
+                    "once at $localTime"
                 }
                 ScheduleType.RECURRING -> {
                     when {

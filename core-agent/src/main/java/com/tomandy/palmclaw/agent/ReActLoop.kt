@@ -55,7 +55,7 @@ class ReActLoop(
         tools: List<ToolDefinition>,
         conversationId: String,
         model: String = "gpt-4o-mini",
-        maxIterations: Int = 5
+        maxIterations: Int = 200
     ): Result<String> {
         Log.d("ReActLoop", "step called with ${messages.size} messages, ${tools.size} tools, model: $model")
         val workingMessages = messages.toMutableList()

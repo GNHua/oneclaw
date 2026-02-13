@@ -45,7 +45,7 @@ object SchedulerPluginMetadata {
             |
             |For one-time tasks:
             |- Use schedule_type: "one_time"
-            |- Provide execute_at as an ISO 8601 datetime (e.g., '2026-02-12T18:00:00Z')
+            |- Provide execute_at as a local datetime without timezone suffix (e.g., '2026-02-12T18:00:00')
             |
             |For recurring tasks:
             |- Use schedule_type: "recurring"
@@ -71,7 +71,7 @@ object SchedulerPluginMetadata {
                 }
                 putJsonObject("execute_at") {
                     put("type", JsonPrimitive("string"))
-                    put("description", JsonPrimitive("For one_time tasks: ISO 8601 datetime (e.g., '2026-02-12T18:00:00Z')"))
+                    put("description", JsonPrimitive("For one_time tasks: local datetime without timezone suffix (e.g., '2026-02-12T18:00:00')"))
                 }
                 putJsonObject("interval_minutes") {
                     put("type", JsonPrimitive("integer"))

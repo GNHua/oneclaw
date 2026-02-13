@@ -12,7 +12,14 @@ function execute(toolName, args) {
             var day = String(now.getDate()).padStart(2, "0");
             return { output: year + "-" + month + "-" + day };
         case "get_timestamp":
-            return { output: String(now.getTime()) };
+            var ty = now.getFullYear();
+            var tm = String(now.getMonth() + 1).padStart(2, "0");
+            var td = String(now.getDate()).padStart(2, "0");
+            var th = String(now.getHours()).padStart(2, "0");
+            var tmi = String(now.getMinutes()).padStart(2, "0");
+            var ts = String(now.getSeconds()).padStart(2, "0");
+            var iso = ty + "-" + tm + "-" + td + "T" + th + ":" + tmi + ":" + ts;
+            return { output: iso + " (" + String(now.getTime()) + ")" };
         default:
             return { error: "Unknown tool: " + toolName };
     }

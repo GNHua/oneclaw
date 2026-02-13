@@ -183,14 +183,21 @@ class CronjobManager(private val context: Context) {
         )
 
         // Use setExactAndAllowWhileIdle for precise timing even in Doze mode
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            alarmManager.canScheduleExactAlarms()
+        } else {
+            true
+        }
+
+        if (canScheduleExact) {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 cronjob.executeAt,
                 pendingIntent
             )
         } else {
-            alarmManager.setExact(
+            // Fallback to inexact alarm if exact alarm permission not granted
+            alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 cronjob.executeAt,
                 pendingIntent

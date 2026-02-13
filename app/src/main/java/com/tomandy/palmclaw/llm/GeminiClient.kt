@@ -1,43 +1,45 @@
 package com.tomandy.palmclaw.llm
 
+import com.google.genai.Client
+import com.google.genai.types.Content
+import com.google.genai.types.FunctionDeclaration
+import com.google.genai.types.FunctionResponse
+import com.google.genai.types.GenerateContentConfig
+import com.google.genai.types.Part
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.concurrent.TimeUnit
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import com.google.genai.types.Tool as GeminiTool
 
 /**
- * Google Gemini client using REST API directly.
+ * Google Gemini client using the official java-genai SDK.
  *
- * Uses OkHttp instead of the Gemini SDK to properly handle thought_signatures
- * required by thinking models (e.g., gemini-3-flash-preview).
- * The raw model response JSON is stored and echoed back during function call
- * round-trips, preserving all fields including thoughtSignature.
+ * Uses manual history management (not Chat) to accumulate Content objects.
+ * The SDK's Part class preserves thoughtSignature fields natively, so
+ * adding the model's response Content back to history works correctly
+ * with thinking models (e.g., gemini-3-flash-preview).
  */
 class GeminiClient(
     private var apiKey: String = "",
     private var baseModel: String = "gemini-3-flash"
 ) : LlmClient {
 
-    private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(120, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .build()
-
-    private val json = Json { ignoreUnknownKeys = true }
+    private var client: Client? = null
 
     // State for function call round-trips:
-    // Store the raw model response content (with thoughtSignature) and conversation
-    private var pendingModelContent: JsonObject? = null
-    private var conversationContents: MutableList<JsonObject> = mutableListOf()
+    // Store the model's response Content (preserves thoughtSignature) and conversation history
+    private var pendingModelContent: Content? = null
+    private var conversationContents: MutableList<Content> = mutableListOf()
 
     @Synchronized
     override fun setApiKey(apiKey: String) {
         this.apiKey = apiKey
+        this.client = if (apiKey.isNotEmpty()) {
+            Client.builder().apiKey(apiKey).build()
+        } else null
     }
 
     @Synchronized
@@ -53,9 +55,10 @@ class GeminiClient(
         tools: List<Tool>?
     ): Result<LlmResponse> = withContext(Dispatchers.IO) {
         try {
-            if (apiKey.isEmpty()) {
-                return@withContext Result.failure(Exception("API key not set. Please configure your Google AI API key in Settings."))
-            }
+            val genaiClient = client
+                ?: return@withContext Result.failure(
+                    Exception("API key not set. Please configure your Google AI API key in Settings.")
+                )
 
             val modelName = if (model.isNotEmpty()) model else baseModel
 
@@ -72,56 +75,34 @@ class GeminiClient(
                 conversationContents = buildContentsFromMessages(messages)
             }
 
-            // Build tools JSON
-            val toolsJson = tools?.takeIf { it.isNotEmpty() }?.let { buildToolsJson(it) }
+            // Build tools
+            val geminiTools = tools?.takeIf { it.isNotEmpty() }?.let { buildGeminiTools(it) }
 
-            // Build request body
-            val requestBody = buildJsonObject {
-                put("contents", JsonArray(conversationContents))
-                toolsJson?.let { put("tools", it) }
-            }
+            // Build config
+            val config = GenerateContentConfig.builder().apply {
+                geminiTools?.let { tools(it) }
+            }.build()
 
             // Make API call
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$apiKey"
-            val request = Request.Builder()
-                .url(url)
-                .post(requestBody.toString().toRequestBody("application/json".toMediaType()))
-                .build()
+            val response = genaiClient.models.generateContent(
+                modelName,
+                conversationContents,
+                config
+            )
 
-            val response = httpClient.newCall(request).execute()
-            val responseBody = response.body?.string()
-                ?: return@withContext Result.failure(Exception("Empty response from Gemini API"))
-
-            if (!response.isSuccessful) {
-                pendingModelContent = null
-                return@withContext Result.failure(Exception("Gemini API error (${response.code}): $responseBody"))
-            }
-
-            val responseJson = json.parseToJsonElement(responseBody).jsonObject
-
-            // Check for errors
-            responseJson["error"]?.let { error ->
-                pendingModelContent = null
-                val errorMsg = error.jsonObject["message"]?.jsonPrimitive?.content ?: responseBody
-                return@withContext Result.failure(Exception("Gemini API error: $errorMsg"))
-            }
-
-            // Parse candidates
-            val candidates = responseJson["candidates"]?.jsonArray
+            // Extract candidate content
+            val candidate = response.candidates()?.orElse(null)?.firstOrNull()
                 ?: return@withContext Result.failure(Exception("No candidates in Gemini response"))
 
-            val candidate = candidates.firstOrNull()?.jsonObject
-                ?: return@withContext Result.failure(Exception("Empty candidates in Gemini response"))
-
-            val contentObj = candidate["content"]?.jsonObject
-            val parts = contentObj?.get("parts")?.jsonArray ?: JsonArray(emptyList())
+            val contentObj = candidate.content()?.orElse(null)
+            val parts = contentObj?.parts()?.orElse(null) ?: emptyList()
 
             // Check for function calls
-            val functionCallParts = parts.filter { it.jsonObject.containsKey("functionCall") }
-            val hasFunctionCalls = functionCallParts.isNotEmpty()
+            val functionCalls = response.functionCalls() ?: emptyList()
+            val hasFunctionCalls = functionCalls.isNotEmpty()
 
             if (hasFunctionCalls) {
-                // Store the RAW model content for the next round-trip (preserves thoughtSignature)
+                // Store the model's Content for the next round-trip (preserves thoughtSignature)
                 pendingModelContent = contentObj
             } else {
                 // Final answer - add to conversation history
@@ -129,27 +110,29 @@ class GeminiClient(
                 pendingModelContent = null
             }
 
-            // Convert to LlmResponse
+            // Extract text content
             val textContent = parts
-                .filter { it.jsonObject.containsKey("text") }
-                .joinToString("") { it.jsonObject["text"]!!.jsonPrimitive.content }
+                .filter { it.text()?.isPresent == true }
+                .filter { it.thought()?.orElse(false) != true }
+                .joinToString("") { it.text().get() }
 
-            val toolCalls = functionCallParts.map { part ->
-                val fc = part.jsonObject["functionCall"]!!.jsonObject
-                val name = fc["name"]!!.jsonPrimitive.content
-                val args = fc["args"]?.jsonObject ?: JsonObject(emptyMap())
+            // Convert function calls to our ToolCall format
+            val toolCalls = functionCalls.map { fc ->
+                val name = fc.name()?.orElse("unknown") ?: "unknown"
+                val args = fc.args()?.orElse(null) ?: emptyMap()
+                val argsJson = mapToJsonString(args)
                 ToolCall(
-                    id = "gemini-func-${System.nanoTime()}",
+                    id = fc.id()?.orElse(null) ?: "gemini-func-${System.nanoTime()}",
                     type = "function",
                     function = FunctionCall(
                         name = name,
-                        arguments = args.toString()
+                        arguments = argsJson
                     )
                 )
             }
 
             val finishReason = if (hasFunctionCalls) "tool_calls"
-                else candidate["finishReason"]?.jsonPrimitive?.content?.lowercase() ?: "stop"
+            else candidate.finishReason()?.orElse(null)?.knownEnum()?.name?.lowercase() ?: "stop"
 
             Result.success(
                 LlmResponse(
@@ -175,29 +158,49 @@ class GeminiClient(
     }
 
     /**
-     * Build Gemini contents array from our Message list.
+     * Build Gemini Content list from our Message list.
      * Only includes text messages (system/user/assistant).
      */
-    private fun buildContentsFromMessages(messages: List<Message>): MutableList<JsonObject> {
-        val contents = mutableListOf<JsonObject>()
+    private fun buildContentsFromMessages(messages: List<Message>): MutableList<Content> {
+        val contents = mutableListOf<Content>()
 
         for (msg in messages) {
             when (msg.role) {
                 "system" -> {
                     if (!msg.content.isNullOrBlank()) {
-                        contents.add(buildTextContent("user", msg.content))
-                        contents.add(buildTextContent("model", "Understood."))
+                        contents.add(
+                            Content.builder()
+                                .role("user")
+                                .parts(Part.fromText(msg.content))
+                                .build()
+                        )
+                        contents.add(
+                            Content.builder()
+                                .role("model")
+                                .parts(Part.fromText("Understood."))
+                                .build()
+                        )
                     }
                 }
                 "user" -> {
                     if (!msg.content.isNullOrBlank()) {
-                        contents.add(buildTextContent("user", msg.content))
+                        contents.add(
+                            Content.builder()
+                                .role("user")
+                                .parts(Part.fromText(msg.content))
+                                .build()
+                        )
                     }
                 }
                 "assistant" -> {
                     // Only include text content (skip tool_calls - handled via pendingModelContent)
                     if (!msg.content.isNullOrBlank() && (msg.tool_calls == null || msg.tool_calls.isEmpty())) {
-                        contents.add(buildTextContent("model", msg.content))
+                        contents.add(
+                            Content.builder()
+                                .role("model")
+                                .parts(Part.fromText(msg.content))
+                                .build()
+                        )
                     }
                 }
                 // Skip "tool" messages - handled via pendingModelContent flow
@@ -207,53 +210,98 @@ class GeminiClient(
         return contents
     }
 
-    private fun buildTextContent(role: String, text: String): JsonObject {
-        return buildJsonObject {
-            put("role", role)
-            put("parts", buildJsonArray {
-                add(buildJsonObject { put("text", text) })
-            })
+    /**
+     * Build function response Content from tool messages.
+     */
+    private fun buildFunctionResponseContent(toolMessages: List<Message>): Content {
+        val parts = toolMessages.map { toolMsg ->
+            Part.builder()
+                .functionResponse(
+                    FunctionResponse.builder()
+                        .name(toolMsg.name ?: "unknown")
+                        .response(mapOf("result" to (toolMsg.content ?: "")))
+                        .build()
+                )
+                .build()
         }
+
+        return Content.builder()
+            .role("user")
+            .parts(parts)
+            .build()
     }
 
     /**
-     * Build function response content from tool messages.
+     * Convert our Tool format to Gemini SDK Tool format.
      */
-    private fun buildFunctionResponseContent(toolMessages: List<Message>): JsonObject {
-        return buildJsonObject {
-            put("role", "function")
-            put("parts", buildJsonArray {
-                toolMessages.forEach { toolMsg ->
-                    add(buildJsonObject {
-                        put("functionResponse", buildJsonObject {
-                            put("name", toolMsg.name ?: "unknown")
-                            put("response", buildJsonObject {
-                                put("result", toolMsg.content ?: "")
-                            })
-                        })
-                    })
-                }
-            })
-        }
-    }
-
-    /**
-     * Convert our Tool format to Gemini REST API tools JSON.
-     */
-    private fun buildToolsJson(tools: List<Tool>): JsonArray {
+    private fun buildGeminiTools(tools: List<Tool>): List<GeminiTool> {
         val declarations = tools.map { tool ->
-            val params = tool.function.parameters
-            buildJsonObject {
-                put("name", tool.function.name)
-                put("description", tool.function.description)
-                put("parameters", params)
-            }
+            val params = jsonObjectToMap(tool.function.parameters)
+            FunctionDeclaration.builder()
+                .name(tool.function.name)
+                .description(tool.function.description)
+                .parametersJsonSchema(params)
+                .build()
         }
 
-        return buildJsonArray {
-            add(buildJsonObject {
-                put("functionDeclarations", JsonArray(declarations))
-            })
+        return listOf(
+            GeminiTool.builder()
+                .functionDeclarations(declarations)
+                .build()
+        )
+    }
+
+    /**
+     * Convert a kotlinx.serialization JsonObject to a Map<String, Any?> for the Gemini SDK.
+     */
+    private fun jsonObjectToMap(json: JsonObject): Map<String, Any?> {
+        return json.entries.associate { (key, value) ->
+            key to jsonElementToAny(value)
+        }
+    }
+
+    private fun jsonElementToAny(element: kotlinx.serialization.json.JsonElement): Any? {
+        return when (element) {
+            is JsonPrimitive -> {
+                if (element.isString) element.content
+                else element.content.toBooleanStrictOrNull()
+                    ?: element.content.toLongOrNull()
+                    ?: element.content.toDoubleOrNull()
+                    ?: element.content
+            }
+            is JsonObject -> element.entries.associate { (k, v) -> k to jsonElementToAny(v) }
+            is kotlinx.serialization.json.JsonArray -> element.map { jsonElementToAny(it) }
+            else -> null
+        }
+    }
+
+    /**
+     * Convert a Map<String, Object> to a JSON string for our FunctionCall.arguments.
+     */
+    private fun mapToJsonString(map: Map<String, Any?>): String {
+        val entries = map.entries.joinToString(",") { (k, v) ->
+            "\"$k\":${valueToJson(v)}"
+        }
+        return "{$entries}"
+    }
+
+    private fun valueToJson(value: Any?): String {
+        return when (value) {
+            null -> "null"
+            is String -> "\"${value.replace("\"", "\\\"")}\""
+            is Number -> value.toString()
+            is Boolean -> value.toString()
+            is Map<*, *> -> {
+                val entries = value.entries.joinToString(",") { (k, v) ->
+                    "\"$k\":${valueToJson(v)}"
+                }
+                "{$entries}"
+            }
+            is List<*> -> {
+                val items = value.joinToString(",") { valueToJson(it) }
+                "[$items]"
+            }
+            else -> "\"$value\""
         }
     }
 }

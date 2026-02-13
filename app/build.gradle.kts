@@ -37,6 +37,14 @@ android {
         buildConfig = true
     }
 
+    packaging {
+        resources {
+            excludes += listOf(
+                "META-INF/INDEX.LIST",
+                "META-INF/DEPENDENCIES",
+            )
+        }
+    }
 }
 
 dependencies {
@@ -82,6 +90,9 @@ dependencies {
 
     // Navigation
     implementation(libs.androidx.navigation.compose)
+
+    // AI/LLM
+    implementation(libs.google.genai)
 
     // Markdown
     implementation(libs.compose.markdown)

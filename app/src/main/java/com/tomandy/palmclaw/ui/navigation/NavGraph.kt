@@ -71,15 +71,9 @@ fun PalmClawNavGraph(
     val chatViewModel = remember {
         val activeId = app.conversationPreferences.getActiveConversationId()
         ChatViewModel(
-            toolRegistry = app.toolRegistry,
-            toolExecutor = app.toolExecutor,
-            messageStore = app.messageStore,
             messageDao = app.database.messageDao(),
             conversationDao = app.database.conversationDao(),
-            modelPreferences = app.modelPreferences,
             conversationPreferences = app.conversationPreferences,
-            getCurrentClient = { app.getCurrentLlmClient() },
-            getCurrentProvider = { app.selectedProvider.value },
             appContext = app.applicationContext,
             conversationId = activeId
         )

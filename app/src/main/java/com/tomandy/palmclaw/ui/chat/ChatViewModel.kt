@@ -4,39 +4,26 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tomandy.palmclaw.agent.AgentCoordinator
 import com.tomandy.palmclaw.agent.AgentState
-import com.tomandy.palmclaw.agent.MessageStore
-import com.tomandy.palmclaw.agent.ToolExecutor
-import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.data.ConversationPreferences
-import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.dao.ConversationDao
 import com.tomandy.palmclaw.data.dao.MessageDao
 import com.tomandy.palmclaw.data.entity.ConversationEntity
 import com.tomandy.palmclaw.data.entity.MessageEntity
-import com.tomandy.palmclaw.llm.LlmClient
-import com.tomandy.palmclaw.llm.LlmProvider
-import com.tomandy.palmclaw.llm.Message
-import com.tomandy.palmclaw.notification.ChatNotificationHelper
-import kotlinx.coroutines.Job
+import com.tomandy.palmclaw.service.ChatExecutionService
+import com.tomandy.palmclaw.service.ChatExecutionTracker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 class ChatViewModel(
-    private val toolRegistry: ToolRegistry,
-    private val toolExecutor: ToolExecutor,
-    private val messageStore: MessageStore,
     private val messageDao: MessageDao,
     private val conversationDao: ConversationDao,
-    private val modelPreferences: ModelPreferences,
     private val conversationPreferences: ConversationPreferences,
-    private val getCurrentClient: () -> LlmClient,
-    private val getCurrentProvider: () -> LlmProvider,
     private val appContext: Context,
     conversationId: String? = null
 ) : ViewModel() {
@@ -58,22 +45,8 @@ class ChatViewModel(
     private val _agentState = MutableStateFlow<AgentState>(AgentState.Idle)
     val agentState: StateFlow<AgentState> = _agentState.asStateFlow()
 
-    private var agentCoordinator = createAgentCoordinator(_conversationId.value)
-    private var agentStateJob: Job? = null
-
-    private fun createAgentCoordinator(convId: String): AgentCoordinator {
-        return AgentCoordinator(
-            clientProvider = getCurrentClient,
-            toolRegistry = toolRegistry,
-            toolExecutor = toolExecutor,
-            messageStore = messageStore,
-            conversationId = convId,
-            scope = viewModelScope
-        )
-    }
-
     init {
-        // Use flatMapLatest so message collection reacts to conversation ID changes
+        // Observe messages from DB (reactive -- updates when service writes new rows)
         viewModelScope.launch {
             @Suppress("OPT_IN_USAGE")
             _conversationId.flatMapLatest { id ->
@@ -83,35 +56,37 @@ class ChatViewModel(
             }
         }
 
-        // Observe agent state
-        observeAgentState()
-
-        // Persist active ID and seed history if conversation already exists
+        // Observe processing state from the service tracker
         viewModelScope.launch {
-            val id = _conversationId.value
-            conversationPreferences.setActiveConversationId(id)
-            val existing = conversationDao.getConversationOnce(id)
-            if (existing != null) {
-                seedAgentHistory(id)
+            combine(_conversationId, ChatExecutionTracker.activeConversations) { convId, active ->
+                convId in active
+            }.collect { processing ->
+                _isProcessing.value = processing
             }
         }
-    }
 
-    private fun observeAgentState() {
-        agentStateJob?.cancel()
-        agentStateJob = viewModelScope.launch {
-            agentCoordinator.state.collect { state ->
+        // Observe agent state from the service tracker
+        viewModelScope.launch {
+            combine(_conversationId, ChatExecutionTracker.agentStates) { convId, states ->
+                states[convId] ?: AgentState.Idle
+            }.collect { state ->
                 _agentState.value = state
             }
         }
-    }
 
-    private suspend fun seedAgentHistory(convId: String) {
-        val dbMessages = messageDao.getMessagesOnce(convId)
-        val history = dbMessages
-            .filter { it.role == "user" || it.role == "assistant" }
-            .map { Message(role = it.role, content = it.content) }
-        agentCoordinator.seedHistory(history)
+        // Observe errors from the service tracker
+        viewModelScope.launch {
+            combine(_conversationId, ChatExecutionTracker.errors) { convId, errors ->
+                errors[convId]
+            }.collect { error ->
+                _error.value = error
+            }
+        }
+
+        // Persist active conversation ID
+        viewModelScope.launch {
+            conversationPreferences.setActiveConversationId(_conversationId.value)
+        }
     }
 
     fun sendMessage(text: String) {
@@ -119,114 +94,54 @@ class ChatViewModel(
         if (text.isBlank()) return
 
         viewModelScope.launch {
-            Log.d("ChatViewModel", "Starting message processing")
-            _isProcessing.value = true
-            _error.value = null
+            ChatExecutionTracker.clearError(_conversationId.value)
 
-            try {
-                val convId = _conversationId.value
+            val convId = _conversationId.value
 
-                // Ensure conversation exists in DB before inserting message (foreign key)
-                var conv = conversationDao.getConversationOnce(convId)
-                if (conv == null) {
-                    val title = text.take(50).let {
-                        if (text.length > 50) "$it..." else it
-                    }
-                    conv = ConversationEntity(
-                        id = convId,
-                        title = title,
-                        createdAt = System.currentTimeMillis(),
-                        updatedAt = System.currentTimeMillis(),
-                        messageCount = 1,
-                        lastMessagePreview = text.take(100)
-                    )
-                    conversationDao.insert(conv)
-                } else {
-                    conversationDao.update(conv.copy(
-                        updatedAt = System.currentTimeMillis(),
-                        messageCount = conv.messageCount + 1,
-                        lastMessagePreview = text.take(100)
-                    ))
+            // Ensure conversation exists in DB (foreign key for messages)
+            var conv = conversationDao.getConversationOnce(convId)
+            if (conv == null) {
+                val title = text.take(50).let {
+                    if (text.length > 50) "$it..." else it
                 }
-
-                // Save user message
-                val userMessage = MessageEntity(
-                    id = UUID.randomUUID().toString(),
-                    conversationId = convId,
-                    role = "user",
-                    content = text,
-                    timestamp = System.currentTimeMillis()
+                conv = ConversationEntity(
+                    id = convId,
+                    title = title,
+                    createdAt = System.currentTimeMillis(),
+                    updatedAt = System.currentTimeMillis(),
+                    messageCount = 1,
+                    lastMessagePreview = text.take(100)
                 )
-                messageDao.insert(userMessage)
-
-                // Get the currently selected model (global)
-                val selectedModel = modelPreferences.getSelectedModel()
-                    ?: modelPreferences.getModel(getCurrentProvider())
-
-                Log.d("ChatViewModel", "Selected model: $selectedModel")
-
-                // Execute agent with selected model and max iterations
-                val maxIterations = modelPreferences.getMaxIterations()
-                val result = agentCoordinator.execute(
-                    userMessage = text,
-                    systemPrompt = "You are a helpful AI assistant for Android. Be concise and accurate.",
-                    model = selectedModel,
-                    maxIterations = maxIterations
-                )
-
-                result.fold(
-                    onSuccess = { response ->
-                        Log.d("ChatViewModel", "Agent success, response length: ${response.length}")
-                        // Save assistant message
-                        val assistantMessage = MessageEntity(
-                            id = UUID.randomUUID().toString(),
-                            conversationId = convId,
-                            role = "assistant",
-                            content = response,
-                            timestamp = System.currentTimeMillis()
-                        )
-                        messageDao.insert(assistantMessage)
-
-                        // Update conversation denormalized fields
-                        val updatedConv = conversationDao.getConversationOnce(convId)
-                        updatedConv?.let { c ->
-                            conversationDao.update(c.copy(
-                                updatedAt = System.currentTimeMillis(),
-                                messageCount = c.messageCount + 1,
-                                lastMessagePreview = response.take(100)
-                            ))
-                        }
-
-                        // Send notification if user is not viewing this conversation
-                        val title = updatedConv?.title ?: "New response"
-                        ChatNotificationHelper.notifyIfNeeded(
-                            context = appContext,
-                            conversationId = convId,
-                            conversationTitle = title,
-                            responseText = response
-                        )
-                    },
-                    onFailure = { e ->
-                        Log.e("ChatViewModel", "Agent failure: ${e.message}", e)
-                        _error.value = e.message ?: "Unknown error occurred"
-                    }
-                )
-            } catch (e: Exception) {
-                Log.e("ChatViewModel", "Exception in sendMessage: ${e.message}", e)
-                _error.value = e.message ?: "Unknown error occurred"
-            } finally {
-                _isProcessing.value = false
+                conversationDao.insert(conv)
+            } else {
+                conversationDao.update(conv.copy(
+                    updatedAt = System.currentTimeMillis(),
+                    messageCount = conv.messageCount + 1,
+                    lastMessagePreview = text.take(100)
+                ))
             }
+
+            // Persist user message
+            val userMessage = MessageEntity(
+                id = UUID.randomUUID().toString(),
+                conversationId = convId,
+                role = "user",
+                content = text,
+                timestamp = System.currentTimeMillis()
+            )
+            messageDao.insert(userMessage)
+
+            // Delegate execution to the foreground service
+            ChatExecutionService.startExecution(appContext, convId, text)
         }
     }
 
     fun clearError() {
-        _error.value = null
+        ChatExecutionTracker.clearError(_conversationId.value)
     }
 
     fun cancelRequest() {
-        agentCoordinator.cancel()
-        _isProcessing.value = false
+        ChatExecutionService.cancelExecution(appContext, _conversationId.value)
     }
 
     fun newConversation() {
@@ -260,21 +175,7 @@ class ChatViewModel(
     }
 
     private suspend fun switchToConversation(convId: String) {
-        // Cancel any in-progress request
-        agentCoordinator.cancel()
-
-        // Update conversation ID (flatMapLatest will handle message reload)
         _conversationId.value = convId
         conversationPreferences.setActiveConversationId(convId)
-
-        // Create new agent coordinator for this conversation
-        agentCoordinator = createAgentCoordinator(convId)
-        observeAgentState()
-
-        // Seed agent history from DB
-        seedAgentHistory(convId)
-
-        _isProcessing.value = false
-        _error.value = null
     }
 }

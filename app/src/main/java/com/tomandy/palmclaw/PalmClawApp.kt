@@ -125,11 +125,10 @@ class PalmClawApp : Application() {
             // Initialize the plugin
             schedulerPlugin.onLoad(pluginContext)
 
-            // Create LoadedPlugin wrapper (use app's classloader since it's built-in)
+            // Create LoadedPlugin wrapper
             val loadedPlugin = LoadedPlugin(
                 metadata = SchedulerPluginMetadata.get(),
-                instance = schedulerPlugin,
-                classLoader = javaClass.classLoader!!
+                instance = schedulerPlugin
             )
 
             // Register with tool registry

@@ -36,8 +36,8 @@ android {
 }
 
 dependencies {
-    // Engine Runtime (for Plugin interface)
-    implementation(project(":engine-runtime"))
+    // Plugin Runtime (for Plugin interface)
+    implementation(project(":plugin-runtime"))
 
     // AndroidX Core
     implementation(libs.androidx.core.ktx)

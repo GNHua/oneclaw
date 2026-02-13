@@ -27,6 +27,7 @@ class ScheduledAgentExecutor(
                 clientProvider = { app.getCurrentLlmClient() },
                 toolRegistry = app.toolRegistry,
                 toolExecutor = app.toolExecutor,
+                messageStore = app.messageStore,
                 conversationId = conversationId
             )
 

@@ -22,6 +22,7 @@ mockwebserver = "5.3.2"
 composeMarkdown = "0.5.4"
 quickjs = "1.0.0-alpha13"
 googleGenai = "1.39.0"
+anthropic = "2.11.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -71,6 +72,7 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 
 # AI/LLM
 google-genai = { group = "com.google.genai", name = "google-genai", version.ref = "googleGenai" }
+anthropic-java = { group = "com.anthropic", name = "anthropic-java", version.ref = "anthropic" }
 
 # Markdown
 compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "composeMarkdown" }

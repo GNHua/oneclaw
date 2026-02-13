@@ -42,6 +42,8 @@ android {
             excludes += listOf(
                 "META-INF/INDEX.LIST",
                 "META-INF/DEPENDENCIES",
+                "META-INF/io.netty.versions.properties",
+                "mozilla/public-suffix-list.txt",
             )
         }
     }
@@ -93,6 +95,7 @@ dependencies {
 
     // AI/LLM
     implementation(libs.google.genai)
+    implementation(libs.anthropic.java)
 
     // Markdown
     implementation(libs.compose.markdown)

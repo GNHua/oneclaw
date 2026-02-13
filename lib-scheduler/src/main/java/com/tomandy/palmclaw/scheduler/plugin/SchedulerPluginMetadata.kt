@@ -46,13 +46,13 @@ object SchedulerPluginMetadata {
             |For one-time tasks:
             |- Use schedule_type: "one_time"
             |- Provide execute_at as a local datetime without timezone suffix (e.g., '2026-02-12T18:00:00')
+            |- One-time tasks can be scheduled at any time in the future, with no minimum delay
             |
             |For recurring tasks:
             |- Use schedule_type: "recurring"
             |- Provide either interval_minutes (minimum 15) OR cron_expression
             |- Examples: "Check email every 30 minutes", "Every Monday at 9 AM"
-            |
-            |Note: The minimum interval is 15 minutes due to Android battery optimization.
+            |- Note: The minimum interval for recurring tasks is 15 minutes due to Android battery optimization.
         """.trimMargin(),
         parameters = buildJsonObject {
             put("type", JsonPrimitive("object"))

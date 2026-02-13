@@ -113,6 +113,13 @@ class CronjobManager(private val context: Context) {
     }
 
     /**
+     * Get disabled cronjobs with pagination
+     */
+    suspend fun getDisabledPaged(limit: Int, offset: Int): List<CronjobEntity> {
+        return cronjobDao.getDisabledPaged(limit, offset)
+    }
+
+    /**
      * Get execution logs for a specific cronjob
      */
     fun getExecutionLogs(cronjobId: String): Flow<List<ExecutionLog>> {

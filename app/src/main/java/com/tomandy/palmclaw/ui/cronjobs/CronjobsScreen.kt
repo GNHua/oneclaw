@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -25,11 +26,14 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -37,16 +41,23 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.tomandy.palmclaw.scheduler.data.CronjobEntity
 import com.tomandy.palmclaw.scheduler.data.ExecutionLog
@@ -56,17 +67,21 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CronjobsScreen(
     viewModel: CronjobsViewModel,
     modifier: Modifier = Modifier
 ) {
-    val showAll by viewModel.showAll.collectAsState()
     val cronjobs by viewModel.cronjobs.collectAsState()
     val selectedCronjobId by viewModel.selectedCronjobId.collectAsState()
     val executionLogs by viewModel.executionLogs.collectAsState()
     val deleteConfirmation by viewModel.deleteConfirmation.collectAsState()
     val error by viewModel.error.collectAsState()
+    val showHistory by viewModel.showHistory.collectAsState()
+    val historyCronjobs by viewModel.historyCronjobs.collectAsState()
+    val historyCanLoadMore by viewModel.historyCanLoadMore.collectAsState()
+    val historyLoading by viewModel.historyLoading.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -96,60 +111,67 @@ fun CronjobsScreen(
         )
     }
 
+    // History bottom sheet
+    if (showHistory) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.closeHistory() },
+            sheetState = sheetState
+        ) {
+            HistorySheetContent(
+                historyCronjobs = historyCronjobs,
+                canLoadMore = historyCanLoadMore,
+                isLoading = historyLoading,
+                onLoadMore = { viewModel.loadMoreHistory() },
+                onToggleEnabled = { viewModel.toggleEnabled(it) },
+                onDelete = { viewModel.requestDelete(it.id) }
+            )
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier
     ) { paddingValues ->
-        if (cronjobs.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(32.dp)
-                ) {
-                    Text(
-                        text = "No scheduled tasks",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Tasks scheduled through the agent will appear here",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                // Filter chip
-                Row(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            if (cronjobs.isEmpty()) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    FilterChip(
-                        selected = showAll,
-                        onClick = { viewModel.toggleShowAll() },
-                        label = { Text("Show completed") }
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(32.dp)
+                    ) {
+                        Text(
+                            text = "No scheduled tasks",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Tasks scheduled through the agent will appear here",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
-
+            } else {
                 LazyColumn(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .weight(1f)
+                        .fillMaxWidth()
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    item { Spacer(modifier = Modifier.height(4.dp)) }
                     items(cronjobs, key = { it.id }) { cronjob ->
                         CronjobCard(
                             cronjob = cronjob,
@@ -160,6 +182,201 @@ fun CronjobsScreen(
                             onDelete = { viewModel.requestDelete(cronjob.id) }
                         )
                     }
+                    item { Spacer(modifier = Modifier.height(4.dp)) }
+                }
+            }
+
+            // History button - always visible at the bottom
+            OutlinedButton(
+                onClick = { viewModel.openHistory() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                Text("History")
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistorySheetContent(
+    historyCronjobs: List<CronjobEntity>,
+    canLoadMore: Boolean,
+    isLoading: Boolean,
+    onLoadMore: () -> Unit,
+    onToggleEnabled: (CronjobEntity) -> Unit,
+    onDelete: (CronjobEntity) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
+    ) {
+        Text(
+            text = "History",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        if (historyCronjobs.isEmpty() && !isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No completed tasks",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            val listState = rememberLazyListState()
+            val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+
+            // Detect scroll near end to trigger loading more
+            val shouldLoadMore by remember {
+                derivedStateOf {
+                    val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
+                        ?: return@derivedStateOf false
+                    lastVisibleItem.index >= listState.layoutInfo.totalItemsCount - 3
+                }
+            }
+
+            LaunchedEffect(shouldLoadMore) {
+                if (shouldLoadMore && canLoadMore && !isLoading) {
+                    onLoadMore()
+                }
+            }
+
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+                    .padding(horizontal = 16.dp)
+                    .drawScrollbar(listState, scrollbarColor),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(historyCronjobs, key = { it.id }) { cronjob ->
+                    HistoryCard(
+                        cronjob = cronjob,
+                        onToggleEnabled = { onToggleEnabled(cronjob) },
+                        onDelete = { onDelete(cronjob) }
+                    )
+                }
+                if (isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
+                    }
+                }
+                item { Spacer(modifier = Modifier.height(4.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryCard(
+    cronjob: CronjobEntity,
+    onToggleEnabled: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Row 1: Instruction + enabled switch
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = cronjob.instruction,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = cronjob.enabled,
+                    onCheckedChange = { onToggleEnabled() }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Completed badge for disabled one-time tasks
+            if (cronjob.scheduleType == ScheduleType.ONE_TIME && cronjob.executionCount > 0) {
+                Surface(
+                    color = Color(0xFF4CAF50).copy(alpha = 0.15f),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = "Completed",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF4CAF50),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            // Row 2: Schedule description + execution count
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = formatSchedule(cronjob),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (cronjob.executionCount > 0) {
+                    Text(
+                        text = "${cronjob.executionCount} run${if (cronjob.executionCount != 1) "s" else ""}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Row 3: Last executed + delete
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = cronjob.lastExecutedAt?.let { "Last: ${formatTimestamp(it)}" } ?: "Never executed",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete task",
+                        tint = MaterialTheme.colorScheme.error
+                    )
                 }
             }
         }
@@ -208,22 +425,6 @@ private fun CronjobCard(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-
-            // Completed badge for disabled one-time tasks
-            if (!cronjob.enabled && cronjob.scheduleType == ScheduleType.ONE_TIME && cronjob.executionCount > 0) {
-                Surface(
-                    color = Color(0xFF4CAF50).copy(alpha = 0.15f),
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Text(
-                        text = "Completed",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF4CAF50),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-            }
 
             // Row 2: Schedule description + execution count
             Row(
@@ -397,4 +598,29 @@ private fun formatTimestamp(millis: Long): String {
 
 private fun formatFullTimestamp(millis: Long): String {
     return fullFormat.format(Date(millis))
+}
+
+private fun Modifier.drawScrollbar(
+    state: androidx.compose.foundation.lazy.LazyListState,
+    color: Color,
+    width: Dp = 4.dp
+): Modifier = drawWithContent {
+    drawContent()
+    val layoutInfo = state.layoutInfo
+    val totalItems = layoutInfo.totalItemsCount
+    if (totalItems == 0 || layoutInfo.visibleItemsInfo.size >= totalItems) return@drawWithContent
+
+    val viewportHeight = size.height
+    val scrollbarHeight = (layoutInfo.visibleItemsInfo.size.toFloat() / totalItems * viewportHeight)
+        .coerceAtLeast(24.dp.toPx())
+    val scrollRange = viewportHeight - scrollbarHeight
+    val scrollOffset = state.firstVisibleItemIndex.toFloat() / (totalItems - layoutInfo.visibleItemsInfo.size).coerceAtLeast(1)
+    val scrollbarY = scrollOffset * scrollRange
+
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(size.width - width.toPx(), scrollbarY),
+        size = Size(width.toPx(), scrollbarHeight),
+        cornerRadius = CornerRadius(width.toPx() / 2)
+    )
 }

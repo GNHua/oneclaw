@@ -46,4 +46,18 @@ class ModelPreferences(context: Context) {
             .putString("model_${provider.name}", model)
             .apply()
     }
+
+    fun getMaxIterations(): Int {
+        return prefs.getInt("max_iterations", DEFAULT_MAX_ITERATIONS)
+    }
+
+    fun saveMaxIterations(value: Int) {
+        prefs.edit()
+            .putInt("max_iterations", value.coerceIn(1, 500))
+            .apply()
+    }
+
+    companion object {
+        const val DEFAULT_MAX_ITERATIONS = 200
+    }
 }

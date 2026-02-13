@@ -9,13 +9,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.tomandy.palmclaw.data.ModelPreferences
+import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(
     onNavigateToProviders: () -> Unit,
     onNavigateToPlugins: () -> Unit,
+    modelPreferences: ModelPreferences,
     modifier: Modifier = Modifier
 ) {
+    var maxIterations by remember {
+        mutableIntStateOf(modelPreferences.getMaxIterations())
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -32,6 +39,58 @@ fun SettingsScreen(
             subtitle = "Enable or disable plugins",
             onClick = onNavigateToPlugins
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Max Iterations setting
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Max Iterations",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Maximum ReAct loop iterations per request",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(
+                        text = "$maxIterations",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Slider(
+                    value = maxIterations.toFloat(),
+                    onValueChange = {
+                        maxIterations = it.roundToInt()
+                    },
+                    onValueChangeFinished = {
+                        modelPreferences.saveMaxIterations(maxIterations)
+                    },
+                    valueRange = 1f..500f,
+                    steps = 0
+                )
+            }
+        }
     }
 }
 

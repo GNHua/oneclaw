@@ -122,6 +122,7 @@ fun PalmClawNavGraph(
                     onNavigateToPlugins = {
                         navController.navigate(Screen.Plugins.route)
                     },
+                    modelPreferences = app.modelPreferences,
                     modifier = Modifier.padding(paddingValues)
                 )
             }

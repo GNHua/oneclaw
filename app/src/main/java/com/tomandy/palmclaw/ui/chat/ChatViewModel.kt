@@ -162,11 +162,13 @@ class ChatViewModel(
 
                 Log.d("ChatViewModel", "Selected model: $selectedModel")
 
-                // Execute agent with selected model
+                // Execute agent with selected model and max iterations
+                val maxIterations = modelPreferences.getMaxIterations()
                 val result = agentCoordinator.execute(
                     userMessage = text,
                     systemPrompt = "You are a helpful AI assistant for Android. Be concise and accurate.",
-                    model = selectedModel
+                    model = selectedModel,
+                    maxIterations = maxIterations
                 )
 
                 result.fold(

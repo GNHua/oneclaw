@@ -76,6 +76,7 @@ class AgentCoordinator(
         userMessage: String,
         systemPrompt: String = DEFAULT_SYSTEM_PROMPT,
         model: String = "",
+        maxIterations: Int = 200,
         context: ExecutionContext = ExecutionContext.Interactive
     ): Result<String> {
         Log.d("AgentCoordinator", "execute called with message: $userMessage, model: $model")
@@ -122,7 +123,8 @@ class AgentCoordinator(
                 messages = messages,
                 tools = tools,
                 conversationId = conversationId,
-                model = model
+                model = model,
+                maxIterations = maxIterations
             )
             Log.d("AgentCoordinator", "reActLoop.step completed")
 

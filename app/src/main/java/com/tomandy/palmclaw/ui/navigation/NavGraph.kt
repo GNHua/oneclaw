@@ -10,6 +10,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -77,8 +80,19 @@ fun PalmClawNavGraph(
             conversationPreferences = app.conversationPreferences,
             getCurrentClient = { app.getCurrentLlmClient() },
             getCurrentProvider = { app.selectedProvider.value },
+            appContext = app.applicationContext,
             conversationId = activeId
         )
+    }
+
+    // Handle notification tap: navigate to the target conversation
+    val pendingConvId by app.pendingConversationId.collectAsState()
+    LaunchedEffect(pendingConvId) {
+        pendingConvId?.let { convId ->
+            chatViewModel.loadConversation(convId)
+            navController.popBackStack(Screen.Chat.route, inclusive = false)
+            app.pendingConversationId.value = null
+        }
     }
 
     NavHost(

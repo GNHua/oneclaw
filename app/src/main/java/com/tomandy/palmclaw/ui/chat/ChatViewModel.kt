@@ -1,5 +1,6 @@
 package com.tomandy.palmclaw.ui.chat
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,6 +18,7 @@ import com.tomandy.palmclaw.data.entity.MessageEntity
 import com.tomandy.palmclaw.llm.LlmClient
 import com.tomandy.palmclaw.llm.LlmProvider
 import com.tomandy.palmclaw.llm.Message
+import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +37,7 @@ class ChatViewModel(
     private val conversationPreferences: ConversationPreferences,
     private val getCurrentClient: () -> LlmClient,
     private val getCurrentProvider: () -> LlmProvider,
+    private val appContext: Context,
     conversationId: String? = null
 ) : ViewModel() {
 
@@ -185,13 +188,23 @@ class ChatViewModel(
                         messageDao.insert(assistantMessage)
 
                         // Update conversation denormalized fields
-                        conversationDao.getConversationOnce(convId)?.let { c ->
+                        val updatedConv = conversationDao.getConversationOnce(convId)
+                        updatedConv?.let { c ->
                             conversationDao.update(c.copy(
                                 updatedAt = System.currentTimeMillis(),
                                 messageCount = c.messageCount + 1,
                                 lastMessagePreview = response.take(100)
                             ))
                         }
+
+                        // Send notification if user is not viewing this conversation
+                        val title = updatedConv?.title ?: "New response"
+                        ChatNotificationHelper.notifyIfNeeded(
+                            context = appContext,
+                            conversationId = convId,
+                            conversationTitle = title,
+                            responseText = response
+                        )
                     },
                     onFailure = { e ->
                         Log.e("ChatViewModel", "Agent failure: ${e.message}", e)

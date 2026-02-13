@@ -1,0 +1,80 @@
+package com.tomandy.palmclaw.notification
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import com.tomandy.palmclaw.MainActivity
+
+object ChatNotificationHelper {
+
+    private const val CHANNEL_ID = "chat_response_channel"
+    private const val CHANNEL_NAME = "Chat Responses"
+    private const val CHANNEL_DESCRIPTION = "Notifications for new AI responses in chat"
+    const val EXTRA_CONVERSATION_ID = "extra_conversation_id"
+
+    private const val TAG = "ChatNotification"
+
+    fun notifyIfNeeded(
+        context: Context,
+        conversationId: String,
+        conversationTitle: String,
+        responseText: String
+    ) {
+        val activeId = ChatScreenTracker.activeConversationId
+        Log.d(TAG, "notifyIfNeeded: activeConversationId=$activeId, targetConversationId=$conversationId")
+        if (activeId == conversationId) {
+            Log.d(TAG, "Skipping notification: user is viewing this conversation")
+            return
+        }
+
+        ensureChannel(context)
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(EXTRA_CONVERSATION_ID, conversationId)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            conversationId.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setContentTitle(conversationTitle)
+            .setContentText(responseText.take(100))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(responseText.take(500)))
+            .setSmallIcon(com.tomandy.palmclaw.scheduler.R.drawable.ic_notification)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .build()
+
+        val mgr = NotificationManagerCompat.from(context)
+        Log.d(TAG, "Posting notification: enabled=${mgr.areNotificationsEnabled()}, id=${conversationId.hashCode()}")
+        mgr.notify(conversationId.hashCode(), notification)
+    }
+
+    fun dismiss(context: Context, conversationId: String) {
+        NotificationManagerCompat.from(context).cancel(conversationId.hashCode())
+    }
+
+    private fun ensureChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = CHANNEL_DESCRIPTION
+            }
+            context.getSystemService(NotificationManager::class.java)
+                .createNotificationChannel(channel)
+        }
+    }
+}

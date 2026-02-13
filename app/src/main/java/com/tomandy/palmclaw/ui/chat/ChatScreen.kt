@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -44,6 +45,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tomandy.palmclaw.PalmClawApp
+import com.tomandy.palmclaw.notification.ChatNotificationHelper
+import com.tomandy.palmclaw.notification.ChatScreenTracker
 import kotlinx.coroutines.launch
 
 /**
@@ -75,6 +78,16 @@ fun ChatScreen(
     val messages by viewModel.messages.collectAsState()
     val isProcessing by viewModel.isProcessing.collectAsState()
     val error by viewModel.error.collectAsState()
+    val currentConversationId by viewModel.conversationId.collectAsState()
+
+    // Track whether this screen is visible and dismiss any pending notification
+    DisposableEffect(currentConversationId) {
+        ChatScreenTracker.activeConversationId = currentConversationId
+        ChatNotificationHelper.dismiss(app.applicationContext, currentConversationId)
+        onDispose {
+            ChatScreenTracker.activeConversationId = null
+        }
+    }
 
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()

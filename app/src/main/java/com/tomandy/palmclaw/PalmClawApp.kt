@@ -85,6 +85,8 @@ class PalmClawApp : Application() {
     lateinit var cronjobManager: CronjobManager
         private set
 
+    val pendingConversationId = MutableStateFlow<String?>(null)
+
     override fun onCreate() {
         super.onCreate()
 

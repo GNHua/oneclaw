@@ -1,6 +1,7 @@
 package com.tomandy.palmclaw
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -13,6 +14,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.rememberNavController
+import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import com.tomandy.palmclaw.ui.navigation.PalmClawNavGraph
 import com.tomandy.palmclaw.ui.theme.PalmClawTheme
 
@@ -35,6 +37,7 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermission()
 
         val app = application as PalmClawApp
+        handleNotificationIntent(app, intent)
 
         setContent {
             PalmClawTheme {
@@ -49,6 +52,18 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val app = application as PalmClawApp
+        handleNotificationIntent(app, intent)
+    }
+
+    private fun handleNotificationIntent(app: PalmClawApp, intent: Intent?) {
+        intent?.getStringExtra(ChatNotificationHelper.EXTRA_CONVERSATION_ID)?.let { convId ->
+            app.pendingConversationId.value = convId
         }
     }
 

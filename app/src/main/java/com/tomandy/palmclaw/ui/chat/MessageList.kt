@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -36,6 +37,13 @@ fun MessageList(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
+    // Build lookup map for tool results
+    val toolResultsMap = remember(messages) {
+        messages
+            .filter { it.role == "tool" && it.toolCallId != null }
+            .associateBy { it.toolCallId!! }
+    }
+
     // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -54,7 +62,10 @@ fun MessageList(
             items = messages,
             key = { it.id }
         ) { message ->
-            MessageBubble(message = message)
+            MessageBubble(
+                message = message,
+                toolResults = toolResultsMap
+            )
         }
     }
 }

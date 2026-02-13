@@ -13,9 +13,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import android.util.Log
 import com.tomandy.palmclaw.data.entity.MessageEntity
+import com.tomandy.palmclaw.llm.NetworkConfig
+import com.tomandy.palmclaw.llm.ToolCall
 import com.tomandy.palmclaw.util.formatTimestamp
 
 /**
@@ -35,9 +39,21 @@ import com.tomandy.palmclaw.util.formatTimestamp
 @Composable
 fun MessageBubble(
     message: MessageEntity,
+    toolResults: Map<String, MessageEntity> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
     val isUser = message.role == "user"
+
+    val toolCalls: List<ToolCall>? = remember(message.toolCalls) {
+        message.toolCalls?.let {
+            try {
+                NetworkConfig.json.decodeFromString<List<ToolCall>>(it)
+            } catch (e: Exception) {
+                Log.w("MessageBubble", "Failed to parse toolCalls: ${e.message}")
+                null
+            }
+        }
+    }
 
     Row(
         modifier = modifier
@@ -64,6 +80,15 @@ fun MessageBubble(
                         MaterialTheme.colorScheme.onSurfaceVariant
                     }
                 )
+
+                if (!toolCalls.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    ToolCallsSection(
+                        toolCalls = toolCalls,
+                        toolResults = toolResults,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(4.dp))
 

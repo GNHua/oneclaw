@@ -11,4 +11,5 @@ interface LlmClient {
 
     fun setApiKey(apiKey: String)
     fun setBaseUrl(baseUrl: String)
+    fun cancel() {}
 }

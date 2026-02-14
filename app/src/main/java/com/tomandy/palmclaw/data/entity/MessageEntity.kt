@@ -21,7 +21,7 @@ import java.util.UUID
 data class MessageEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val conversationId: String,
-    val role: String, // "user", "assistant", "system", "tool"
+    val role: String, // "user", "assistant", "system", "tool", "meta"
     val content: String,
     val timestamp: Long = System.currentTimeMillis(),
 

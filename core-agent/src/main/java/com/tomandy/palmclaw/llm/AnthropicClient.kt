@@ -10,8 +10,9 @@ import com.anthropic.models.messages.StopReason
 import com.anthropic.models.messages.TextBlockParam
 import com.anthropic.models.messages.ToolResultBlockParam
 import com.anthropic.models.messages.ToolUseBlockParam
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -63,10 +64,10 @@ class AnthropicClient(
         temperature: Float,
         maxTokens: Int?,
         tools: List<Tool>?
-    ): Result<LlmResponse> = withContext(Dispatchers.IO) {
+    ): Result<LlmResponse> = runInterruptible(Dispatchers.IO) {
         try {
             val sdkClient = client
-                ?: return@withContext Result.failure(
+                ?: return@runInterruptible Result.failure(
                     Exception("API key not set. Please configure your Anthropic API key in Settings.")
                 )
 
@@ -160,6 +161,8 @@ class AnthropicClient(
                     }
                 )
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(Exception("Anthropic API error: ${e.message}", e))
         }

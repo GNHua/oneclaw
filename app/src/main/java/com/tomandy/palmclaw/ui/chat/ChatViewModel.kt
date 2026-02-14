@@ -146,7 +146,7 @@ class ChatViewModel(
     }
 
     fun cancelRequest() {
-        ChatExecutionService.cancelExecution(appContext, _conversationId.value)
+        ChatExecutionService.cancelExecutionDirect(_conversationId.value)
     }
 
     fun newConversation() {

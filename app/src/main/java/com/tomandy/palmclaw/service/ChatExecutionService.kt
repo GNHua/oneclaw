@@ -19,7 +19,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
@@ -32,8 +35,6 @@ import java.util.UUID
 class ChatExecutionService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val activeCoordinators = mutableMapOf<String, AgentCoordinator>()
-    private val activeJobs = mutableMapOf<String, Job>()
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
@@ -149,13 +150,31 @@ class ChatExecutionService : Service() {
                         )
                     },
                     onFailure = { e ->
-                        Log.e(TAG, "Agent failure: ${e.message}", e)
-                        ChatExecutionTracker.setError(
-                            conversationId,
-                            e.message ?: "Unknown error"
-                        )
+                        if (e is CancellationException) {
+                            Log.d(TAG, "Execution result indicates cancellation for $conversationId")
+                        } else {
+                            Log.e(TAG, "Agent failure: ${e.message}", e)
+                            ChatExecutionTracker.setError(
+                                conversationId,
+                                e.message ?: "Unknown error"
+                            )
+                        }
                     }
                 )
+            } catch (e: CancellationException) {
+                Log.d(TAG, "Execution cancelled for $conversationId")
+                val messageDao = (application as PalmClawApp).database.messageDao()
+                withContext(NonCancellable) {
+                    messageDao.insert(
+                        MessageEntity(
+                            id = UUID.randomUUID().toString(),
+                            conversationId = conversationId,
+                            role = "meta",
+                            content = "stopped",
+                            timestamp = System.currentTimeMillis()
+                        )
+                    )
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Exception in executeChat: ${e.message}", e)
                 ChatExecutionTracker.setError(
@@ -174,14 +193,7 @@ class ChatExecutionService : Service() {
     }
 
     private fun cancelExecution(conversationId: String) {
-        synchronized(activeCoordinators) {
-            activeCoordinators.remove(conversationId)?.cancel()
-        }
-        synchronized(activeJobs) {
-            activeJobs.remove(conversationId)?.cancel()
-        }
-        ChatExecutionTracker.markInactive(conversationId)
-        stopSelfIfIdle()
+        cancelExecutionDirect(conversationId)
     }
 
     private fun stopSelfIfIdle() {
@@ -235,6 +247,22 @@ class ChatExecutionService : Service() {
         const val EXTRA_USER_MESSAGE = "user_message"
         private const val CHANNEL_ID = "chat_processing_channel"
         private const val NOTIFICATION_ID = 1002
+
+        internal val activeCoordinators = mutableMapOf<String, AgentCoordinator>()
+        internal val activeJobs = mutableMapOf<String, Job>()
+
+        /**
+         * Cancel execution directly without going through an intent.
+         * Called from the ViewModel for instant stop-button response.
+         */
+        fun cancelExecutionDirect(conversationId: String) {
+            synchronized(activeCoordinators) {
+                activeCoordinators.remove(conversationId)?.cancel()
+            }
+            synchronized(activeJobs) {
+                activeJobs[conversationId]?.cancel()
+            }
+        }
 
         fun startExecution(context: Context, conversationId: String, userMessage: String) {
             val intent = Intent(context, ChatExecutionService::class.java).apply {

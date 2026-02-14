@@ -150,6 +150,9 @@ class AgentCoordinator(
                     Result.failure(error)
                 }
             )
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // Don't swallow cancellation -- rethrow so callers can handle it
+            throw e
         } catch (e: Exception) {
             Log.e("AgentCoordinator", "Unexpected error in execute: ${e.message}", e)
             // Handle unexpected errors
@@ -206,6 +209,7 @@ class AgentCoordinator(
      * and reset the state to Idle.
      */
     fun cancel() {
+        clientProvider().cancel()
         currentJob?.cancel()
         currentJob = null
         _state.value = AgentState.Idle

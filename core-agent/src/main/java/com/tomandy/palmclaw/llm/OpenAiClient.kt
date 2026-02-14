@@ -8,6 +8,7 @@ import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.http.Body
 import retrofit2.http.POST
+import kotlinx.coroutines.CancellationException
 import java.io.IOException
 import java.net.SocketTimeoutException
 
@@ -17,18 +18,21 @@ class OpenAiClient(
 ) : LlmClient {
 
     @Volatile
+    private var httpClient: OkHttpClient
+
+    @Volatile
     private var retrofit: Retrofit
 
     @Volatile
     private var api: OpenAiApi
 
     init {
-        retrofit = createRetrofit()
+        httpClient = createHttpClient()
+        retrofit = createRetrofit(httpClient)
         api = retrofit.create(OpenAiApi::class.java)
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
-    private fun createRetrofit(): Retrofit {
+    private fun createHttpClient(): OkHttpClient {
         val clientBuilder = OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
@@ -41,13 +45,15 @@ class OpenAiClient(
             .readTimeout(NetworkConfig.DEFAULT_READ_TIMEOUT, NetworkConfig.TIMEOUT_UNIT)
             .writeTimeout(NetworkConfig.DEFAULT_WRITE_TIMEOUT, NetworkConfig.TIMEOUT_UNIT)
 
-        // Add logging interceptor for debug builds
         NetworkConfig.createLoggingInterceptor()?.let { loggingInterceptor ->
             clientBuilder.addInterceptor(loggingInterceptor)
         }
 
-        val client = clientBuilder.build()
+        return clientBuilder.build()
+    }
 
+    @OptIn(ExperimentalSerializationApi::class)
+    private fun createRetrofit(client: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .baseUrl(baseUrl)
             .client(client)
@@ -96,6 +102,8 @@ class OpenAiClient(
         } catch (e: IOException) {
             Result.failure(IOException("Network error: ${e.message}", e))
 
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(IOException("Unexpected error: ${e.message}", e))
         }
@@ -104,15 +112,21 @@ class OpenAiClient(
     @Synchronized
     override fun setApiKey(apiKey: String) {
         this.apiKey = apiKey
-        retrofit = createRetrofit()
+        httpClient = createHttpClient()
+        retrofit = createRetrofit(httpClient)
         api = retrofit.create(OpenAiApi::class.java)
     }
 
     @Synchronized
     override fun setBaseUrl(baseUrl: String) {
         this.baseUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
-        retrofit = createRetrofit()
+        httpClient = createHttpClient()
+        retrofit = createRetrofit(httpClient)
         api = retrofit.create(OpenAiApi::class.java)
+    }
+
+    override fun cancel() {
+        httpClient.dispatcher.cancelAll()
     }
 }
 

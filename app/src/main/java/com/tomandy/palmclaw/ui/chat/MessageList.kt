@@ -2,11 +2,14 @@ package com.tomandy.palmclaw.ui.chat
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -82,10 +85,21 @@ fun MessageList(
             items = displayedMessages,
             key = { it.id }
         ) { message ->
-            MessageBubble(
-                message = message,
-                toolResults = toolResultsMap
-            )
+            if (message.role == "meta" && message.content == "stopped") {
+                Text(
+                    text = "[stopped]",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            } else {
+                MessageBubble(
+                    message = message,
+                    toolResults = toolResultsMap
+                )
+            }
         }
 
         if (isProcessing) {

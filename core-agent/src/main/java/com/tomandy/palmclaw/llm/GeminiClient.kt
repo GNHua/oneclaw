@@ -6,8 +6,9 @@ import com.google.genai.types.FunctionDeclaration
 import com.google.genai.types.FunctionResponse
 import com.google.genai.types.GenerateContentConfig
 import com.google.genai.types.Part
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import com.google.genai.types.Tool as GeminiTool
@@ -51,10 +52,10 @@ class GeminiClient(
         temperature: Float,
         maxTokens: Int?,
         tools: List<Tool>?
-    ): Result<LlmResponse> = withContext(Dispatchers.IO) {
+    ): Result<LlmResponse> = runInterruptible(Dispatchers.IO) {
         try {
             val genaiClient = client
-                ?: return@withContext Result.failure(
+                ?: return@runInterruptible Result.failure(
                     Exception("API key not set. Please configure your Google AI API key in Settings.")
                 )
 
@@ -90,7 +91,7 @@ class GeminiClient(
 
             // Extract candidate content
             val candidate = response.candidates()?.orElse(null)?.firstOrNull()
-                ?: return@withContext Result.failure(Exception("No candidates in Gemini response"))
+                ?: return@runInterruptible Result.failure(Exception("No candidates in Gemini response"))
 
             val contentObj = candidate.content()?.orElse(null)
             val parts = contentObj?.parts()?.orElse(null) ?: emptyList()
@@ -149,6 +150,9 @@ class GeminiClient(
                     usage = null
                 )
             )
+        } catch (e: CancellationException) {
+            pendingModelContent = null
+            throw e
         } catch (e: Exception) {
             pendingModelContent = null
             Result.failure(Exception("Gemini API error: ${e.message}", e))

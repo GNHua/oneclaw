@@ -1,7 +1,6 @@
 package com.tomandy.palmclaw.agent
 
 import com.tomandy.palmclaw.data.UserPluginManager
-import com.tomandy.palmclaw.engine.LoadedPlugin
 import com.tomandy.palmclaw.engine.Plugin
 import com.tomandy.palmclaw.engine.PluginContext
 import com.tomandy.palmclaw.engine.PluginMetadata

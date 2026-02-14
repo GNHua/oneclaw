@@ -55,7 +55,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.tomandy.palmclaw.PalmClawApp
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import com.tomandy.palmclaw.notification.ChatScreenTracker
-import kotlinx.coroutines.launch
 
 /**
  * Main chat screen for the PalmClaw application.

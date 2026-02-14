@@ -1,0 +1,5 @@
+root = true
+
+[*.{kt,kts}]
+ktlint_standard = disabled
+ktlint_standard_no-unused-imports = enabled

@@ -4,7 +4,6 @@ import com.tomandy.palmclaw.llm.Choice
 import com.tomandy.palmclaw.llm.FunctionCall
 import com.tomandy.palmclaw.llm.LlmClient
 import com.tomandy.palmclaw.llm.LlmResponse
-import com.tomandy.palmclaw.llm.Message
 import com.tomandy.palmclaw.llm.MessageResponse
 import com.tomandy.palmclaw.llm.ToolCall
 import io.mockk.coEvery

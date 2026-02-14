@@ -1,6 +1,5 @@
 package com.tomandy.palmclaw.llm
 
-import kotlinx.serialization.json.Json
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.ExperimentalSerializationApi
 import okhttp3.MediaType.Companion.toMediaType
@@ -11,7 +10,6 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 import java.io.IOException
 import java.net.SocketTimeoutException
-import java.util.concurrent.TimeUnit
 
 class OpenAiClient(
     private var apiKey: String = "",

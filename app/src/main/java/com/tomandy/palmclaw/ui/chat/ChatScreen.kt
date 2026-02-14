@@ -5,13 +5,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -115,6 +120,18 @@ fun ChatScreen(
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Maintain scroll position when keyboard opens/closes by scrolling the list
+    // by exactly the same pixel delta as the keyboard height change.
+    val imeHeight = WindowInsets.ime.getBottom(LocalDensity.current)
+    var previousImeHeight by remember { mutableStateOf(0) }
+    LaunchedEffect(imeHeight) {
+        val delta = imeHeight - previousImeHeight
+        previousImeHeight = imeHeight
+        if (delta != 0) {
+            listState.scrollBy(delta.toFloat())
+        }
+    }
 
     val scope = rememberCoroutineScope()
     var availableModels by remember { mutableStateOf<List<Pair<String, com.tomandy.palmclaw.llm.LlmProvider>>>(emptyList()) }
@@ -225,6 +242,7 @@ fun ChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding()
         ) {
             // Message list
             Box(modifier = Modifier.weight(1f)) {

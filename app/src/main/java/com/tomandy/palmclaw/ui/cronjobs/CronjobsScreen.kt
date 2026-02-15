@@ -1,6 +1,8 @@
 package com.tomandy.palmclaw.ui.cronjobs
 
 import androidx.compose.animation.AnimatedVisibility
+import com.tomandy.palmclaw.scheduler.util.formatCronExpression
+import com.tomandy.palmclaw.scheduler.util.formatIntervalMinutes
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
@@ -582,8 +584,8 @@ private fun formatSchedule(cronjob: CronjobEntity): String {
         }
         ScheduleType.RECURRING -> {
             when {
-                cronjob.cronExpression != null -> "Cron: ${cronjob.cronExpression}"
-                cronjob.intervalMinutes != null -> "Every ${cronjob.intervalMinutes} min"
+                cronjob.cronExpression != null -> formatCronExpression(cronjob.cronExpression!!)
+                cronjob.intervalMinutes != null -> formatIntervalMinutes(cronjob.intervalMinutes!!)
                 else -> "Recurring"
             }
         }

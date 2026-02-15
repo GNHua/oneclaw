@@ -4,6 +4,8 @@ import com.tomandy.palmclaw.engine.Plugin
 import com.tomandy.palmclaw.engine.PluginContext
 import com.tomandy.palmclaw.engine.ToolResult
 import com.tomandy.palmclaw.scheduler.CronjobManager
+import com.tomandy.palmclaw.scheduler.util.formatCronExpression
+import com.tomandy.palmclaw.scheduler.util.formatIntervalMinutes
 import com.tomandy.palmclaw.scheduler.data.CronjobEntity
 import com.tomandy.palmclaw.scheduler.data.ScheduleType
 import kotlinx.serialization.json.*
@@ -200,8 +202,8 @@ class SchedulerPlugin : Plugin {
                         "One-time at $time"
                     }
                     ScheduleType.RECURRING -> when {
-                        task.cronExpression != null -> "Cron: ${task.cronExpression}"
-                        task.intervalMinutes != null -> "Every ${task.intervalMinutes} minutes"
+                        task.cronExpression != null -> formatCronExpression(task.cronExpression!!)
+                        task.intervalMinutes != null -> formatIntervalMinutes(task.intervalMinutes!!)
                         else -> "Recurring"
                     }
                     ScheduleType.CONDITIONAL -> "Conditional"

@@ -295,7 +295,7 @@ private fun ConversationPreviewSheet(
                     .verticalScroll(scrollState)
             ) {
                 displayedMessages.forEach { message ->
-                    if (message.role == "meta" && message.content == "stopped") {
+                    if (message.role == "meta" && message.toolName == "stopped") {
                         Text(
                             text = "[stopped]",
                             style = MaterialTheme.typography.labelSmall,
@@ -304,6 +304,29 @@ private fun ConversationPreviewSheet(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 4.dp)
                         )
+                    } else if (message.role == "meta" && message.toolName == "summary") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            HorizontalDivider(
+                                modifier = Modifier.weight(1f),
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
+                            Text(
+                                text = "Earlier messages summarized",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            )
+                            HorizontalDivider(
+                                modifier = Modifier.weight(1f),
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
+                        }
                     } else {
                         MessageBubble(
                             message = message,

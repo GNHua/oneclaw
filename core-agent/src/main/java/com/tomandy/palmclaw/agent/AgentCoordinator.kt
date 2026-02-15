@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 /**
  * Main orchestrator for the AI agent system.
@@ -36,6 +37,7 @@ class AgentCoordinator(
     private val toolExecutor: ToolExecutor,
     private val messageStore: MessageStore,
     private val conversationId: String,
+    private val contextWindow: Int = 200_000,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 ) {
 
@@ -45,6 +47,12 @@ class AgentCoordinator(
     private var currentJob: Job? = null
 
     private val conversationHistory = mutableListOf<Message>()
+
+    /** Tracks prompt tokens from the most recent LLM response. */
+    private var lastPromptTokens: Int = 0
+
+    /** Active summary of earlier conversation, if summarization has occurred. */
+    private var conversationSummary: String? = null
 
     // ReActLoop with tool execution support
     private val reActLoop: ReActLoop by lazy {
@@ -89,18 +97,47 @@ class AgentCoordinator(
             Log.d("AgentCoordinator", "State changed to Thinking")
             _state.value = AgentState.Thinking
 
+            // Check if we need to summarize before building messages
+            val threshold = (contextWindow * 0.8).toInt()
+            val estimatedTokens = if (lastPromptTokens > 0) {
+                lastPromptTokens
+            } else {
+                conversationHistory.sumOf { (it.content?.length ?: 0) } / 4
+            }
+
+            if (estimatedTokens > threshold && conversationHistory.size > 2) {
+                Log.d("AgentCoordinator", "Context at $estimatedTokens tokens (threshold: $threshold), summarizing")
+                summarizeHistory(model)
+            }
+
             // Build messages list
             val messages = buildList {
-                // Add system prompt if conversation is empty
+                // Build system prompt, including summary if available
                 if (conversationHistory.isEmpty()) {
-                    val contextualPrompt = when (context) {
+                    val basePrompt = when (context) {
                         is ExecutionContext.Interactive -> systemPrompt
                         is ExecutionContext.Scheduled ->
                             "$systemPrompt\n\nIMPORTANT: You are executing a scheduled task. " +
                             "Do not ask clarification questions. Use your best judgment and proceed autonomously. " +
                             "If you need to inform the user of something, include it in your response."
                     }
-                    add(Message(role = "system", content = contextualPrompt))
+                    val fullPrompt = conversationSummary?.let {
+                        "$basePrompt\n\n--- Earlier conversation summary ---\n$it\n--- End of summary ---"
+                    } ?: basePrompt
+                    add(Message(role = "system", content = fullPrompt))
+                } else if (conversationSummary != null) {
+                    // Mid-conversation: prepend summary as a system message
+                    val basePrompt = when (context) {
+                        is ExecutionContext.Interactive -> systemPrompt
+                        is ExecutionContext.Scheduled ->
+                            "$systemPrompt\n\nIMPORTANT: You are executing a scheduled task. " +
+                            "Do not ask clarification questions. Use your best judgment and proceed autonomously. " +
+                            "If you need to inform the user of something, include it in your response."
+                    }
+                    add(Message(
+                        role = "system",
+                        content = "$basePrompt\n\n--- Earlier conversation summary ---\n$conversationSummary\n--- End of summary ---"
+                    ))
                 }
 
                 // Add conversation history
@@ -127,6 +164,9 @@ class AgentCoordinator(
                 maxIterations = maxIterations
             )
             Log.d("AgentCoordinator", "reActLoop.step completed")
+
+            // Update token tracking from usage
+            reActLoop.lastUsage?.prompt_tokens?.let { lastPromptTokens = it }
 
             result.fold(
                 onSuccess = { response ->
@@ -161,6 +201,80 @@ class AgentCoordinator(
                 exception = e
             )
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Summarizes older conversation history to free up context window space.
+     *
+     * Splits history into old messages (to summarize) and recent messages (to keep).
+     * Calls the LLM to produce a summary, then replaces old messages with the summary.
+     * Persists the summary as a meta message in the database.
+     */
+    private suspend fun summarizeHistory(model: String) {
+        if (conversationHistory.size <= 2) return
+
+        // Keep recent messages that fit in ~30% of context window
+        val recentBudget = contextWindow * 0.3
+        var recentChars = 0
+        var splitIndex = conversationHistory.size
+        for (i in conversationHistory.indices.reversed()) {
+            val msgChars = conversationHistory[i].content?.length ?: 0
+            if (recentChars + msgChars > recentBudget * 4) break // chars, not tokens
+            recentChars += msgChars
+            splitIndex = i
+        }
+        // Keep at least the last 2 messages
+        splitIndex = splitIndex.coerceAtMost(conversationHistory.size - 2)
+        if (splitIndex <= 0) return
+
+        val oldMessages = conversationHistory.subList(0, splitIndex).toList()
+        val recentMessages = conversationHistory.subList(splitIndex, conversationHistory.size).toList()
+
+        // Format old messages for summarization
+        val formatted = oldMessages.joinToString("\n") { msg ->
+            val label = when (msg.role) {
+                "user" -> "User"
+                "assistant" -> "Assistant"
+                else -> msg.role.replaceFirstChar { it.uppercase() }
+            }
+            "$label: ${msg.content ?: ""}"
+        }
+
+        val summarizationPrompt = "Summarize the following conversation concisely, " +
+            "preserving key topics, decisions, user preferences, and any pending tasks.\n\n$formatted"
+
+        try {
+            val summaryResult = clientProvider().complete(
+                messages = listOf(Message(role = "user", content = summarizationPrompt)),
+                model = model
+            )
+
+            val summaryText = summaryResult.getOrNull()
+                ?.choices?.firstOrNull()?.message?.content
+
+            if (!summaryText.isNullOrBlank()) {
+                conversationSummary = summaryText
+                conversationHistory.clear()
+                conversationHistory.addAll(recentMessages)
+                lastPromptTokens = 0 // Reset -- next call will get fresh usage
+
+                // Persist summary as a meta message
+                messageStore.insert(
+                    MessageRecord(
+                        id = UUID.randomUUID().toString(),
+                        conversationId = conversationId,
+                        role = "meta",
+                        content = summaryText,
+                        toolName = "summary",
+                        timestamp = System.currentTimeMillis()
+                    )
+                )
+
+                Log.d("AgentCoordinator", "Summarized ${oldMessages.size} messages, keeping ${recentMessages.size}")
+            }
+        } catch (e: Exception) {
+            Log.w("AgentCoordinator", "Summarization failed, continuing without: ${e.message}")
         }
     }
 
@@ -231,10 +345,14 @@ class AgentCoordinator(
     /**
      * Seeds conversation history from persisted messages.
      * Used when loading an existing conversation from the database.
+     *
+     * @param messages The conversation messages to seed
+     * @param summary Optional summary from a previous summarization, to be prepended to the system prompt
      */
-    fun seedHistory(messages: List<Message>) {
+    fun seedHistory(messages: List<Message>, summary: String? = null) {
         conversationHistory.clear()
         conversationHistory.addAll(messages)
+        conversationSummary = summary
     }
 
     /**

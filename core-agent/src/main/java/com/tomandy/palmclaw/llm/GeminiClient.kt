@@ -133,6 +133,16 @@ class GeminiClient(
             val finishReason = if (hasFunctionCalls) "tool_calls"
             else candidate.finishReason()?.orElse(null)?.knownEnum()?.name?.lowercase() ?: "stop"
 
+            // Extract usage metadata
+            val usageMeta = response.usageMetadata()?.orElse(null)
+            val usage = usageMeta?.let {
+                Usage(
+                    prompt_tokens = it.promptTokenCount()?.orElse(0) ?: 0,
+                    completion_tokens = it.candidatesTokenCount()?.orElse(0) ?: 0,
+                    total_tokens = it.totalTokenCount()?.orElse(0) ?: 0
+                )
+            }
+
             Result.success(
                 LlmResponse(
                     id = "gemini-${System.currentTimeMillis()}",
@@ -147,7 +157,7 @@ class GeminiClient(
                             finish_reason = finishReason
                         )
                     ),
-                    usage = null
+                    usage = usage
                 )
             )
         } catch (e: CancellationException) {

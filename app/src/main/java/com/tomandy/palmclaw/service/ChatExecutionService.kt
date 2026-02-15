@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import com.tomandy.palmclaw.PalmClawApp
 import com.tomandy.palmclaw.agent.AgentCoordinator
 import com.tomandy.palmclaw.data.entity.MessageEntity
+import com.tomandy.palmclaw.llm.LlmProvider
 import com.tomandy.palmclaw.llm.Message
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import kotlinx.coroutines.CoroutineScope
@@ -74,12 +75,17 @@ class ChatExecutionService : Service() {
 
         val job = serviceScope.launch {
             try {
+                val selectedModel = app.modelPreferences.getSelectedModel()
+                    ?: app.modelPreferences.getModel(app.selectedProvider.value)
+                val contextWindow = LlmProvider.getContextWindow(selectedModel)
+
                 val coordinator = AgentCoordinator(
                     clientProvider = { app.getCurrentLlmClient() },
                     toolRegistry = app.toolRegistry,
                     toolExecutor = app.toolExecutor,
                     messageStore = app.messageStore,
-                    conversationId = conversationId
+                    conversationId = conversationId,
+                    contextWindow = contextWindow
                 )
 
                 synchronized(activeCoordinators) {
@@ -97,14 +103,26 @@ class ChatExecutionService : Service() {
                 // (it will be passed to execute() separately)
                 val messageDao = app.database.messageDao()
                 val dbMessages = messageDao.getMessagesOnce(conversationId)
-                val history = dbMessages
+
+                // Find the latest summary meta message
+                val lastSummaryIndex = dbMessages.indexOfLast {
+                    it.role == "meta" && it.toolName == "summary"
+                }
+                val summaryContent = if (lastSummaryIndex >= 0) {
+                    dbMessages[lastSummaryIndex].content
+                } else null
+
+                // Seed only messages after the last summary (or all if no summary)
+                val messagesAfterSummary = if (lastSummaryIndex >= 0) {
+                    dbMessages.subList(lastSummaryIndex + 1, dbMessages.size)
+                } else {
+                    dbMessages
+                }
+                val history = messagesAfterSummary
                     .filter { it.role == "user" || it.role == "assistant" }
                     .map { Message(role = it.role, content = it.content) }
                     .dropLast(1)
-                coordinator.seedHistory(history)
-
-                val selectedModel = app.modelPreferences.getSelectedModel()
-                    ?: app.modelPreferences.getModel(app.selectedProvider.value)
+                coordinator.seedHistory(history, summaryContent)
                 val maxIterations = app.modelPreferences.getMaxIterations()
 
                 val result = coordinator.execute(
@@ -171,6 +189,7 @@ class ChatExecutionService : Service() {
                             conversationId = conversationId,
                             role = "meta",
                             content = "stopped",
+                            toolName = "stopped",
                             timestamp = System.currentTimeMillis()
                         )
                     )

@@ -7,6 +7,7 @@ import com.tomandy.palmclaw.llm.Message
 import com.tomandy.palmclaw.llm.NetworkConfig
 import com.tomandy.palmclaw.llm.Tool
 import com.tomandy.palmclaw.llm.ToolFunction
+import com.tomandy.palmclaw.llm.Usage
 import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -33,6 +34,10 @@ class ReActLoop(
     private val messageStore: MessageStore
 ) {
     private val pendingUserMessages = ConcurrentLinkedQueue<String>()
+
+    /** Usage from the most recent LLM call, updated after each step(). */
+    var lastUsage: Usage? = null
+        private set
 
     fun injectMessage(text: String) {
         pendingUserMessages.add(text)
@@ -97,6 +102,7 @@ class ReActLoop(
             }
 
             val response = result.getOrNull()!!
+            lastUsage = response.usage
             val choice = response.choices.firstOrNull()
                 ?: return Result.failure(Exception("No choices in LLM response"))
 

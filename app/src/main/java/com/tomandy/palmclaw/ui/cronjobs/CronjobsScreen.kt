@@ -353,13 +353,11 @@ private fun HistoryCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (cronjob.executionCount > 0) {
-                    Text(
-                        text = "${cronjob.executionCount} run${if (cronjob.executionCount != 1) "s" else ""}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = formatRunCount(cronjob.executionCount, cronjob.maxExecutions),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             // Row 3: Last executed + delete
@@ -444,13 +442,11 @@ private fun CronjobCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (cronjob.executionCount > 0) {
-                    Text(
-                        text = "${cronjob.executionCount} run${if (cronjob.executionCount != 1) "s" else ""}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = formatRunCount(cronjob.executionCount, cronjob.maxExecutions),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             // Row 3: Last executed + actions
@@ -594,6 +590,15 @@ private fun formatSchedule(cronjob: CronjobEntity): String {
             }
         }
         ScheduleType.CONDITIONAL -> "Conditional"
+    }
+}
+
+private fun formatRunCount(executionCount: Int, maxExecutions: Int?): String {
+    val suffix = if (executionCount != 1) "s" else ""
+    return if (maxExecutions != null) {
+        "$executionCount / $maxExecutions run$suffix"
+    } else {
+        "$executionCount run$suffix"
     }
 }
 

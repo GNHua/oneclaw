@@ -3,29 +3,23 @@ package com.tomandy.palmclaw.ui.chat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,7 +29,6 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -44,7 +37,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -132,22 +124,6 @@ fun ChatScreen(
         }
     }
 
-    val scope = rememberCoroutineScope()
-    var availableModels by remember { mutableStateOf<List<Pair<String, com.tomandy.palmclaw.llm.LlmProvider>>>(emptyList()) }
-    var selectedModel by remember { mutableStateOf(app.modelPreferences.getSelectedModel() ?: "gpt-4o-mini") }
-    var isModelDropdownExpanded by remember { mutableStateOf(false) }
-
-    // Load available models and reload API keys
-    LaunchedEffect(Unit) {
-        // Reload API keys to ensure newly saved keys are loaded
-        app.reloadApiKeys()
-        availableModels = app.getAvailableModels()
-        if (availableModels.isNotEmpty() && selectedModel !in availableModels.map { it.first }) {
-            selectedModel = availableModels.first().first
-            app.setModelAndProvider(selectedModel)
-        }
-    }
-
     // Show error in snackbar
     LaunchedEffect(error) {
         error?.let {
@@ -162,77 +138,25 @@ fun ChatScreen(
 
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
-                    title = { Text("PalmClaw") },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateToHistory) {
-                            Icon(Icons.Default.Menu, contentDescription = "Conversation history")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { viewModel.newConversation() }) {
-                            Icon(Icons.Default.Add, contentDescription = "New conversation")
-                        }
-                        IconButton(onClick = onNavigateToCronjobs) {
-                            Icon(Icons.Default.DateRange, contentDescription = "Scheduled tasks")
-                        }
-                        IconButton(onClick = onNavigateToSettings) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings")
-                        }
+            TopAppBar(
+                title = { Text("PalmClaw") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateToHistory) {
+                        Icon(Icons.Default.Menu, contentDescription = "Conversation history")
                     }
-                )
-                // Model selector
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Model:",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box {
-                        TextButton(
-                            onClick = { isModelDropdownExpanded = true },
-                            enabled = availableModels.isNotEmpty()
-                        ) {
-                            Text(selectedModel)
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                contentDescription = "Select model"
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = isModelDropdownExpanded,
-                            onDismissRequest = { isModelDropdownExpanded = false }
-                        ) {
-                            availableModels.forEach { (model, provider) ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Column {
-                                            Text(model)
-                                            Text(
-                                                text = provider.displayName,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    },
-                                    onClick = {
-                                        selectedModel = model
-                                        app.setModelAndProvider(model)
-                                        isModelDropdownExpanded = false
-                                    }
-                                )
-                            }
-                        }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.newConversation() }) {
+                        Icon(Icons.Default.Add, contentDescription = "New conversation")
+                    }
+                    IconButton(onClick = onNavigateToCronjobs) {
+                        Icon(Icons.Default.DateRange, contentDescription = "Scheduled tasks")
+                    }
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
                 }
-            }
+            )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier

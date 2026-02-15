@@ -28,19 +28,16 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,11 +45,11 @@ import androidx.compose.ui.unit.dp
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.tomandy.palmclaw.data.entity.ConversationEntity
 import com.tomandy.palmclaw.data.entity.MessageEntity
+import com.tomandy.palmclaw.ui.HandleDismissBottomSheet
 import com.tomandy.palmclaw.ui.chat.MessageBubble
 import com.tomandy.palmclaw.ui.drawColumnScrollbar
 import com.tomandy.palmclaw.ui.drawScrollbar
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -70,29 +67,36 @@ fun ConversationHistoryScreen(
     val previewConversation by viewModel.previewConversation.collectAsState()
     val previewMessages by viewModel.previewMessages.collectAsState()
 
-    val scope = rememberCoroutineScope()
-
     // Preview bottom sheet
     if (previewConversation != null) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-        ModalBottomSheet(
+        HandleDismissBottomSheet(
             onDismissRequest = { viewModel.clearPreview() },
-            sheetState = sheetState
+            header = {
+                Text(
+                    text = previewConversation!!.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "${previewConversation!!.messageCount} messages",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider()
+            }
         ) {
             ConversationPreviewSheet(
-                conversation = previewConversation!!,
                 messages = previewMessages,
                 onLoad = {
                     onConversationSelected(previewConversation!!.id)
                     viewModel.clearPreview()
                 },
-                onDismiss = {
-                    scope.launch {
-                        sheetState.hide()
-                        viewModel.clearPreview()
-                    }
-                }
+                onDismiss = { viewModel.clearPreview() }
             )
         }
     }
@@ -251,7 +255,6 @@ private fun ConversationListItem(
 
 @Composable
 private fun ConversationPreviewSheet(
-    conversation: ConversationEntity,
     messages: List<MessageEntity>,
     onLoad: () -> Unit,
     onDismiss: () -> Unit
@@ -272,22 +275,6 @@ private fun ConversationPreviewSheet(
             .padding(horizontal = 16.dp)
             .padding(bottom = 32.dp)
     ) {
-        // Title
-        Text(
-            text = conversation.title,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "${conversation.messageCount} messages",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        HorizontalDivider()
-
         // Message preview -- use Column + verticalScroll to avoid nested LazyColumn conflict
         if (displayedMessages.isEmpty()) {
             Text(

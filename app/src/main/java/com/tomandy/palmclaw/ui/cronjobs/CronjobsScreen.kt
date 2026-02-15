@@ -590,7 +590,7 @@ private fun formatSchedule(cronjob: CronjobEntity): String {
 }
 
 private fun formatRunCount(executionCount: Int, maxExecutions: Int?): String {
-    val suffix = if (executionCount != 1) "s" else ""
+    val suffix = if (executionCount >= 2) "s" else ""
     return if (maxExecutions != null) {
         "$executionCount / $maxExecutions run$suffix"
     } else {

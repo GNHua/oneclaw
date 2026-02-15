@@ -34,83 +34,81 @@ fun PluginsScreen(
         uri?.let { viewModel.importPluginFromZip(it) }
     }
 
-    Scaffold(
-        modifier = modifier,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showImportSheet = true }
+    Box(modifier = modifier.fillMaxSize()) {
+        if (plugins.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add plugin")
+                Text(
+                    text = "No plugins available",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(plugins, key = { it.metadata.id }) { pluginState ->
+                    PluginCard(
+                        pluginState = pluginState,
+                        onToggle = { enabled ->
+                            viewModel.togglePlugin(pluginState.metadata.id, enabled)
+                        },
+                        onDelete = if (pluginState.isUserPlugin) {
+                            { showDeleteConfirm = pluginState.metadata.id }
+                        } else null
+                    )
+                }
             }
         }
-    ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-            if (plugins.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No plugins available",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(plugins, key = { it.metadata.id }) { pluginState ->
-                        PluginCard(
-                            pluginState = pluginState,
-                            onToggle = { enabled ->
-                                viewModel.togglePlugin(pluginState.metadata.id, enabled)
-                            },
-                            onDelete = if (pluginState.isUserPlugin) {
-                                { showDeleteConfirm = pluginState.metadata.id }
-                            } else null
-                        )
-                    }
-                }
-            }
 
-            // Import status snackbar area
-            when (val status = importStatus) {
-                is ImportStatus.Importing -> {
-                    LinearProgressIndicator(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.TopCenter)
-                    )
-                }
-                is ImportStatus.Success -> {
-                    Snackbar(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(16.dp)
-                    ) {
-                        Text("Installed: ${status.pluginName}")
-                    }
-                }
-                is ImportStatus.Error -> {
-                    Snackbar(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(16.dp),
-                        action = {
-                            TextButton(onClick = { viewModel.resetImportStatus() }) {
-                                Text("Dismiss")
-                            }
-                        }
-                    ) {
-                        Text(status.message)
-                    }
-                }
-                ImportStatus.Idle -> {}
+        // Import status snackbar area
+        when (val status = importStatus) {
+            is ImportStatus.Importing -> {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                )
             }
+            is ImportStatus.Success -> {
+                Snackbar(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                ) {
+                    Text("Installed: ${status.pluginName}")
+                }
+            }
+            is ImportStatus.Error -> {
+                Snackbar(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp),
+                    action = {
+                        TextButton(onClick = { viewModel.resetImportStatus() }) {
+                            Text("Dismiss")
+                        }
+                    }
+                ) {
+                    Text(status.message)
+                }
+            }
+            ImportStatus.Idle -> {}
+        }
+
+        FloatingActionButton(
+            onClick = { showImportSheet = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Add plugin")
         }
     }
 

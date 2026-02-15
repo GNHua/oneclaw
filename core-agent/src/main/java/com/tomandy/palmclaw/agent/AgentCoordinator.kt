@@ -38,6 +38,7 @@ class AgentCoordinator(
     private val messageStore: MessageStore,
     private val conversationId: String,
     private val contextWindow: Int = 200_000,
+    private val summarizationThreshold: Float = 0.8f,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 ) {
 
@@ -98,7 +99,7 @@ class AgentCoordinator(
             _state.value = AgentState.Thinking
 
             // Check if we need to summarize before building messages
-            val threshold = (contextWindow * 0.8).toInt()
+            val threshold = (contextWindow * summarizationThreshold).toInt()
             val estimatedTokens = if (lastPromptTokens > 0) {
                 lastPromptTokens
             } else {

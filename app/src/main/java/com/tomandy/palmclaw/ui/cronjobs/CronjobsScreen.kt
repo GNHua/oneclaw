@@ -50,16 +50,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.tomandy.palmclaw.scheduler.data.CronjobEntity
+import com.tomandy.palmclaw.ui.drawScrollbar
 import com.tomandy.palmclaw.scheduler.data.ExecutionLog
 import com.tomandy.palmclaw.scheduler.data.ExecutionStatus
 import com.tomandy.palmclaw.scheduler.data.ScheduleType
@@ -612,27 +608,3 @@ private fun formatFullTimestamp(millis: Long): String {
     return fullFormat.format(Date(millis))
 }
 
-private fun Modifier.drawScrollbar(
-    state: androidx.compose.foundation.lazy.LazyListState,
-    color: Color,
-    width: Dp = 4.dp
-): Modifier = drawWithContent {
-    drawContent()
-    val layoutInfo = state.layoutInfo
-    val totalItems = layoutInfo.totalItemsCount
-    if (totalItems == 0 || layoutInfo.visibleItemsInfo.size >= totalItems) return@drawWithContent
-
-    val viewportHeight = size.height
-    val scrollbarHeight = (layoutInfo.visibleItemsInfo.size.toFloat() / totalItems * viewportHeight)
-        .coerceAtLeast(24.dp.toPx())
-    val scrollRange = viewportHeight - scrollbarHeight
-    val scrollOffset = state.firstVisibleItemIndex.toFloat() / (totalItems - layoutInfo.visibleItemsInfo.size).coerceAtLeast(1)
-    val scrollbarY = scrollOffset * scrollRange
-
-    drawRoundRect(
-        color = color,
-        topLeft = Offset(size.width - width.toPx(), scrollbarY),
-        size = Size(width.toPx(), scrollbarHeight),
-        cornerRadius = CornerRadius(width.toPx() / 2)
-    )
-}

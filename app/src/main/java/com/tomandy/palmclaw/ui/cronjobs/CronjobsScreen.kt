@@ -177,7 +177,8 @@ fun CronjobsScreen(
                             executionLogs = if (selectedCronjobId == cronjob.id) executionLogs else emptyList(),
                             onToggleEnabled = { viewModel.toggleEnabled(cronjob) },
                             onToggleLogs = { viewModel.toggleExecutionLogs(cronjob.id) },
-                            onDelete = { viewModel.requestDelete(cronjob.id) }
+                            onDelete = { viewModel.requestDelete(cronjob.id) },
+                            modifier = Modifier.animateItem()
                         )
                     }
                     item { Spacer(modifier = Modifier.height(4.dp)) }
@@ -256,7 +257,8 @@ private fun HistorySheetContent(
                     HistoryCard(
                         cronjob = cronjob,
                         onToggleEnabled = { onToggleEnabled(cronjob) },
-                        onDelete = { onDelete(cronjob) }
+                        onDelete = { onDelete(cronjob) },
+                        modifier = Modifier.animateItem()
                     )
                 }
                 if (isLoading) {

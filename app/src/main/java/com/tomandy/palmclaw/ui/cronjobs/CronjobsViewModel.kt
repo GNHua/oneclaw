@@ -57,6 +57,10 @@ class CronjobsViewModel(
         viewModelScope.launch {
             try {
                 cronjobManager.setEnabled(cronjob.id, !cronjob.enabled)
+                if (!cronjob.enabled) {
+                    // Re-enabling: remove from history list immediately
+                    _historyCronjobs.value = _historyCronjobs.value.filter { it.id != cronjob.id }
+                }
             } catch (e: Exception) {
                 _error.value = "Failed to toggle: ${e.message}"
             }

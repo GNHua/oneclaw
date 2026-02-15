@@ -1,9 +1,10 @@
-package com.tomandy.palmclaw.data
+package com.tomandy.palmclaw.pluginmanager
 
 import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.tomandy.palmclaw.agent.ToolRegistry
+import com.tomandy.palmclaw.engine.CredentialVault
 import com.tomandy.palmclaw.engine.LoadedPlugin
 import com.tomandy.palmclaw.engine.PluginContext
 import com.tomandy.palmclaw.engine.PluginEngine
@@ -21,7 +22,7 @@ class UserPluginManager(
     private val pluginEngine: PluginEngine,
     private val toolRegistry: ToolRegistry,
     private val pluginPreferences: PluginPreferences,
-    private val credentialVault: com.tomandy.palmclaw.security.CredentialVault
+    private val credentialVault: CredentialVault
 ) {
     companion object {
         private const val TAG = "UserPluginManager"

@@ -6,13 +6,13 @@ import com.tomandy.palmclaw.agent.MessageStore
 import com.tomandy.palmclaw.agent.ScheduledAgentExecutor
 import com.tomandy.palmclaw.agent.ToolExecutor
 import com.tomandy.palmclaw.agent.ToolRegistry
-import com.tomandy.palmclaw.agent.InstallPluginTool
+import com.tomandy.palmclaw.pluginmanager.InstallPluginTool
 import com.tomandy.palmclaw.data.AppDatabase
 import com.tomandy.palmclaw.data.ConversationPreferences
 import com.tomandy.palmclaw.data.ModelPreferences
-import com.tomandy.palmclaw.data.PluginPreferences
+import com.tomandy.palmclaw.pluginmanager.PluginPreferences
 import com.tomandy.palmclaw.data.RoomMessageStore
-import com.tomandy.palmclaw.data.UserPluginManager
+import com.tomandy.palmclaw.pluginmanager.UserPluginManager
 import com.tomandy.palmclaw.engine.LoadedPlugin
 import com.tomandy.palmclaw.engine.PluginContext
 import com.tomandy.palmclaw.engine.PluginEngine

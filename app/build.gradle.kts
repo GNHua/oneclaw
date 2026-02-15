@@ -53,6 +53,9 @@ dependencies {
     // Module dependencies (core-agent transitively provides plugin-runtime, networking, LLM SDKs)
     implementation(project(":core-agent"))
 
+    // Plugin management
+    implementation(project(":plugin-manager"))
+
     // Scheduler
     implementation(project(":lib-scheduler"))
 

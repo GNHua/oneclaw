@@ -1,4 +1,4 @@
-package com.tomandy.palmclaw.data
+package com.tomandy.palmclaw.pluginmanager
 
 import android.content.Context
 import android.content.SharedPreferences

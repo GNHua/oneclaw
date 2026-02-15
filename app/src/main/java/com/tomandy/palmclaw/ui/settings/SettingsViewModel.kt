@@ -4,8 +4,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomandy.palmclaw.data.ModelPreferences
-import com.tomandy.palmclaw.data.PluginPreferences
-import com.tomandy.palmclaw.data.UserPluginManager
+import com.tomandy.palmclaw.pluginmanager.PluginPreferences
+import com.tomandy.palmclaw.pluginmanager.UserPluginManager
 import com.tomandy.palmclaw.engine.LoadedPlugin
 import com.tomandy.palmclaw.engine.PluginMetadata
 import com.tomandy.palmclaw.llm.LlmProvider

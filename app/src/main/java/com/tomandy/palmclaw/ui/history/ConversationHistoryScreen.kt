@@ -43,18 +43,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.tomandy.palmclaw.data.entity.ConversationEntity
 import com.tomandy.palmclaw.data.entity.MessageEntity
 import com.tomandy.palmclaw.ui.chat.MessageBubble
+import com.tomandy.palmclaw.ui.drawColumnScrollbar
+import com.tomandy.palmclaw.ui.drawScrollbar
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -336,55 +332,6 @@ private fun ConversationPreviewSheet(
             }
         }
     }
-}
-
-private fun Modifier.drawScrollbar(
-    state: androidx.compose.foundation.lazy.LazyListState,
-    color: Color,
-    width: Dp = 4.dp
-): Modifier = drawWithContent {
-    drawContent()
-    val layoutInfo = state.layoutInfo
-    val totalItems = layoutInfo.totalItemsCount
-    if (totalItems == 0 || layoutInfo.visibleItemsInfo.size >= totalItems) return@drawWithContent
-
-    val viewportHeight = size.height
-    val scrollbarHeight = (layoutInfo.visibleItemsInfo.size.toFloat() / totalItems * viewportHeight)
-        .coerceAtLeast(24.dp.toPx())
-    val scrollRange = viewportHeight - scrollbarHeight
-    val scrollOffset = state.firstVisibleItemIndex.toFloat() / (totalItems - layoutInfo.visibleItemsInfo.size).coerceAtLeast(1)
-    val scrollbarY = scrollOffset * scrollRange
-
-    drawRoundRect(
-        color = color,
-        topLeft = Offset(size.width - width.toPx(), scrollbarY),
-        size = Size(width.toPx(), scrollbarHeight),
-        cornerRadius = CornerRadius(width.toPx() / 2)
-    )
-}
-
-private fun Modifier.drawColumnScrollbar(
-    state: androidx.compose.foundation.ScrollState,
-    color: Color,
-    width: Dp = 4.dp
-): Modifier = drawWithContent {
-    drawContent()
-    if (state.maxValue <= 0) return@drawWithContent
-
-    val viewportHeight = size.height
-    val totalHeight = (state.maxValue + viewportHeight).coerceAtLeast(1f)
-    val scrollbarHeight = (viewportHeight / totalHeight * viewportHeight)
-        .coerceAtLeast(24.dp.toPx())
-    val scrollRange = viewportHeight - scrollbarHeight
-    val scrollFraction = state.value.toFloat() / state.maxValue.coerceAtLeast(1)
-    val scrollbarY = scrollFraction * scrollRange
-
-    drawRoundRect(
-        color = color,
-        topLeft = Offset(size.width - width.toPx(), scrollbarY),
-        size = Size(width.toPx(), scrollbarHeight),
-        cornerRadius = CornerRadius(width.toPx() / 2)
-    )
 }
 
 private fun formatTimestamp(timestamp: Long): String {

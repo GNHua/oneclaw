@@ -2,23 +2,21 @@ package com.tomandy.palmclaw.ui.chat
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.tomandy.palmclaw.ui.drawScrollbar
 import com.tomandy.palmclaw.data.entity.MessageEntity
 import kotlinx.coroutines.launch
 
@@ -82,10 +80,21 @@ fun MessageList(
             items = displayedMessages,
             key = { it.id }
         ) { message ->
-            MessageBubble(
-                message = message,
-                toolResults = toolResultsMap
-            )
+            if (message.role == "meta" && message.content == "stopped") {
+                Text(
+                    text = "[stopped]",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            } else {
+                MessageBubble(
+                    message = message,
+                    toolResults = toolResultsMap
+                )
+            }
         }
 
         if (isProcessing) {
@@ -94,34 +103,4 @@ fun MessageList(
             }
         }
     }
-}
-
-private fun Modifier.drawScrollbar(
-    state: LazyListState,
-    color: Color,
-    width: Dp = 4.dp
-): Modifier = drawWithContent {
-    drawContent()
-    val layoutInfo = state.layoutInfo
-    val totalItems = layoutInfo.totalItemsCount
-    if (totalItems == 0 || layoutInfo.visibleItemsInfo.size >= totalItems) return@drawWithContent
-
-    val viewportHeight = size.height
-    val firstVisible = layoutInfo.visibleItemsInfo.firstOrNull() ?: return@drawWithContent
-    val avgItemHeight = layoutInfo.visibleItemsInfo.sumOf { it.size }.toFloat() / layoutInfo.visibleItemsInfo.size
-    val estimatedTotalHeight = avgItemHeight * totalItems
-    val scrollbarHeight = (viewportHeight / estimatedTotalHeight * viewportHeight)
-        .coerceAtLeast(24.dp.toPx())
-        .coerceAtMost(viewportHeight)
-    val scrollRange = viewportHeight - scrollbarHeight
-    val scrolledPx = firstVisible.index * avgItemHeight - firstVisible.offset
-    val maxScrollPx = (estimatedTotalHeight - viewportHeight).coerceAtLeast(1f)
-    val scrollbarY = (scrolledPx / maxScrollPx * scrollRange).coerceIn(0f, scrollRange)
-
-    drawRoundRect(
-        color = color,
-        topLeft = Offset(size.width - width.toPx(), scrollbarY),
-        size = Size(width.toPx(), scrollbarHeight),
-        cornerRadius = CornerRadius(width.toPx() / 2)
-    )
 }

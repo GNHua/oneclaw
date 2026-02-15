@@ -42,8 +42,11 @@ class AgentTaskWorker(
             return Result.success()
         }
 
+        // Use title if available, otherwise fall back to instruction
+        val displayName = cronjob.title.ifBlank { cronjob.instruction }
+
         // Set foreground to prevent being killed during execution
-        setForeground(createForegroundInfo(cronjob.instruction))
+        setForeground(createForegroundInfo(displayName))
 
         // Record execution start
         val logId = cronjobManager.recordExecutionStart(cronjobId)
@@ -63,7 +66,7 @@ class AgentTaskWorker(
 
             // Send notification if enabled
             if (cronjob.notifyOnCompletion) {
-                sendCompletionNotification(cronjob.instruction, result, cronjob.conversationId)
+                sendCompletionNotification(displayName, result, cronjob.conversationId)
             }
 
             Result.success()

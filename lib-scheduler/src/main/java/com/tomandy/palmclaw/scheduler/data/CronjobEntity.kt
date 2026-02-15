@@ -13,6 +13,16 @@ data class CronjobEntity(
     val id: String = UUID.randomUUID().toString(),
 
     /**
+     * Short user-facing title for this task (e.g., "Daily Weather")
+     */
+    val title: String = "",
+
+    /**
+     * Detailed user-facing description of what this task does
+     */
+    val description: String? = null,
+
+    /**
      * The Agent's task instruction in natural language
      */
     val instruction: String,

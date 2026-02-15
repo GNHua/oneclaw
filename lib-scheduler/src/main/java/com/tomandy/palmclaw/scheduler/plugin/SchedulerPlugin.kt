@@ -51,6 +51,9 @@ class SchedulerPlugin : Plugin {
             val instruction = arguments["instruction"]?.jsonPrimitive?.content
                 ?: return ToolResult.Failure("Missing required field: instruction")
 
+            val title = arguments["title"]?.jsonPrimitive?.content ?: ""
+            val description = arguments["description"]?.jsonPrimitive?.content
+
             val scheduleTypeStr = arguments["schedule_type"]?.jsonPrimitive?.content
                 ?: return ToolResult.Failure("Missing required field: schedule_type")
 
@@ -80,6 +83,8 @@ class SchedulerPlugin : Plugin {
                     }
 
                     CronjobEntity(
+                        title = title,
+                        description = description,
                         instruction = instruction,
                         scheduleType = ScheduleType.ONE_TIME,
                         executeAt = executeAt
@@ -99,6 +104,8 @@ class SchedulerPlugin : Plugin {
                     }
 
                     CronjobEntity(
+                        title = title,
+                        description = description,
                         instruction = instruction,
                         scheduleType = ScheduleType.RECURRING,
                         intervalMinutes = intervalMinutes,
@@ -152,11 +159,14 @@ class SchedulerPlugin : Plugin {
                 else -> "as configured"
             }
 
+            val titleLine = if (title.isNotBlank()) "Title: $title\n" else ""
+            val descLine = if (description != null) "Description: $description\n" else ""
+
             return ToolResult.Success(
                 output = """Task scheduled successfully!
                     |
                     |ID: $jobId
-                    |Instruction: "$instruction"
+                    |${titleLine}${descLine}Instruction: "$instruction"
                     |Schedule: $scheduleDescription
                     |
                     |The Agent will autonomously execute this task at the scheduled time.
@@ -211,8 +221,11 @@ class SchedulerPlugin : Plugin {
 
                 val status = if (task.enabled) "Enabled" else "Disabled"
 
+                val titleLine = if (task.title.isNotBlank()) "  Title: ${task.title}\n" else ""
+                val descLine = if (task.description != null) "  Description: ${task.description}\n" else ""
+
                 """- ID: ${task.id}
-                    |  Instruction: "${task.instruction}"
+                    |${titleLine}${descLine}  Instruction: "${task.instruction}"
                     |  Schedule: $schedule
                     |  Status: $status
                     |  Executions: ${task.executionCount}""".trimMargin()

@@ -95,7 +95,7 @@ class ChatViewModel(
 
         // Handle /summarize command
         if (text.trim().equals("/summarize", ignoreCase = true)) {
-            handleSummarizeCommand()
+            handleSummarizeCommand(text)
             return
         }
 
@@ -147,7 +147,7 @@ class ChatViewModel(
         }
     }
 
-    private fun handleSummarizeCommand() {
+    private fun handleSummarizeCommand(text: String) {
         if (_isProcessing.value) {
             _error.value = "Cannot summarize while a message is being processed."
             return
@@ -171,7 +171,7 @@ class ChatViewModel(
                     id = UUID.randomUUID().toString(),
                     conversationId = convId,
                     role = "user",
-                    content = "/summarize",
+                    content = text,
                     timestamp = System.currentTimeMillis()
                 )
             )

@@ -64,6 +64,15 @@ class ChatExecutionService : Service() {
                     }?.injectMessage(message)
                 }
             }
+            ACTION_SUMMARIZE -> {
+                val conversationId = intent.getStringExtra(EXTRA_CONVERSATION_ID)
+                if (conversationId == null) {
+                    stopSelfIfIdle()
+                    return START_NOT_STICKY
+                }
+                startForeground(NOTIFICATION_ID, createNotification("Summarizing conversation..."))
+                executeSummarize(conversationId)
+            }
             else -> stopSelfIfIdle()
         }
         return START_NOT_STICKY
@@ -201,7 +210,70 @@ class ChatExecutionService : Service() {
                     e.message ?: "Unknown error"
                 )
             } finally {
-                synchronized(activeCoordinators) { activeCoordinators.remove(conversationId) }
+                val removed = synchronized(activeCoordinators) { activeCoordinators.remove(conversationId) }
+                removed?.cleanup()
+                synchronized(activeJobs) { activeJobs.remove(conversationId) }
+                ChatExecutionTracker.markInactive(conversationId)
+                stopSelfIfIdle()
+            }
+        }
+
+        synchronized(activeJobs) { activeJobs[conversationId] = job }
+    }
+
+    private fun executeSummarize(conversationId: String) {
+        val app = application as PalmClawApp
+        ChatExecutionTracker.markActive(conversationId)
+
+        val job = serviceScope.launch {
+            try {
+                val selectedModel = app.modelPreferences.getSelectedModel()
+                    ?: app.modelPreferences.getModel(app.selectedProvider.value)
+                val contextWindow = LlmProvider.getContextWindow(selectedModel)
+
+                val coordinator = AgentCoordinator(
+                    clientProvider = { app.getCurrentLlmClient() },
+                    toolRegistry = app.toolRegistry,
+                    toolExecutor = app.toolExecutor,
+                    messageStore = app.messageStore,
+                    conversationId = conversationId,
+                    contextWindow = contextWindow
+                )
+
+                // Seed history from DB (all messages, no "latest" to drop)
+                val messageDao = app.database.messageDao()
+                val dbMessages = messageDao.getMessagesOnce(conversationId)
+
+                val lastSummaryIndex = dbMessages.indexOfLast {
+                    it.role == "meta" && it.toolName == "summary"
+                }
+                val summaryContent = if (lastSummaryIndex >= 0) {
+                    dbMessages[lastSummaryIndex].content
+                } else null
+
+                val messagesAfterSummary = if (lastSummaryIndex >= 0) {
+                    dbMessages.subList(lastSummaryIndex + 1, dbMessages.size)
+                } else {
+                    dbMessages
+                }
+                val history = messagesAfterSummary
+                    .filter { it.role == "user" || it.role == "assistant" }
+                    .map { Message(role = it.role, content = it.content) }
+                coordinator.seedHistory(history, summaryContent)
+
+                val result = coordinator.forceSummarize(model = selectedModel)
+                Log.d(TAG, "Summarize result: $result")
+            } catch (e: CancellationException) {
+                Log.d(TAG, "Summarization cancelled for $conversationId")
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception in executeSummarize: ${e.message}", e)
+                ChatExecutionTracker.setError(
+                    conversationId,
+                    e.message ?: "Summarization failed"
+                )
+            } finally {
+                val removed = synchronized(activeCoordinators) { activeCoordinators.remove(conversationId) }
+                removed?.cleanup()
                 synchronized(activeJobs) { activeJobs.remove(conversationId) }
                 ChatExecutionTracker.markInactive(conversationId)
                 stopSelfIfIdle()
@@ -262,6 +334,7 @@ class ChatExecutionService : Service() {
         const val ACTION_EXECUTE = "com.tomandy.palmclaw.service.EXECUTE_CHAT"
         const val ACTION_CANCEL = "com.tomandy.palmclaw.service.CANCEL_CHAT"
         const val ACTION_INJECT = "com.tomandy.palmclaw.service.INJECT_MESSAGE"
+        const val ACTION_SUMMARIZE = "com.tomandy.palmclaw.service.SUMMARIZE_CHAT"
         const val EXTRA_CONVERSATION_ID = "conversation_id"
         const val EXTRA_USER_MESSAGE = "user_message"
         private const val CHANNEL_ID = "chat_processing_channel"
@@ -278,6 +351,7 @@ class ChatExecutionService : Service() {
             val coordinator = synchronized(activeCoordinators) {
                 activeCoordinators.remove(conversationId)
             }
+            coordinator?.cleanup()
             coordinator?.cancel()
 
             val job = synchronized(activeJobs) {
@@ -305,6 +379,18 @@ class ChatExecutionService : Service() {
                 putExtra(EXTRA_CONVERSATION_ID, conversationId)
             }
             context.startService(intent)
+        }
+
+        fun startSummarization(context: Context, conversationId: String) {
+            val intent = Intent(context, ChatExecutionService::class.java).apply {
+                action = ACTION_SUMMARIZE
+                putExtra(EXTRA_CONVERSATION_ID, conversationId)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
         }
 
         fun injectMessage(context: Context, conversationId: String, message: String) {

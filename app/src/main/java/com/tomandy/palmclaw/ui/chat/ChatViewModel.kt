@@ -93,6 +93,12 @@ class ChatViewModel(
         Log.d("ChatViewModel", "sendMessage called with text: $text")
         if (text.isBlank()) return
 
+        // Handle /summarize command
+        if (text.trim().equals("/summarize", ignoreCase = true)) {
+            handleSummarizeCommand()
+            return
+        }
+
         viewModelScope.launch {
             ChatExecutionTracker.clearError(_conversationId.value)
 
@@ -138,6 +144,19 @@ class ChatViewModel(
             } else {
                 ChatExecutionService.startExecution(appContext, convId, text)
             }
+        }
+    }
+
+    private fun handleSummarizeCommand() {
+        if (_isProcessing.value) {
+            _error.value = "Cannot summarize while a message is being processed."
+            return
+        }
+
+        viewModelScope.launch {
+            val convId = _conversationId.value
+            ChatExecutionTracker.clearError(convId)
+            ChatExecutionService.startSummarization(appContext, convId)
         }
     }
 

@@ -55,6 +55,17 @@ class AgentCoordinator(
     /** Active summary of earlier conversation, if summarization has occurred. */
     private var conversationSummary: String? = null
 
+    /** Last model used, so forceSummarize can reuse it. */
+    private var lastModel: String = ""
+
+    init {
+        // Register summarization tool so the LLM can trigger summarization
+        val plugin = SummarizationPlugin.createLoadedPlugin {
+            forceSummarize()
+        }
+        toolRegistry.registerPlugin(plugin)
+    }
+
     // ReActLoop with tool execution support
     private val reActLoop: ReActLoop by lazy {
         ReActLoop(
@@ -89,6 +100,7 @@ class AgentCoordinator(
         context: ExecutionContext = ExecutionContext.Interactive
     ): Result<String> {
         Log.d("AgentCoordinator", "execute called with message: $userMessage, model: $model")
+        lastModel = model
 
         // Cancel any existing job
         currentJob?.cancel()
@@ -277,6 +289,32 @@ class AgentCoordinator(
         } catch (e: Exception) {
             Log.w("AgentCoordinator", "Summarization failed, continuing without: ${e.message}")
         }
+    }
+
+    /**
+     * Force-summarize the conversation, regardless of token threshold.
+     * Used by the /summarize command and the summarize_conversation tool.
+     *
+     * @return Status message describing the result.
+     */
+    suspend fun forceSummarize(model: String? = null): String {
+        if (conversationHistory.size <= 2) {
+            return "Not enough conversation history to summarize."
+        }
+        summarizeHistory(model ?: lastModel)
+        return if (conversationSummary != null) {
+            "Conversation summarized successfully."
+        } else {
+            "Summarization failed -- conversation unchanged."
+        }
+    }
+
+    /**
+     * Unregister the summarization tool from the shared registry.
+     * Must be called when this coordinator is no longer active.
+     */
+    fun cleanup() {
+        toolRegistry.unregisterPlugin(SummarizationPlugin.PLUGIN_ID)
     }
 
     /**

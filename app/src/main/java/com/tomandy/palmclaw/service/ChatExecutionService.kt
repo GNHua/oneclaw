@@ -256,12 +256,15 @@ class ChatExecutionService : Service() {
          * Called from the ViewModel for instant stop-button response.
          */
         fun cancelExecutionDirect(conversationId: String) {
-            synchronized(activeCoordinators) {
-                activeCoordinators.remove(conversationId)?.cancel()
+            val coordinator = synchronized(activeCoordinators) {
+                activeCoordinators.remove(conversationId)
             }
-            synchronized(activeJobs) {
-                activeJobs[conversationId]?.cancel()
+            coordinator?.cancel()
+
+            val job = synchronized(activeJobs) {
+                activeJobs.remove(conversationId)
             }
+            job?.cancel()
         }
 
         fun startExecution(context: Context, conversationId: String, userMessage: String) {

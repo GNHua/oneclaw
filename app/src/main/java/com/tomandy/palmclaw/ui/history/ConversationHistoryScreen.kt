@@ -308,10 +308,21 @@ private fun ConversationPreviewSheet(
                     .verticalScroll(scrollState)
             ) {
                 displayedMessages.forEach { message ->
-                    MessageBubble(
-                        message = message,
-                        toolResults = toolResultsMap
-                    )
+                    if (message.role == "meta" && message.content == "stopped") {
+                        Text(
+                            text = "[stopped]",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                        )
+                    } else {
+                        MessageBubble(
+                            message = message,
+                            toolResults = toolResultsMap
+                        )
+                    }
                 }
             }
         }

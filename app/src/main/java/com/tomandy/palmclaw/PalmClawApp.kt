@@ -1,7 +1,6 @@
 package com.tomandy.palmclaw
 
 import android.app.Application
-import android.util.Log
 import com.tomandy.palmclaw.agent.MessageStore
 import com.tomandy.palmclaw.agent.ScheduledAgentExecutor
 import com.tomandy.palmclaw.agent.ToolExecutor
@@ -12,6 +11,7 @@ import com.tomandy.palmclaw.data.ConversationPreferences
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.pluginmanager.PluginPreferences
 import com.tomandy.palmclaw.data.RoomMessageStore
+import com.tomandy.palmclaw.pluginmanager.BuiltInPluginManager
 import com.tomandy.palmclaw.pluginmanager.UserPluginManager
 import com.tomandy.palmclaw.engine.LoadedPlugin
 import com.tomandy.palmclaw.engine.PluginContext
@@ -87,6 +87,9 @@ class PalmClawApp : Application() {
     lateinit var cronjobManager: CronjobManager
         private set
 
+    lateinit var builtInPluginManager: BuiltInPluginManager
+        private set
+
     lateinit var userPluginManager: UserPluginManager
         private set
 
@@ -126,6 +129,15 @@ class PalmClawApp : Application() {
         // Initialize cronjob manager
         cronjobManager = CronjobManager(this)
 
+        // Initialize built-in plugin manager
+        builtInPluginManager = BuiltInPluginManager(
+            context = this,
+            pluginEngine = pluginEngine,
+            toolRegistry = toolRegistry,
+            pluginPreferences = pluginPreferences,
+            credentialVault = credentialVault
+        )
+
         // Initialize user plugin manager
         userPluginManager = UserPluginManager(
             context = this,
@@ -145,9 +157,9 @@ class PalmClawApp : Application() {
             loadApiKeys()
         }
 
-        // Load sample plugins and user plugins
+        // Load built-in plugins and user plugins
         CoroutineScope(Dispatchers.Main).launch {
-            loadSamplePlugins()
+            builtInPluginManager.loadBuiltInPlugins()
             userPluginManager.loadAllUserPlugins()
         }
     }
@@ -294,35 +306,6 @@ class PalmClawApp : Application() {
         if (provider != null) {
             _selectedProvider.value = provider
             modelPreferences.saveSelectedModel(model)
-        }
-    }
-
-    /**
-     * Load sample plugins from JavaScript files in assets.
-     * All plugins are loaded into PluginEngine (for metadata), but only
-     * enabled plugins are registered with ToolRegistry.
-     */
-    private suspend fun loadSamplePlugins() {
-        val pluginPaths = listOf(
-            "plugins/calculator",
-            "plugins/time",
-            "plugins/notes",
-            "plugins/echo"
-        )
-
-        pluginPaths.forEach { path ->
-            val pluginId = path.substringAfterLast("/")
-            val pluginContext = PluginContext(this, pluginId, credentialVault)
-            pluginEngine.loadFromAssets(path, pluginContext)
-                .onSuccess { loadedPlugin ->
-                    if (pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {
-                        toolRegistry.registerPlugin(loadedPlugin)
-                    }
-                    Log.i("PalmClaw", "Loaded plugin: ${loadedPlugin.metadata.name} (enabled=${pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)})")
-                }
-                .onFailure { error ->
-                    Log.e("PalmClaw", "Failed to load $pluginId: ${error.message}", error)
-                }
         }
     }
 

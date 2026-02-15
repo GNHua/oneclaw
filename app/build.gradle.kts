@@ -59,6 +59,12 @@ dependencies {
     // Scheduler
     implementation(project(":lib-scheduler"))
 
+    // Workspace file tools
+    implementation(project(":lib-workspace"))
+
+    // Skill engine
+    implementation(project(":skill-engine"))
+
     // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

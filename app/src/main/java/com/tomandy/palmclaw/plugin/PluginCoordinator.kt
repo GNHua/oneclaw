@@ -11,6 +11,8 @@ import com.tomandy.palmclaw.pluginmanager.PluginPreferences
 import com.tomandy.palmclaw.pluginmanager.UserPluginManager
 import com.tomandy.palmclaw.scheduler.plugin.SchedulerPlugin
 import com.tomandy.palmclaw.scheduler.plugin.SchedulerPluginMetadata
+import com.tomandy.palmclaw.workspace.WorkspacePlugin
+import com.tomandy.palmclaw.workspace.WorkspacePluginMetadata
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.security.CredentialVault
@@ -61,6 +63,25 @@ class PluginCoordinator(
             )
 
             toolRegistry.registerPlugin(loadedPlugin)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Register WorkspacePlugin
+        try {
+            val workspacePlugin = WorkspacePlugin()
+            val workspaceContext = PluginContext.create(
+                androidContext = context,
+                pluginId = "workspace",
+                credentialVault = credentialVault
+            )
+            workspacePlugin.onLoad(workspaceContext)
+            toolRegistry.registerPlugin(
+                LoadedPlugin(
+                    metadata = WorkspacePluginMetadata.get(),
+                    instance = workspacePlugin
+                )
+            )
         } catch (e: Exception) {
             e.printStackTrace()
         }

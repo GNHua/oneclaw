@@ -93,7 +93,7 @@ class CredentialVaultImpl(context: Context) : CredentialVault {
             prefs.all.keys
                 .filter { it.startsWith(API_KEY_PREFIX) }
                 .map { it.removePrefix(API_KEY_PREFIX) }
-                .filter { it.isNotEmpty() }
+                .filter { it.isNotEmpty() && !it.endsWith("_baseUrl") }
                 .sorted()
         } catch (e: SecurityException) {
             throw SecurityException("Failed to list providers due to security constraints", e)

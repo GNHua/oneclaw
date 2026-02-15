@@ -38,11 +38,7 @@ fun ProvidersScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(selectedProvider) {
-        if (selectedProvider.supportsBaseUrl) {
-            baseUrl = viewModel.getBaseUrl(selectedProvider.displayName)
-        } else {
-            baseUrl = ""
-        }
+        baseUrl = viewModel.getBaseUrl(selectedProvider.displayName)
     }
 
     LazyColumn(
@@ -137,25 +133,12 @@ fun ProvidersScreen(
                         },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
-                            imeAction = if (selectedProvider.supportsBaseUrl) ImeAction.Next else ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                if (!selectedProvider.supportsBaseUrl) {
-                                    keyboardController?.hide()
-                                    if (apiKey.isNotBlank()) {
-                                        viewModel.saveApiKey(selectedProvider.displayName, apiKey)
-                                        apiKey = ""
-                                        isApiKeyVisible = false
-                                    }
-                                }
-                            }
+                            imeAction = ImeAction.Next
                         )
                     )
 
-                    // Base URL field for providers that support it
-                    if (selectedProvider.supportsBaseUrl) {
-                        OutlinedTextField(
+                    // Base URL field (optional, for custom endpoints)
+                    OutlinedTextField(
                             value = baseUrl,
                             onValueChange = { baseUrl = it },
                             label = { Text("Base URL (optional)") },
@@ -179,15 +162,12 @@ fun ProvidersScreen(
                                 }
                             )
                         )
-                    }
 
                     Button(
                         onClick = {
                             keyboardController?.hide()
                             viewModel.saveApiKey(selectedProvider.displayName, apiKey)
-                            if (selectedProvider.supportsBaseUrl) {
-                                viewModel.saveBaseUrl(selectedProvider.displayName, baseUrl)
-                            }
+                            viewModel.saveBaseUrl(selectedProvider.displayName, baseUrl)
                             apiKey = ""
                             isApiKeyVisible = false
                         },
@@ -249,8 +229,13 @@ fun ProvidersScreen(
             }
         } else {
             items(providers) { provider ->
+                var providerBaseUrl by remember { mutableStateOf("") }
+                LaunchedEffect(provider) {
+                    providerBaseUrl = viewModel.getBaseUrl(provider)
+                }
                 ProviderCard(
                     provider = provider,
+                    baseUrl = providerBaseUrl,
                     onDelete = { viewModel.deleteApiKey(provider) },
                     isDeleting = deleteStatus is DeleteStatus.Deleting
                 )
@@ -262,6 +247,7 @@ fun ProvidersScreen(
 @Composable
 private fun ProviderCard(
     provider: String,
+    baseUrl: String,
     onDelete: () -> Unit,
     isDeleting: Boolean,
     modifier: Modifier = Modifier
@@ -288,7 +274,7 @@ private fun ProviderCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "API key configured",
+                    text = if (baseUrl.isNotEmpty()) baseUrl else "API key configured",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -213,14 +213,20 @@ class PalmClawApp : Application() {
     private suspend fun loadApiKeys() {
         val providers = credentialVault.listProviders()
 
-        // Load OpenAI key if available
+        // Load OpenAI key + base URL if available
         credentialVault.getApiKey(LlmProvider.OPENAI.displayName)?.let { key ->
             openAiClient.setApiKey(key)
         }
+        credentialVault.getApiKey("${LlmProvider.OPENAI.displayName}_baseUrl")?.let { url ->
+            openAiClient.setBaseUrl(url)
+        }
 
-        // Load Gemini key if available
+        // Load Gemini key + base URL if available
         credentialVault.getApiKey(LlmProvider.GEMINI.displayName)?.let { key ->
             geminiClient.setApiKey(key)
+        }
+        credentialVault.getApiKey("${LlmProvider.GEMINI.displayName}_baseUrl")?.let { url ->
+            geminiClient.setBaseUrl(url)
         }
 
         // Load Anthropic key + base URL if available

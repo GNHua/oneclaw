@@ -187,6 +187,7 @@ class SettingsViewModel(
 
             try {
                 credentialVault.deleteApiKey(provider)
+                credentialVault.deleteApiKey("${provider}_baseUrl")
                 _deleteStatus.value = DeleteStatus.Success
 
                 // Reload providers list to remove deleted provider

@@ -127,10 +127,16 @@ class ChatExecutionService : Service() {
                 } else {
                     dbMessages
                 }
-                val history = messagesAfterSummary
-                    .filter { it.role == "user" || it.role == "assistant" }
-                    .map { Message(role = it.role, content = it.content) }
-                    .dropLast(1)
+                val history = buildList {
+                    for (msg in messagesAfterSummary) {
+                        when {
+                            msg.role == "user" || msg.role == "assistant" ->
+                                add(Message(role = msg.role, content = msg.content))
+                            msg.role == "meta" && msg.toolName == "stopped" ->
+                                add(Message(role = "assistant", content = "[The previous response was cancelled by the user. Do not continue or retry the cancelled task unless explicitly asked.]"))
+                        }
+                    }
+                }.dropLast(1)
                 coordinator.seedHistory(history, summaryContent)
                 val maxIterations = app.modelPreferences.getMaxIterations()
 

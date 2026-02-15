@@ -28,19 +28,16 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,11 +45,11 @@ import androidx.compose.ui.unit.dp
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.tomandy.palmclaw.data.entity.ConversationEntity
 import com.tomandy.palmclaw.data.entity.MessageEntity
+import com.tomandy.palmclaw.ui.HandleDismissBottomSheet
 import com.tomandy.palmclaw.ui.chat.MessageBubble
 import com.tomandy.palmclaw.ui.drawColumnScrollbar
 import com.tomandy.palmclaw.ui.drawScrollbar
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -70,15 +67,10 @@ fun ConversationHistoryScreen(
     val previewConversation by viewModel.previewConversation.collectAsState()
     val previewMessages by viewModel.previewMessages.collectAsState()
 
-    val scope = rememberCoroutineScope()
-
     // Preview bottom sheet
     if (previewConversation != null) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-        ModalBottomSheet(
-            onDismissRequest = { viewModel.clearPreview() },
-            sheetState = sheetState
+        HandleDismissBottomSheet(
+            onDismissRequest = { viewModel.clearPreview() }
         ) {
             ConversationPreviewSheet(
                 conversation = previewConversation!!,
@@ -87,12 +79,7 @@ fun ConversationHistoryScreen(
                     onConversationSelected(previewConversation!!.id)
                     viewModel.clearPreview()
                 },
-                onDismiss = {
-                    scope.launch {
-                        sheetState.hide()
-                        viewModel.clearPreview()
-                    }
-                }
+                onDismiss = { viewModel.clearPreview() }
             )
         }
     }

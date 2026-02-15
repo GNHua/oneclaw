@@ -164,11 +164,16 @@ fun CronjobsScreen(
                     }
                 }
             } else {
+                val listState = rememberLazyListState()
+                val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = 16.dp)
+                        .drawScrollbar(listState, scrollbarColor),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item { Spacer(modifier = Modifier.height(4.dp)) }

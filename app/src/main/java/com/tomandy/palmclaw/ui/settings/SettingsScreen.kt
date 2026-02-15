@@ -4,12 +4,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tomandy.palmclaw.data.ModelPreferences
+import com.tomandy.palmclaw.llm.LlmProvider
 import kotlin.math.roundToInt
 
 @Composable
@@ -17,11 +19,15 @@ fun SettingsScreen(
     onNavigateToProviders: () -> Unit,
     onNavigateToPlugins: () -> Unit,
     modelPreferences: ModelPreferences,
+    availableModels: List<Pair<String, LlmProvider>>,
+    selectedModel: String,
+    onModelSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var maxIterations by remember {
         mutableIntStateOf(modelPreferences.getMaxIterations())
     }
+    var isModelDropdownExpanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -29,6 +35,67 @@ fun SettingsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Model selector
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Model",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Select the LLM model to use for chat",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box {
+                    TextButton(
+                        onClick = { isModelDropdownExpanded = true },
+                        enabled = availableModels.isNotEmpty()
+                    ) {
+                        Text(selectedModel)
+                        Icon(
+                            Icons.Default.ArrowDropDown,
+                            contentDescription = "Select model"
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = isModelDropdownExpanded,
+                        onDismissRequest = { isModelDropdownExpanded = false }
+                    ) {
+                        availableModels.forEach { (model, provider) ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(model)
+                                        Text(
+                                            text = provider.displayName,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    onModelSelected(model)
+                                    isModelDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         SettingsMenuItem(
             title = "Providers",
             subtitle = "Manage API keys and LLM providers",

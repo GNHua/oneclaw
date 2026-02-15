@@ -7,8 +7,7 @@ enum class LlmProvider(
     val displayName: String,
     val apiKeyLabel: String,
     val defaultModel: String,
-    val availableModels: List<String>,
-    val supportsBaseUrl: Boolean = false
+    val availableModels: List<String>
 ) {
     OPENAI(
         displayName = "OpenAI",
@@ -41,8 +40,7 @@ enum class LlmProvider(
             "claude-sonnet-4-5",
             "claude-opus-4-6",
             "claude-haiku-4-5"
-        ),
-        supportsBaseUrl = true
+        )
     );
 
     companion object {

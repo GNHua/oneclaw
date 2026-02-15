@@ -13,9 +13,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.tomandy.palmclaw.llm.LlmProvider
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -80,6 +83,19 @@ fun PalmClawNavGraph(
         )
     }
 
+    // Model selection state (shared between Settings and Chat)
+    var availableModels by remember { mutableStateOf<List<Pair<String, LlmProvider>>>(emptyList()) }
+    var selectedModel by remember { mutableStateOf(app.modelPreferences.getSelectedModel() ?: "gpt-4o-mini") }
+
+    LaunchedEffect(Unit) {
+        app.reloadApiKeys()
+        availableModels = app.getAvailableModels()
+        if (availableModels.isNotEmpty() && selectedModel !in availableModels.map { it.first }) {
+            selectedModel = availableModels.first().first
+            app.setModelAndProvider(selectedModel)
+        }
+    }
+
     // Handle notification tap: navigate to the target conversation
     val pendingConvId by app.pendingConversationId.collectAsState()
     LaunchedEffect(pendingConvId) {
@@ -132,6 +148,12 @@ fun PalmClawNavGraph(
                         navController.navigate(Screen.Plugins.route)
                     },
                     modelPreferences = app.modelPreferences,
+                    availableModels = availableModels,
+                    selectedModel = selectedModel,
+                    onModelSelected = { model ->
+                        selectedModel = model
+                        app.setModelAndProvider(model)
+                    },
                     modifier = Modifier.padding(paddingValues)
                 )
             }

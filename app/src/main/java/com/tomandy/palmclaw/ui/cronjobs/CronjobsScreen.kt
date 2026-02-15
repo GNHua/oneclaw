@@ -107,7 +107,14 @@ fun CronjobsScreen(
     // History bottom sheet
     if (showHistory) {
         HandleDismissBottomSheet(
-            onDismissRequest = { viewModel.closeHistory() }
+            onDismissRequest = { viewModel.closeHistory() },
+            header = {
+                Text(
+                    text = "History",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
         ) {
             HistorySheetContent(
                 historyCronjobs = historyCronjobs,
@@ -204,12 +211,6 @@ private fun HistorySheetContent(
             .fillMaxWidth()
             .padding(bottom = 16.dp)
     ) {
-        Text(
-            text = "History",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-
         if (historyCronjobs.isEmpty() && !isLoading) {
             Box(
                 modifier = Modifier

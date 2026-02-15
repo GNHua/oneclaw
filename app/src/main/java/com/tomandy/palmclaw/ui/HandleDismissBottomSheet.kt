@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -50,6 +50,7 @@ import kotlin.math.roundToInt
 @Composable
 fun HandleDismissBottomSheet(
     onDismissRequest: () -> Unit,
+    header: @Composable ColumnScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -98,7 +99,7 @@ fun HandleDismissBottomSheet(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .fillMaxHeight(0.92f)
+                    .heightIn(max = maxHeight * 0.92f)
                     .offset { IntOffset(0, (sheetOffset.value * sheetMaxHeightPx).roundToInt()) }
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -110,17 +111,17 @@ fun HandleDismissBottomSheet(
             ) {
                 Column(
                     Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
                         .navigationBarsPadding()
                 ) {
-                    // Drag handle -- only this area triggers dismiss on swipe down
+                    // Drag zone -- pill + header; only this area triggers dismiss
                     val dragState = rememberDraggableState { delta ->
                         val newOffset = (sheetOffset.value + delta / sheetMaxHeightPx)
                             .coerceAtLeast(0f)
                         scope.launch { sheetOffset.snapTo(newOffset) }
                     }
 
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .draggable(
@@ -136,18 +137,24 @@ fun HandleDismissBottomSheet(
                                     }
                                 }
                             )
-                            .padding(vertical = 16.dp),
-                        contentAlignment = Alignment.Center
                     ) {
                         Box(
-                            Modifier
-                                .width(32.dp)
-                                .height(4.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                    RoundedCornerShape(2.dp)
-                                )
-                        )
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                Modifier
+                                    .width(32.dp)
+                                    .height(4.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                        RoundedCornerShape(2.dp)
+                                    )
+                            )
+                        }
+                        header()
                     }
 
                     content()

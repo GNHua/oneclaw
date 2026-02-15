@@ -70,10 +70,27 @@ fun ConversationHistoryScreen(
     // Preview bottom sheet
     if (previewConversation != null) {
         HandleDismissBottomSheet(
-            onDismissRequest = { viewModel.clearPreview() }
+            onDismissRequest = { viewModel.clearPreview() },
+            header = {
+                Text(
+                    text = previewConversation!!.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "${previewConversation!!.messageCount} messages",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider()
+            }
         ) {
             ConversationPreviewSheet(
-                conversation = previewConversation!!,
                 messages = previewMessages,
                 onLoad = {
                     onConversationSelected(previewConversation!!.id)
@@ -238,7 +255,6 @@ private fun ConversationListItem(
 
 @Composable
 private fun ConversationPreviewSheet(
-    conversation: ConversationEntity,
     messages: List<MessageEntity>,
     onLoad: () -> Unit,
     onDismiss: () -> Unit
@@ -259,22 +275,6 @@ private fun ConversationPreviewSheet(
             .padding(horizontal = 16.dp)
             .padding(bottom = 32.dp)
     ) {
-        // Title
-        Text(
-            text = conversation.title,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "${conversation.messageCount} messages",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        HorizontalDivider()
-
         // Message preview -- use Column + verticalScroll to avoid nested LazyColumn conflict
         if (displayedMessages.isEmpty()) {
             Text(

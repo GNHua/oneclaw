@@ -57,6 +57,10 @@ object SchedulerPluginMetadata {
         parameters = buildJsonObject {
             put("type", JsonPrimitive("object"))
             putJsonObject("properties") {
+                putJsonObject("title") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive("Short title for the task (e.g., 'Daily Weather', 'Morning Briefing')"))
+                }
                 putJsonObject("instruction") {
                     put("type", JsonPrimitive("string"))
                     put("description", JsonPrimitive("The task instruction in natural language. This will be sent to the Agent at execution time."))
@@ -111,6 +115,7 @@ object SchedulerPluginMetadata {
             |
             |Returns information about active and disabled scheduled tasks, including:
             |- Task ID
+            |- Title
             |- Instruction
             |- Schedule type and timing
             |- Execution count

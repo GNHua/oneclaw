@@ -304,14 +304,14 @@ private fun HistoryCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Row 1: Instruction + enabled switch
+            // Row 1: Title + enabled switch
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = cronjob.instruction,
+                    text = cronjob.title.ifBlank { cronjob.instruction },
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -327,6 +327,18 @@ private fun HistoryCard(
                     checked = cronjob.enabled,
                     onCheckedChange = { onToggleEnabled() },
                     enabled = !isExpiredOneTime
+                )
+            }
+
+            // Show instruction as detail when title is present
+            if (cronjob.title.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = cronjob.instruction,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -409,14 +421,14 @@ private fun CronjobCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Row 1: Instruction + enabled switch
+            // Row 1: Title + enabled switch
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = cronjob.instruction,
+                    text = cronjob.title.ifBlank { cronjob.instruction },
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -432,6 +444,18 @@ private fun CronjobCard(
                     checked = cronjob.enabled,
                     onCheckedChange = { onToggleEnabled() },
                     enabled = !isExpiredOneTime
+                )
+            }
+
+            // Show instruction as detail when title is present
+            if (cronjob.title.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = cronjob.instruction,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 

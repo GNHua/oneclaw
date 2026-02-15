@@ -95,6 +95,12 @@ fun MessageList(
                 )
             } else if (message.role == "meta" && message.toolName == "summary") {
                 SummaryDivider()
+                if (message.content.isNotBlank()) {
+                    MessageBubble(
+                        message = message.copy(role = "assistant"),
+                        toolResults = toolResultsMap
+                    )
+                }
             } else {
                 MessageBubble(
                     message = message,

@@ -157,13 +157,24 @@ class ChatViewModel(
             val convId = _conversationId.value
             ChatExecutionTracker.clearError(convId)
 
-            // Check conversation exists and has messages
+            // Check conversation exists and has enough messages
             val conv = conversationDao.getConversationOnce(convId) ?: return@launch
             val msgCount = messageDao.getMessageCount(convId)
             if (msgCount <= 2) {
                 _error.value = "Not enough messages to summarize."
                 return@launch
             }
+
+            // Persist the command as a user message so it shows in chat
+            messageDao.insert(
+                MessageEntity(
+                    id = UUID.randomUUID().toString(),
+                    conversationId = convId,
+                    role = "user",
+                    content = "/summarize",
+                    timestamp = System.currentTimeMillis()
+                )
+            )
 
             ChatExecutionService.startSummarization(appContext, convId)
         }

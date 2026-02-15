@@ -219,12 +219,16 @@ class PalmClawApp : Application() {
             anthropicClient.setBaseUrl(url)
         }
 
-        // Set default provider based on which keys are available
-        val activeProvider = when {
+        // Restore provider from saved model selection, falling back to key-based priority
+        val savedModel = modelPreferences.getSelectedModel()
+        val restoredProvider = savedModel?.let { getProviderForModel(it) }
+            ?.takeIf { providers.contains(it.displayName) }
+
+        val activeProvider = restoredProvider ?: when {
             providers.contains(LlmProvider.ANTHROPIC.displayName) -> LlmProvider.ANTHROPIC
             providers.contains(LlmProvider.GEMINI.displayName) -> LlmProvider.GEMINI
             providers.contains(LlmProvider.OPENAI.displayName) -> LlmProvider.OPENAI
-            else -> LlmProvider.OPENAI // Default to OpenAI
+            else -> LlmProvider.OPENAI
         }
 
         setActiveProvider(activeProvider)

@@ -1,25 +1,19 @@
 package com.tomandy.palmclaw.agent
 
-import com.tomandy.palmclaw.PalmClawApp
+import com.tomandy.palmclaw.data.AppDatabase
+import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.entity.ConversationEntity
+import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.scheduler.AgentExecutor
 import java.util.UUID
 
-// TODO: Eliminate the AgentExecutor interface and the global singleton wiring.
-//  This class depends on PalmClawApp for DAOs, LLM client, tool registry, preferences,
-//  and AgentCoordinator. To remove the interface:
-//  1. Extract a lib-data module (database, DAOs, entities, MessageStore, preferences)
-//  2. Have this class take individual dependencies as constructor params instead of PalmClawApp
-//  3. Move this class into lib-scheduler and wire dependencies via WorkerFactory
-//  This lets lib-scheduler own the execution path without crossing module boundaries.
-
-/**
- * Implementation of AgentExecutor for executing scheduled tasks.
- *
- * This bridges the scheduler library with the app's agent system.
- */
 class ScheduledAgentExecutor(
-    private val app: PalmClawApp
+    private val database: AppDatabase,
+    private val llmClientProvider: LlmClientProvider,
+    private val toolRegistry: ToolRegistry,
+    private val toolExecutor: ToolExecutor,
+    private val messageStore: MessageStore,
+    private val modelPreferences: ModelPreferences
 ) : AgentExecutor {
 
     override suspend fun executeTask(
@@ -35,7 +29,7 @@ class ScheduledAgentExecutor(
 
             // Create a temporary ConversationEntity so that intermediate messages
             // (tool calls, tool results) satisfy the foreign key constraint.
-            val conversationDao = app.database.conversationDao()
+            val conversationDao = database.conversationDao()
             conversationDao.insert(
                 ConversationEntity(
                     id = tempConversationId,
@@ -49,10 +43,10 @@ class ScheduledAgentExecutor(
 
             // Create agent coordinator for this execution
             val coordinator = AgentCoordinator(
-                clientProvider = { app.getCurrentLlmClient() },
-                toolRegistry = app.toolRegistry,
-                toolExecutor = app.toolExecutor,
-                messageStore = app.messageStore,
+                clientProvider = { llmClientProvider.getCurrentLlmClient() },
+                toolRegistry = toolRegistry,
+                toolExecutor = toolExecutor,
+                messageStore = messageStore,
                 conversationId = tempConversationId
             )
 
@@ -63,7 +57,7 @@ class ScheduledAgentExecutor(
             )
 
             // Get the selected model from preferences
-            val model = app.modelPreferences.getSelectedModel() ?: ""
+            val model = modelPreferences.getSelectedModel() ?: ""
 
             val result = coordinator.execute(
                 userMessage = instruction,
@@ -78,7 +72,7 @@ class ScheduledAgentExecutor(
             // Post result to the original conversation
             if (conversationId != null && result.isSuccess) {
                 val summary = result.getOrNull() ?: ""
-                app.messageStore.insert(
+                messageStore.insert(
                     MessageRecord(
                         id = UUID.randomUUID().toString(),
                         conversationId = conversationId,

@@ -14,18 +14,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.rememberNavController
+import com.tomandy.palmclaw.navigation.NavigationState
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import com.tomandy.palmclaw.ui.navigation.PalmClawNavGraph
 import com.tomandy.palmclaw.ui.theme.PalmClawTheme
+import org.koin.android.ext.android.inject
 
-/**
- * Main activity for the PalmClaw application.
- *
- * This activity serves as the entry point and hosts the navigation graph.
- * It uses Jetpack Compose for the entire UI and sets up the navigation controller
- * to manage screen transitions.
- */
 class MainActivity : ComponentActivity() {
+
+    private val navigationState: NavigationState by inject()
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -35,9 +32,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         requestNotificationPermission()
-
-        val app = application as PalmClawApp
-        handleNotificationIntent(app, intent)
+        handleNotificationIntent(intent)
 
         setContent {
             PalmClawTheme {
@@ -47,8 +42,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     PalmClawNavGraph(
-                        navController = navController,
-                        app = app
+                        navController = navController
                     )
                 }
             }
@@ -57,13 +51,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        val app = application as PalmClawApp
-        handleNotificationIntent(app, intent)
+        handleNotificationIntent(intent)
     }
 
-    private fun handleNotificationIntent(app: PalmClawApp, intent: Intent?) {
+    private fun handleNotificationIntent(intent: Intent?) {
         intent?.getStringExtra(ChatNotificationHelper.EXTRA_CONVERSATION_ID)?.let { convId ->
-            app.pendingConversationId.value = convId
+            navigationState.pendingConversationId.value = convId
         }
     }
 

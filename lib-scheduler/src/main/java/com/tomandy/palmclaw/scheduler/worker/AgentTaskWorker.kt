@@ -15,19 +15,12 @@ import com.tomandy.palmclaw.scheduler.CronjobManager
 import com.tomandy.palmclaw.scheduler.R
 import com.tomandy.palmclaw.scheduler.data.ExecutionStatus
 
-/**
- * WorkManager worker that executes scheduled agent tasks
- *
- * This worker is triggered by WorkManager at the scheduled time.
- * The app can be completely killed between executions - Android will
- * start this worker when needed, with zero background battery drain.
- */
 class AgentTaskWorker(
     context: Context,
-    params: WorkerParameters
+    params: WorkerParameters,
+    private val agentExecutor: AgentExecutor,
+    private val cronjobManager: CronjobManager
 ) : CoroutineWorker(context, params) {
-
-    private val cronjobManager = CronjobManager(context)
 
     override suspend fun doWork(): Result {
         val cronjobId = inputData.getString(KEY_CRONJOB_ID)
@@ -52,9 +45,6 @@ class AgentTaskWorker(
         val logId = cronjobManager.recordExecutionStart(cronjobId)
 
         return try {
-            // TODO: Integrate with actual agent execution system
-            // For now, this is a placeholder that will be replaced
-            // with actual agent loop integration
             val result = executeAgentTask(cronjob.instruction)
 
             // Record successful execution
@@ -83,25 +73,19 @@ class AgentTaskWorker(
         }
     }
 
-    /**
-     * Create foreground notification to prevent worker from being killed
-     */
     private fun createForegroundInfo(instruction: String): ForegroundInfo {
         createNotificationChannels()
 
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setContentTitle("Executing scheduled task")
             .setContentText(instruction.take(50))
-            .setSmallIcon(R.drawable.ic_notification) // TODO: Add actual icon
+            .setSmallIcon(R.drawable.ic_notification)
             .setOngoing(true)
             .build()
 
         return ForegroundInfo(NOTIFICATION_ID, notification)
     }
 
-    /**
-     * Send notification when task completes
-     */
     private fun sendCompletionNotification(instruction: String, result: String, conversationId: String?) {
         createNotificationChannels()
 
@@ -122,15 +106,11 @@ class AgentTaskWorker(
         notificationManager.notify(instruction.hashCode(), notification)
     }
 
-    /**
-     * Create notification channels for Android O+
-     */
     private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE)
                 as NotificationManager
 
-            // Low-importance for foreground service
             val serviceChannel = NotificationChannel(
                 CHANNEL_ID,
                 "Scheduled Tasks",
@@ -140,7 +120,6 @@ class AgentTaskWorker(
             }
             notificationManager.createNotificationChannel(serviceChannel)
 
-            // High-importance for results (banner + lockscreen)
             val resultChannel = NotificationChannel(
                 RESULT_CHANNEL_ID,
                 "Task Results",
@@ -156,14 +135,8 @@ class AgentTaskWorker(
         }
     }
 
-    /**
-     * Execute the agent task
-     */
     private suspend fun executeAgentTask(instruction: String): String {
-        val executor = AgentExecutor.instance
-            ?: return "Error: Agent executor not configured"
-
-        val result = executor.executeTask(
+        val result = agentExecutor.executeTask(
             instruction = instruction,
             cronjobId = inputData.getString(KEY_CRONJOB_ID) ?: "",
             triggerTime = System.currentTimeMillis()

@@ -15,15 +15,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.tomandy.palmclaw.data.ConversationPreferences
+import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.llm.LlmProvider
-import kotlinx.coroutines.launch
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import com.tomandy.palmclaw.PalmClawApp
+import com.tomandy.palmclaw.navigation.NavigationState
 import com.tomandy.palmclaw.ui.chat.ChatScreen
 import com.tomandy.palmclaw.ui.chat.ChatViewModel
 import com.tomandy.palmclaw.ui.cronjobs.CronjobsScreen
@@ -34,6 +31,12 @@ import com.tomandy.palmclaw.ui.settings.PluginsScreen
 import com.tomandy.palmclaw.ui.settings.ProvidersScreen
 import com.tomandy.palmclaw.ui.settings.SettingsScreen
 import com.tomandy.palmclaw.ui.settings.SettingsViewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 enum class Screen(val route: String) {
     Chat("chat"),
@@ -48,61 +51,40 @@ enum class Screen(val route: String) {
 @Composable
 fun PalmClawNavGraph(
     navController: NavHostController,
-    app: PalmClawApp,
     modifier: Modifier = Modifier
 ) {
-    val scope = rememberCoroutineScope()
-    val settingsViewModel = remember {
-        SettingsViewModel(
-            credentialVault = app.credentialVault,
-            modelPreferences = app.modelPreferences,
-            pluginPreferences = app.pluginPreferences,
-            loadedPlugins = app.pluginEngine.getAllPlugins(),
-            userPluginManager = app.userPluginManager,
-            onApiKeyChanged = {
-                scope.launch {
-                    app.reloadApiKeys()
-                }
-            },
-            onPluginToggled = { id, enabled ->
-                app.setPluginEnabled(id, enabled)
-            }
-        )
-    }
+    val llmClientProvider: LlmClientProvider = koinInject()
+    val conversationPreferences: ConversationPreferences = koinInject()
+    val navigationState: NavigationState = koinInject()
+
+    val modelPreferences: com.tomandy.palmclaw.data.ModelPreferences = koinInject()
+    val settingsViewModel: SettingsViewModel = koinViewModel()
 
     // ChatViewModel is created once and survives across navigation.
     // It loads the last active conversation from ConversationPreferences.
-    val chatViewModel = remember {
-        val activeId = app.conversationPreferences.getActiveConversationId()
-        ChatViewModel(
-            messageDao = app.database.messageDao(),
-            conversationDao = app.database.conversationDao(),
-            conversationPreferences = app.conversationPreferences,
-            appContext = app.applicationContext,
-            conversationId = activeId
-        )
-    }
+    val activeId = remember { conversationPreferences.getActiveConversationId() }
+    val chatViewModel: ChatViewModel = koinViewModel { parametersOf(activeId) }
 
     // Model selection state (shared between Settings and Chat)
     var availableModels by remember { mutableStateOf<List<Pair<String, LlmProvider>>>(emptyList()) }
-    var selectedModel by remember { mutableStateOf(app.modelPreferences.getSelectedModel() ?: "gpt-4o-mini") }
+    var selectedModel by remember { mutableStateOf(modelPreferences.getSelectedModel() ?: "gpt-4o-mini") }
 
     LaunchedEffect(Unit) {
-        app.reloadApiKeys()
-        availableModels = app.getAvailableModels()
+        llmClientProvider.reloadApiKeys()
+        availableModels = llmClientProvider.getAvailableModels()
         if (availableModels.isNotEmpty() && selectedModel !in availableModels.map { it.first }) {
             selectedModel = availableModels.first().first
-            app.setModelAndProvider(selectedModel)
+            llmClientProvider.setModelAndProvider(selectedModel)
         }
     }
 
     // Handle notification tap: navigate to the target conversation
-    val pendingConvId by app.pendingConversationId.collectAsState()
+    val pendingConvId by navigationState.pendingConversationId.collectAsState()
     LaunchedEffect(pendingConvId) {
         pendingConvId?.let { convId ->
             chatViewModel.loadConversation(convId)
             navController.popBackStack(Screen.Chat.route, inclusive = false)
-            app.pendingConversationId.value = null
+            navigationState.pendingConversationId.value = null
         }
     }
 
@@ -114,7 +96,6 @@ fun PalmClawNavGraph(
         composable(Screen.Chat.route) {
             ChatScreen(
                 viewModel = chatViewModel,
-                app = app,
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
                 },
@@ -147,12 +128,12 @@ fun PalmClawNavGraph(
                     onNavigateToPlugins = {
                         navController.navigate(Screen.Plugins.route)
                     },
-                    modelPreferences = app.modelPreferences,
+                    modelPreferences = modelPreferences,
                     availableModels = availableModels,
                     selectedModel = selectedModel,
                     onModelSelected = { model ->
                         selectedModel = model
-                        app.setModelAndProvider(model)
+                        llmClientProvider.setModelAndProvider(model)
                     },
                     modifier = Modifier.padding(paddingValues)
                 )
@@ -200,9 +181,7 @@ fun PalmClawNavGraph(
         }
 
         composable(Screen.Cronjobs.route) {
-            val viewModel = remember {
-                CronjobsViewModel(cronjobManager = app.cronjobManager)
-            }
+            val viewModel: CronjobsViewModel = koinViewModel()
 
             Scaffold(
                 topBar = {
@@ -224,12 +203,7 @@ fun PalmClawNavGraph(
         }
 
         composable(Screen.History.route) {
-            val viewModel = remember {
-                ConversationHistoryViewModel(
-                    conversationDao = app.database.conversationDao(),
-                    messageDao = app.database.messageDao()
-                )
-            }
+            val viewModel: ConversationHistoryViewModel = koinViewModel()
 
             Scaffold(
                 topBar = {

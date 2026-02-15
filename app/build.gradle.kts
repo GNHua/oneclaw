@@ -98,10 +98,19 @@ dependencies {
     // Navigation
     implementation(libs.androidx.navigation.compose)
 
+    // Koin
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.android)
+    implementation(libs.koin.compose)
+    implementation(libs.koin.compose.navigation)
+    implementation(libs.koin.android.workmanager)
+
     // Markdown
     implementation(libs.compose.markdown)
 
     // Testing
+    testImplementation(platform(libs.koin.bom))
+    testImplementation(libs.koin.test)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)

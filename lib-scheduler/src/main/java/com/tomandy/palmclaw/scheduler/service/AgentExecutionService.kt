@@ -14,6 +14,8 @@ import com.tomandy.palmclaw.scheduler.R
 import com.tomandy.palmclaw.scheduler.data.ExecutionStatus
 import com.tomandy.palmclaw.scheduler.data.ScheduleType
 import kotlinx.coroutines.*
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Foreground service that executes scheduled agent tasks
@@ -27,7 +29,9 @@ import kotlinx.coroutines.*
  * Once the task completes, the service stops itself, returning to
  * zero background battery drain.
  */
-class AgentExecutionService : Service() {
+class AgentExecutionService : Service(), KoinComponent {
+
+    private val agentExecutor: AgentExecutor by inject()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var cronjobManager: CronjobManager
@@ -139,10 +143,7 @@ class AgentExecutionService : Service() {
         cronjobId: String,
         conversationId: String?
     ): String {
-        val executor = AgentExecutor.instance
-            ?: return "Error: Agent executor not configured"
-
-        val result = executor.executeTask(
+        val result = agentExecutor.executeTask(
             instruction = instruction,
             cronjobId = cronjobId,
             triggerTime = System.currentTimeMillis(),

@@ -6,8 +6,7 @@ package com.tomandy.palmclaw.scheduler
  * This interface allows the scheduler library to execute agent tasks
  * without directly depending on the app's agent implementation.
  *
- * The app should provide an implementation of this interface and
- * register it globally so workers can access it.
+ * The app provides an implementation via Koin dependency injection.
  */
 interface AgentExecutor {
     /**
@@ -25,15 +24,4 @@ interface AgentExecutor {
         triggerTime: Long,
         conversationId: String? = null
     ): Result<String>
-
-    companion object {
-        /**
-         * Global instance of AgentExecutor.
-         *
-         * The app should set this during application initialization.
-         * Workers will access this to execute tasks.
-         */
-        @Volatile
-        var instance: AgentExecutor? = null
-    }
 }

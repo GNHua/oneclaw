@@ -9,9 +9,14 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.tomandy.palmclaw.PalmClawApp
 import com.tomandy.palmclaw.agent.AgentCoordinator
+import com.tomandy.palmclaw.agent.MessageStore
+import com.tomandy.palmclaw.agent.ToolExecutor
+import com.tomandy.palmclaw.agent.ToolRegistry
+import com.tomandy.palmclaw.data.AppDatabase
+import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.entity.MessageEntity
+import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.llm.LlmProvider
 import com.tomandy.palmclaw.llm.Message
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
@@ -24,16 +29,18 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.util.UUID
 
-/**
- * Foreground service that executes chat agent requests in the background.
- *
- * This keeps the process alive with foreground priority so that LLM calls
- * continue even when the user leaves the app. When the response arrives,
- * it is persisted to the database and a notification is sent.
- */
-class ChatExecutionService : Service() {
+class ChatExecutionService : Service(), KoinComponent {
+
+    private val llmClientProvider: LlmClientProvider by inject()
+    private val toolRegistry: ToolRegistry by inject()
+    private val toolExecutor: ToolExecutor by inject()
+    private val messageStore: MessageStore by inject()
+    private val modelPreferences: ModelPreferences by inject()
+    private val database: AppDatabase by inject()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -79,20 +86,19 @@ class ChatExecutionService : Service() {
     }
 
     private fun executeChat(conversationId: String, userMessage: String) {
-        val app = application as PalmClawApp
         ChatExecutionTracker.markActive(conversationId)
 
         val job = serviceScope.launch {
             try {
-                val selectedModel = app.modelPreferences.getSelectedModel()
-                    ?: app.modelPreferences.getModel(app.selectedProvider.value)
+                val selectedModel = modelPreferences.getSelectedModel()
+                    ?: modelPreferences.getModel(llmClientProvider.selectedProvider.value)
                 val contextWindow = LlmProvider.getContextWindow(selectedModel)
 
                 val coordinator = AgentCoordinator(
-                    clientProvider = { app.getCurrentLlmClient() },
-                    toolRegistry = app.toolRegistry,
-                    toolExecutor = app.toolExecutor,
-                    messageStore = app.messageStore,
+                    clientProvider = { llmClientProvider.getCurrentLlmClient() },
+                    toolRegistry = toolRegistry,
+                    toolExecutor = toolExecutor,
+                    messageStore = messageStore,
                     conversationId = conversationId,
                     contextWindow = contextWindow
                 )
@@ -110,7 +116,7 @@ class ChatExecutionService : Service() {
 
                 // Seed history from DB, excluding the latest user message
                 // (it will be passed to execute() separately)
-                val messageDao = app.database.messageDao()
+                val messageDao = database.messageDao()
                 val dbMessages = messageDao.getMessagesOnce(conversationId)
 
                 // Find the latest summary meta message
@@ -138,7 +144,7 @@ class ChatExecutionService : Service() {
                     }
                 }.dropLast(1)
                 coordinator.seedHistory(history, summaryContent)
-                val maxIterations = app.modelPreferences.getMaxIterations()
+                val maxIterations = modelPreferences.getMaxIterations()
 
                 val result = coordinator.execute(
                     userMessage = userMessage,
@@ -147,7 +153,7 @@ class ChatExecutionService : Service() {
                     maxIterations = maxIterations
                 )
 
-                val conversationDao = app.database.conversationDao()
+                val conversationDao = database.conversationDao()
 
                 result.fold(
                     onSuccess = { response ->
@@ -196,7 +202,7 @@ class ChatExecutionService : Service() {
                 )
             } catch (e: CancellationException) {
                 Log.d(TAG, "Execution cancelled for $conversationId")
-                val messageDao = (application as PalmClawApp).database.messageDao()
+                val messageDao = database.messageDao()
                 withContext(NonCancellable) {
                     messageDao.insert(
                         MessageEntity(
@@ -228,26 +234,25 @@ class ChatExecutionService : Service() {
     }
 
     private fun executeSummarize(conversationId: String) {
-        val app = application as PalmClawApp
         ChatExecutionTracker.markActive(conversationId)
 
         val job = serviceScope.launch {
             try {
-                val selectedModel = app.modelPreferences.getSelectedModel()
-                    ?: app.modelPreferences.getModel(app.selectedProvider.value)
+                val selectedModel = modelPreferences.getSelectedModel()
+                    ?: modelPreferences.getModel(llmClientProvider.selectedProvider.value)
                 val contextWindow = LlmProvider.getContextWindow(selectedModel)
 
                 val coordinator = AgentCoordinator(
-                    clientProvider = { app.getCurrentLlmClient() },
-                    toolRegistry = app.toolRegistry,
-                    toolExecutor = app.toolExecutor,
-                    messageStore = app.messageStore,
+                    clientProvider = { llmClientProvider.getCurrentLlmClient() },
+                    toolRegistry = toolRegistry,
+                    toolExecutor = toolExecutor,
+                    messageStore = messageStore,
                     conversationId = conversationId,
                     contextWindow = contextWindow
                 )
 
                 // Seed history from DB (all messages, no "latest" to drop)
-                val messageDao = app.database.messageDao()
+                val messageDao = database.messageDao()
                 val dbMessages = messageDao.getMessagesOnce(conversationId)
 
                 val lastSummaryIndex = dbMessages.indexOfLast {
@@ -349,10 +354,6 @@ class ChatExecutionService : Service() {
         internal val activeCoordinators = mutableMapOf<String, AgentCoordinator>()
         internal val activeJobs = mutableMapOf<String, Job>()
 
-        /**
-         * Cancel execution directly without going through an intent.
-         * Called from the ViewModel for instant stop-button response.
-         */
         fun cancelExecutionDirect(conversationId: String) {
             val coordinator = synchronized(activeCoordinators) {
                 activeCoordinators.remove(conversationId)

@@ -46,6 +46,11 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
 
+    // Koin
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.core)
+    implementation(libs.koin.android.workmanager)
+
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
 

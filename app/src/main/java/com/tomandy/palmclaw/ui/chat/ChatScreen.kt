@@ -44,7 +44,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.tomandy.palmclaw.PalmClawApp
+import androidx.compose.ui.platform.LocalContext
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import com.tomandy.palmclaw.notification.ChatScreenTracker
 
@@ -68,7 +68,6 @@ import com.tomandy.palmclaw.notification.ChatScreenTracker
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel,
-    app: PalmClawApp,
     onNavigateToSettings: () -> Unit,
     onNavigateToCronjobs: () -> Unit,
     onNavigateToHistory: () -> Unit,
@@ -83,12 +82,13 @@ fun ChatScreen(
     // Uses lifecycle observer so that going to home screen or locking the device
     // clears the tracker, allowing notifications to fire.
     val lifecycleOwner = LocalLifecycleOwner.current
+    val appContext = LocalContext.current.applicationContext
     DisposableEffect(currentConversationId, lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
                     ChatScreenTracker.activeConversationId = currentConversationId
-                    ChatNotificationHelper.dismiss(app.applicationContext, currentConversationId)
+                    ChatNotificationHelper.dismiss(appContext, currentConversationId)
                 }
                 Lifecycle.Event.ON_PAUSE -> {
                     ChatScreenTracker.activeConversationId = null
@@ -100,7 +100,7 @@ fun ChatScreen(
         // Set immediately if already resumed
         if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
             ChatScreenTracker.activeConversationId = currentConversationId
-            ChatNotificationHelper.dismiss(app.applicationContext, currentConversationId)
+            ChatNotificationHelper.dismiss(appContext, currentConversationId)
         }
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)

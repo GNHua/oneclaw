@@ -26,6 +26,7 @@ anthropic = "2.11.1"
 work = "2.9.1"
 paging = "3.3.6"
 roomPaging = "2.7.0-alpha11"
+koin = "4.0.2"
 ktlint = "1.5.0"
 
 [libraries]
@@ -97,6 +98,15 @@ quickjs-android = { group = "io.github.dokar3", name = "quickjs-kt-android", ver
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }
 mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "mockwebserver" }
+
+# Koin
+koin-bom = { group = "io.insert-koin", name = "koin-bom", version.ref = "koin" }
+koin-core = { group = "io.insert-koin", name = "koin-core" }
+koin-android = { group = "io.insert-koin", name = "koin-android" }
+koin-android-workmanager = { group = "io.insert-koin", name = "koin-androidx-workmanager" }
+koin-compose = { group = "io.insert-koin", name = "koin-androidx-compose" }
+koin-compose-navigation = { group = "io.insert-koin", name = "koin-androidx-compose-navigation" }
+koin-test = { group = "io.insert-koin", name = "koin-test" }
 
 # Linting
 ktlint-cli = { group = "com.pinterest.ktlint", name = "ktlint-cli", version.ref = "ktlint" }

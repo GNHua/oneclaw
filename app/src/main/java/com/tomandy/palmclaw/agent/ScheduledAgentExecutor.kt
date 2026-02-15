@@ -5,6 +5,14 @@ import com.tomandy.palmclaw.data.entity.ConversationEntity
 import com.tomandy.palmclaw.scheduler.AgentExecutor
 import java.util.UUID
 
+// TODO: Eliminate the AgentExecutor interface and the global singleton wiring.
+//  This class depends on PalmClawApp for DAOs, LLM client, tool registry, preferences,
+//  and AgentCoordinator. To remove the interface:
+//  1. Extract a lib-data module (database, DAOs, entities, MessageStore, preferences)
+//  2. Have this class take individual dependencies as constructor params instead of PalmClawApp
+//  3. Move this class into lib-scheduler and wire dependencies via WorkerFactory
+//  This lets lib-scheduler own the execution path without crossing module boundaries.
+
 /**
  * Implementation of AgentExecutor for executing scheduled tasks.
  *

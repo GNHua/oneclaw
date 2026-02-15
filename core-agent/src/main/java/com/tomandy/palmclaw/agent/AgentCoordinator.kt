@@ -258,13 +258,13 @@ class AgentCoordinator(
          * Default system prompt for the AI agent.
          */
         const val DEFAULT_SYSTEM_PROMPT =
-            "You are a helpful AI assistant for Android. Be concise and accurate."
+            "You are a helpful AI assistant. Be concise and accurate."
 
         /**
          * Alternative system prompt for tool-aware agents (Phase 2).
          */
         const val TOOL_AWARE_SYSTEM_PROMPT =
-            "You are a helpful AI assistant for Android with access to tools. " +
+            "You are a helpful AI assistant with access to tools. " +
             "When you need information or need to perform actions, use the available tools. " +
             "Be concise and accurate in your responses."
     }

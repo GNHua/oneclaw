@@ -109,7 +109,7 @@ class ChatExecutionService : Service() {
 
                 val result = coordinator.execute(
                     userMessage = userMessage,
-                    systemPrompt = "You are a helpful AI assistant for Android. Be concise and accurate.",
+                    systemPrompt = AgentCoordinator.DEFAULT_SYSTEM_PROMPT,
                     model = selectedModel,
                     maxIterations = maxIterations
                 )

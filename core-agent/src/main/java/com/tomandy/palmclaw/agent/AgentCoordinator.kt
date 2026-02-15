@@ -301,11 +301,67 @@ class AgentCoordinator(
         if (conversationHistory.size <= 2) {
             return "Not enough conversation history to summarize."
         }
-        summarizeHistory(model ?: lastModel)
+        forceSummarizeHistory(model ?: lastModel)
         return if (conversationSummary != null) {
             "Conversation summarized successfully."
         } else {
             "Summarization failed -- conversation unchanged."
+        }
+    }
+
+    /**
+     * Force-summarize: summarizes all but the last 2 messages,
+     * regardless of the recent-budget heuristic used by [summarizeHistory].
+     */
+    private suspend fun forceSummarizeHistory(model: String) {
+        if (conversationHistory.size <= 2) return
+
+        val splitIndex = conversationHistory.size - 2
+        val oldMessages = conversationHistory.subList(0, splitIndex).toList()
+        val recentMessages = conversationHistory.subList(splitIndex, conversationHistory.size).toList()
+
+        val formatted = oldMessages.joinToString("\n") { msg ->
+            val label = when (msg.role) {
+                "user" -> "User"
+                "assistant" -> "Assistant"
+                else -> msg.role.replaceFirstChar { it.uppercase() }
+            }
+            "$label: ${msg.content ?: ""}"
+        }
+
+        val summarizationPrompt = "Summarize the following conversation concisely, " +
+            "preserving key topics, decisions, user preferences, and any pending tasks.\n\n$formatted"
+
+        try {
+            val summaryResult = clientProvider().complete(
+                messages = listOf(Message(role = "user", content = summarizationPrompt)),
+                model = model
+            )
+
+            val summaryText = summaryResult.getOrNull()
+                ?.choices?.firstOrNull()?.message?.content
+
+            if (!summaryText.isNullOrBlank()) {
+                conversationSummary = summaryText
+                conversationHistory.clear()
+                conversationHistory.addAll(recentMessages)
+                lastPromptTokens = 0
+
+                messageStore.insert(
+                    MessageRecord(
+                        id = UUID.randomUUID().toString(),
+                        conversationId = conversationId,
+                        role = "meta",
+                        content = summaryText,
+                        toolName = "summary",
+                        timestamp = System.currentTimeMillis()
+                    )
+                )
+
+                Log.d("AgentCoordinator", "Force-summarized ${oldMessages.size} messages, keeping ${recentMessages.size}")
+            }
+        } catch (e: Exception) {
+            Log.w("AgentCoordinator", "Force-summarization failed: ${e.message}")
         }
     }
 

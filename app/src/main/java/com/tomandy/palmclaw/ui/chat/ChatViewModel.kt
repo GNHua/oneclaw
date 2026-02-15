@@ -156,6 +156,15 @@ class ChatViewModel(
         viewModelScope.launch {
             val convId = _conversationId.value
             ChatExecutionTracker.clearError(convId)
+
+            // Check conversation exists and has messages
+            val conv = conversationDao.getConversationOnce(convId) ?: return@launch
+            val msgCount = messageDao.getMessageCount(convId)
+            if (msgCount <= 2) {
+                _error.value = "Not enough messages to summarize."
+                return@launch
+            }
+
             ChatExecutionService.startSummarization(appContext, convId)
         }
     }

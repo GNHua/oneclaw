@@ -18,11 +18,6 @@ data class CronjobEntity(
     val title: String = "",
 
     /**
-     * Detailed user-facing description of what this task does
-     */
-    val description: String? = null,
-
-    /**
      * The Agent's task instruction in natural language
      */
     val instruction: String,

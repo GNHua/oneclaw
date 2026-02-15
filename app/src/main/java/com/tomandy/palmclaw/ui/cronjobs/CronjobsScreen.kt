@@ -330,12 +330,11 @@ private fun HistoryCard(
                 )
             }
 
-            // Description
-            val desc = cronjob.description
-            if (!desc.isNullOrBlank()) {
+            // Show instruction as detail when title is present
+            if (cronjob.title.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = desc,
+                    text = cronjob.instruction,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 3,
@@ -448,12 +447,11 @@ private fun CronjobCard(
                 )
             }
 
-            // Description
-            val desc = cronjob.description
-            if (!desc.isNullOrBlank()) {
+            // Show instruction as detail when title is present
+            if (cronjob.title.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = desc,
+                    text = cronjob.instruction,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 3,

@@ -1,25 +1,20 @@
 package com.tomandy.palmclaw.plugin
 
-import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.engine.Plugin
 import com.tomandy.palmclaw.engine.PluginContext
 import com.tomandy.palmclaw.engine.ToolResult
-import com.tomandy.palmclaw.llm.LlmClientProvider
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 class ConfigPlugin(
-    private val llmClientProvider: LlmClientProvider,
-    private val modelPreferences: ModelPreferences
+    private val registry: ConfigRegistry
 ) : Plugin {
 
-    override suspend fun onLoad(context: PluginContext) {
-        // No initialization needed -- dependencies injected via constructor
-    }
+    override suspend fun onLoad(context: PluginContext) {}
 
     override suspend fun execute(toolName: String, arguments: JsonObject): ToolResult {
         return when (toolName) {
-            "configure_app" -> configureApp(arguments)
+            "set_app_config" -> setAppConfig(arguments)
             "get_app_config" -> getAppConfig()
             else -> ToolResult.Failure("Unknown tool: $toolName")
         }
@@ -27,112 +22,141 @@ class ConfigPlugin(
 
     override suspend fun onUnload() {}
 
-    private suspend fun configureApp(arguments: JsonObject): ToolResult {
-        val setting = arguments["setting"]?.jsonPrimitive?.content
-            ?: return ToolResult.Failure("Missing required field: setting")
-        val value = arguments["value"]?.jsonPrimitive?.content
-            ?: return ToolResult.Failure("Missing required field: value")
+    private suspend fun setAppConfig(arguments: JsonObject): ToolResult {
+        val settings = arguments.filterKeys { !it.startsWith("_") }
 
-        return when (setting) {
-            "model" -> changeModel(value)
-            "max_iterations" -> changeMaxIterations(value)
-            else -> ToolResult.Failure(
-                "Unknown setting: $setting. Supported settings: model, max_iterations"
-            )
-        }
-    }
-
-    private suspend fun changeModel(value: String): ToolResult {
-        val available = llmClientProvider.getAvailableModels()
-        if (available.isEmpty()) {
-            return ToolResult.Failure("No models available. No API keys are configured.")
-        }
-
-        // Exact match first
-        val exactMatch = available.find { (model, _) -> model == value }
-        if (exactMatch != null) {
-            val oldModel = modelPreferences.getSelectedModel() ?: "default"
-            llmClientProvider.setModelAndProvider(exactMatch.first)
-            return ToolResult.Success(
-                "Model changed from $oldModel to ${exactMatch.first} " +
-                    "(provider: ${exactMatch.second.displayName}). " +
-                    "The change takes effect on the next message."
-            )
-        }
-
-        // Fuzzy match: check if input is a substring of any model name
-        val fuzzyMatches = available.filter { (model, _) ->
-            model.contains(value, ignoreCase = true) || value.contains(model, ignoreCase = true)
-        }
-
-        if (fuzzyMatches.size == 1) {
-            val match = fuzzyMatches.first()
-            val oldModel = modelPreferences.getSelectedModel() ?: "default"
-            llmClientProvider.setModelAndProvider(match.first)
-            return ToolResult.Success(
-                "Model changed from $oldModel to ${match.first} " +
-                    "(provider: ${match.second.displayName}). " +
-                    "The change takes effect on the next message."
-            )
-        }
-
-        if (fuzzyMatches.size > 1) {
-            val options = fuzzyMatches.joinToString(", ") { it.first }
+        if (settings.isEmpty()) {
             return ToolResult.Failure(
-                "Ambiguous model name \"$value\". Multiple matches: $options. " +
-                    "Please use the exact model name."
+                "No settings provided. Pass key-value pairs, e.g. " +
+                    "{\"max_iterations\": \"100\"}. " +
+                    "Call get_app_config to see available settings."
             )
         }
 
-        val allModels = available.joinToString(", ") { it.first }
-        return ToolResult.Failure(
-            "Unknown model \"$value\". Available models: $allModels"
-        )
-    }
+        val results = mutableListOf<String>()
+        val errors = mutableListOf<String>()
 
-    private fun changeMaxIterations(value: String): ToolResult {
-        val intValue = value.toIntOrNull()
-            ?: return ToolResult.Failure(
-                "Invalid value \"$value\". max_iterations must be an integer."
-            )
+        for ((key, jsonValue) in settings) {
+            val entry = registry.get(key)
+            if (entry == null) {
+                errors.add("Unknown setting: \"$key\"")
+                continue
+            }
 
-        if (intValue !in 1..500) {
-            return ToolResult.Failure(
-                "max_iterations must be between 1 and 500. Got: $intValue"
-            )
-        }
+            val rawValue = jsonValue.jsonPrimitive.content
 
-        val oldValue = modelPreferences.getMaxIterations()
-        modelPreferences.saveMaxIterations(intValue)
-        return ToolResult.Success(
-            "max_iterations changed from $oldValue to $intValue. " +
-                "The change takes effect on the next message."
-        )
-    }
+            val result = if (entry.customHandler != null) {
+                entry.customHandler.invoke(rawValue)
+            } else {
+                validateAndSet(entry, rawValue)
+            }
 
-    private suspend fun getAppConfig(): ToolResult {
-        val currentModel = modelPreferences.getSelectedModel() ?: "not set (using provider default)"
-        val currentProvider = llmClientProvider.selectedProvider.value.displayName
-        val maxIterations = modelPreferences.getMaxIterations()
-        val available = llmClientProvider.getAvailableModels()
-
-        val modelList = if (available.isEmpty()) {
-            "  (no API keys configured)"
-        } else {
-            available.joinToString("\n") { (model, provider) ->
-                "  - $model (${provider.displayName})"
+            when (result) {
+                is ToolResult.Success -> results.add(result.output)
+                is ToolResult.Failure -> errors.add(result.error)
             }
         }
 
-        return ToolResult.Success(
-            """Current configuration:
-                |  Model: $currentModel
-                |  Provider: $currentProvider
-                |  Max iterations: $maxIterations
-                |
-                |Available models:
-                |$modelList
-            """.trimMargin()
-        )
+        val output = buildString {
+            if (results.isNotEmpty()) {
+                appendLine("Updated:")
+                results.forEach { appendLine("  - $it") }
+            }
+            if (errors.isNotEmpty()) {
+                appendLine("Errors:")
+                errors.forEach { appendLine("  - $it") }
+            }
+        }.trim()
+
+        return if (errors.isNotEmpty() && results.isEmpty()) {
+            ToolResult.Failure(output)
+        } else {
+            ToolResult.Success(output)
+        }
+    }
+
+    private suspend fun getAppConfig(): ToolResult {
+        val entries = registry.all()
+        if (entries.isEmpty()) {
+            return ToolResult.Success("No configuration settings available.")
+        }
+
+        val output = buildString {
+            appendLine("Current configuration:")
+            appendLine()
+            for (entry in entries) {
+                val currentValue = entry.getter()
+                appendLine("  ${entry.key}: $currentValue")
+                appendLine("    ${entry.description}")
+                appendLine("    Type: ${formatType(entry.type)}")
+                appendLine()
+            }
+        }.trim()
+
+        return ToolResult.Success(output)
+    }
+
+    private fun formatType(type: ConfigType): String = when (type) {
+        is ConfigType.StringType -> "string"
+        is ConfigType.IntType -> buildString {
+            append("integer")
+            if (type.min != null || type.max != null) {
+                append(" (")
+                if (type.min != null) append("min: ${type.min}")
+                if (type.min != null && type.max != null) append(", ")
+                if (type.max != null) append("max: ${type.max}")
+                append(")")
+            }
+        }
+        is ConfigType.BooleanType -> "boolean"
+        is ConfigType.EnumType -> "enum [${type.values.joinToString(", ")}]"
+    }
+
+    private fun validateAndSet(entry: ConfigEntry, rawValue: String): ToolResult {
+        return when (val type = entry.type) {
+            is ConfigType.StringType -> {
+                entry.setter(rawValue)
+                ToolResult.Success("${entry.displayName} set to \"$rawValue\".")
+            }
+            is ConfigType.IntType -> {
+                val intVal = rawValue.toIntOrNull()
+                    ?: return ToolResult.Failure(
+                        "Invalid value \"$rawValue\" for ${entry.key}. Expected an integer."
+                    )
+                if (type.min != null && intVal < type.min) {
+                    return ToolResult.Failure(
+                        "${entry.key} must be >= ${type.min}. Got: $intVal"
+                    )
+                }
+                if (type.max != null && intVal > type.max) {
+                    return ToolResult.Failure(
+                        "${entry.key} must be <= ${type.max}. Got: $intVal"
+                    )
+                }
+                entry.setter(intVal.toString())
+                ToolResult.Success("${entry.displayName} changed to $intVal.")
+            }
+            is ConfigType.BooleanType -> {
+                val boolVal = when (rawValue.lowercase()) {
+                    "true", "1", "yes", "on" -> "true"
+                    "false", "0", "no", "off" -> "false"
+                    else -> return ToolResult.Failure(
+                        "Invalid value \"$rawValue\" for ${entry.key}. Expected true/false."
+                    )
+                }
+                entry.setter(boolVal)
+                ToolResult.Success("${entry.displayName} set to $boolVal.")
+            }
+            is ConfigType.EnumType -> {
+                if (rawValue !in type.values) {
+                    return ToolResult.Failure(
+                        "Invalid value \"$rawValue\" for ${entry.key}. " +
+                            "Allowed: ${type.values.joinToString(", ")}"
+                    )
+                }
+                entry.setter(rawValue)
+                ToolResult.Success("${entry.displayName} set to \"$rawValue\".")
+            }
+        }
     }
 }

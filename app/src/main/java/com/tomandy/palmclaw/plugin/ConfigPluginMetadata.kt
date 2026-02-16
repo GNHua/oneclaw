@@ -4,7 +4,6 @@ import com.tomandy.palmclaw.engine.PluginMetadata
 import com.tomandy.palmclaw.engine.ToolDefinition
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 
 object ConfigPluginMetadata {
@@ -13,59 +12,40 @@ object ConfigPluginMetadata {
         return PluginMetadata(
             id = "config",
             name = "App Configuration",
-            version = "1.0.0",
-            description = "Read and modify app settings like model selection and max iterations",
+            version = "2.0.0",
+            description = "Read and modify app settings",
             author = "PalmClaw",
             entryPoint = "ConfigPlugin",
             tools = listOf(
-                configureAppTool(),
+                setAppConfigTool(),
                 getAppConfigTool()
             )
         )
     }
 
-    private fun configureAppTool() = ToolDefinition(
-        name = "configure_app",
-        description = """Change an app setting.
+    private fun setAppConfigTool() = ToolDefinition(
+        name = "set_app_config",
+        description = """Update one or more app settings.
             |
-            |Supported settings:
-            |- "model": Switch the active LLM model. The value can be a partial match
-            |  (e.g., "claude-sonnet" will match "claude-sonnet-4-5").
-            |  The change takes effect on the next message.
-            |- "max_iterations": Set the maximum number of ReAct loop iterations (1-500).
+            |Pass a JSON object where each key is a setting name and each value
+            |is the new value (as a string).
             |
-            |Always call get_app_config first to see available models and current values
-            |before making changes.
+            |IMPORTANT: Always call get_app_config first to discover available
+            |settings, their current values, types, and constraints.
         """.trimMargin(),
         parameters = buildJsonObject {
             put("type", JsonPrimitive("object"))
-            putJsonObject("properties") {
-                putJsonObject("setting") {
-                    put("type", JsonPrimitive("string"))
-                    putJsonArray("enum") {
-                        add(JsonPrimitive("model"))
-                        add(JsonPrimitive("max_iterations"))
-                    }
-                    put("description", JsonPrimitive("The setting to change"))
-                }
-                putJsonObject("value") {
-                    put("type", JsonPrimitive("string"))
-                    put("description", JsonPrimitive("The new value for the setting"))
-                }
-            }
-            putJsonArray("required") {
-                add(JsonPrimitive("setting"))
-                add(JsonPrimitive("value"))
-            }
+            putJsonObject("properties") {}
+            put("additionalProperties", JsonPrimitive(true))
         }
     )
 
     private fun getAppConfigTool() = ToolDefinition(
         name = "get_app_config",
-        description = """Get the current app configuration.
+        description = """Get all app configuration settings.
             |
-            |Returns the current model, provider, max iterations,
-            |and the list of all available models.
+            |Returns each setting's current value, description, and type constraints.
+            |Call this before using configure_app to know what settings exist.
         """.trimMargin(),
         parameters = buildJsonObject {
             put("type", JsonPrimitive("object"))

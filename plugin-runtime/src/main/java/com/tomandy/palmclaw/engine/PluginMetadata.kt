@@ -73,7 +73,16 @@ data class PluginMetadata(
      * IDs of other plugins this plugin depends on.
      * Dependencies must be loaded before this plugin.
      */
-    val dependencies: List<String> = emptyList()
+    val dependencies: List<String> = emptyList(),
+
+    /**
+     * Tool category for the two-tier tool system.
+     *
+     * "core" tools are always passed to the LLM. Other categories (e.g., "gmail",
+     * "calendar") are only loaded when the LLM calls activate_tools.
+     * Defaults to "core" so existing plugins work without changes.
+     */
+    val category: String = "core"
 )
 
 /**

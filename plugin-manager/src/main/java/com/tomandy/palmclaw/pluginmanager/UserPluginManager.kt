@@ -26,7 +26,7 @@ class UserPluginManager(
 ) {
     companion object {
         private const val TAG = "UserPluginManager"
-        private const val USER_PLUGINS_DIR = "user_plugins"
+        private const val USER_PLUGINS_DIR = "workspace/plugins"
         private const val MAX_ZIP_SIZE = 1_048_576L // 1MB
     }
 

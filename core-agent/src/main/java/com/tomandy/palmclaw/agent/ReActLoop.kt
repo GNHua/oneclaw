@@ -55,7 +55,8 @@ class ReActLoop(
      * 4. Repeat until final answer or max iterations
      *
      * @param messages The conversation history
-     * @param tools Available tool definitions for the LLM
+     * @param toolsProvider Provider function that returns current tool definitions.
+     *   Called each iteration to support dynamic tool activation mid-loop.
      * @param conversationId The conversation ID for persisting tool results
      * @param model The LLM model to use
      * @param maxIterations Maximum ReAct iterations (default: 5)
@@ -63,23 +64,24 @@ class ReActLoop(
      */
     suspend fun step(
         messages: List<Message>,
-        tools: List<ToolDefinition>,
+        toolsProvider: () -> List<ToolDefinition>,
         conversationId: String,
         model: String = "gpt-4o-mini",
         maxIterations: Int = 200,
         temperature: Float = 0.7f
     ): Result<String> {
-        Log.d("ReActLoop", "step called with ${messages.size} messages, ${tools.size} tools, model: $model")
+        Log.d("ReActLoop", "step called with ${messages.size} messages, model: $model")
         val workingMessages = messages.toMutableList()
         var iterations = 0
-
-        // Convert ToolDefinition to LLM Tool format
-        val llmTools = tools.map { toolDefToLlmTool(it) }
-        Log.d("ReActLoop", "Converted to ${llmTools.size} LLM tools")
 
         while (iterations < maxIterations) {
             iterations++
             Log.d("ReActLoop", "Starting iteration $iterations/$maxIterations")
+
+            // Refresh tools each iteration to support dynamic tool activation
+            val currentTools = toolsProvider()
+            val llmTools = currentTools.map { toolDefToLlmTool(it) }
+            Log.d("ReActLoop", "Iteration $iterations: ${llmTools.size} tools available")
 
             // Drain any user messages injected mid-loop
             var injected: String? = pendingUserMessages.poll()

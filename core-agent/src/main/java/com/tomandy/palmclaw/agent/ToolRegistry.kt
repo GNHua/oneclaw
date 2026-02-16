@@ -32,6 +32,7 @@ import com.tomandy.palmclaw.engine.ToolDefinition
  */
 class ToolRegistry {
     private val tools = mutableMapOf<String, RegisteredTool>()
+    private val categoryDescriptions = mutableMapOf<String, String>()
 
     /**
      * Register all tools from a loaded plugin.
@@ -42,12 +43,18 @@ class ToolRegistry {
      * @param loadedPlugin The plugin to register
      */
     fun registerPlugin(loadedPlugin: LoadedPlugin) {
+        val category = loadedPlugin.metadata.category
         loadedPlugin.metadata.tools.forEach { toolDef ->
             tools[toolDef.name] = RegisteredTool(
                 pluginId = loadedPlugin.metadata.id,
                 definition = toolDef,
-                plugin = loadedPlugin.instance
+                plugin = loadedPlugin.instance,
+                category = category
             )
+        }
+        // Track category descriptions for activate_tools
+        if (category != "core") {
+            categoryDescriptions[category] = loadedPlugin.metadata.description
         }
     }
 
@@ -85,6 +92,34 @@ class ToolRegistry {
     }
 
     /**
+     * Get tool definitions filtered by active categories.
+     *
+     * Returns tools where category is "core" or in the given active set.
+     */
+    fun getToolDefinitions(activeCategories: Set<String>): List<ToolDefinition> {
+        return tools.values
+            .filter { it.category == "core" || it.category in activeCategories }
+            .map { it.definition }
+    }
+
+    /**
+     * Get all non-core categories that have registered tools.
+     */
+    fun getOnDemandCategories(): Set<String> {
+        return tools.values
+            .map { it.category }
+            .filter { it != "core" }
+            .toSet()
+    }
+
+    /**
+     * Get the description for a category (from the plugin that registered it).
+     */
+    fun getCategoryDescription(category: String): String {
+        return categoryDescriptions[category] ?: category
+    }
+
+    /**
      * Get all registered tools.
      *
      * @return List of all registered tools with their metadata
@@ -100,6 +135,7 @@ class ToolRegistry {
      */
     fun clear() {
         tools.clear()
+        categoryDescriptions.clear()
     }
 
     /**
@@ -132,5 +168,6 @@ class ToolRegistry {
 data class RegisteredTool(
     val pluginId: String,
     val definition: ToolDefinition,
-    val plugin: Plugin
+    val plugin: Plugin,
+    val category: String = "core"
 )

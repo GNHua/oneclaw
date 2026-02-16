@@ -489,7 +489,6 @@ class ChatExecutionService : Service(), KoinComponent {
             addAll(conversationHistory)
         }
 
-        val tools = toolRegistry.getToolDefinitions()
         val flushLoop = com.tomandy.palmclaw.agent.ReActLoop(
             llmClient = clientProvider(),
             toolExecutor = toolExecutor,
@@ -497,7 +496,7 @@ class ChatExecutionService : Service(), KoinComponent {
         )
         flushLoop.step(
             messages = flushMessages,
-            tools = tools,
+            toolsProvider = { toolRegistry.getToolDefinitions() },
             conversationId = conversationId,
             model = model,
             maxIterations = 5,

@@ -56,6 +56,9 @@ class AgentCoordinator(
     /** Active summary of earlier conversation, if summarization has occurred. */
     private var conversationSummary: String? = null
 
+    /** Categories activated by the LLM via activate_tools. Persists across messages in a conversation. */
+    val activeCategories = mutableSetOf<String>()
+
     /** Last model used, so forceSummarize can reuse it. */
     private var lastModel: String = ""
 
@@ -65,6 +68,13 @@ class AgentCoordinator(
             forceSummarize()
         }
         toolRegistry.registerPlugin(plugin)
+
+        // Wire ActivateToolsPlugin to this coordinator's activeCategories
+        toolRegistry.getTool("activate_tools")?.plugin?.let { p ->
+            if (p is ActivateToolsPlugin) {
+                p.activeCategories = activeCategories
+            }
+        }
     }
 
     // ReActLoop with tool execution support
@@ -170,15 +180,20 @@ class AgentCoordinator(
             // Store user message in history WITHOUT mediaData (avoid keeping large base64 in memory)
             conversationHistory.add(Message(role = "user", content = userMessage))
 
-            // Get available tools from registry
-            val tools = toolRegistry.getToolDefinitions()
-            Log.d("AgentCoordinator", "Retrieved ${tools.size} tool definitions from registry")
+            // Wire ActivateToolsPlugin to this coordinator's active categories
+            toolRegistry.getTool("activate_tools")?.let { reg ->
+                (reg.plugin as? ActivateToolsPlugin)?.activeCategories = activeCategories
+            }
+
+            // Build tool provider with category filtering
+            Log.d("AgentCoordinator", "Setting up tools provider with active categories: $activeCategories")
+            val toolsProvider = { toolRegistry.getToolDefinitions(activeCategories) }
 
             // Execute ReAct loop with tools
             Log.d("AgentCoordinator", "Calling reActLoop.step")
             val result = reActLoop.step(
                 messages = messages,
-                tools = tools,
+                toolsProvider = toolsProvider,
                 conversationId = conversationId,
                 model = model,
                 maxIterations = maxIterations,

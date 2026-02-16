@@ -72,16 +72,12 @@ class BackupManager(
             exportSharedPreferences("plugin_preferences", File(prefsDir, "plugin_preferences.json"))
             exportSharedPreferences("skill_preferences", File(prefsDir, "skill_preferences.json"))
 
-            // 3. Copy file-based data
+            // 3. Copy file-based data (user plugins now live under workspace/plugins/)
             val filesOutDir = File(stagingDir, "files")
-            val userPluginsDir = File(context.filesDir, "user_plugins")
             val workspaceDir = File(context.filesDir, "workspace")
             val chatImagesDir = File(context.filesDir, "chat_images")
             val chatVideoDir = File(context.filesDir, "chat_video")
 
-            if (userPluginsDir.exists()) {
-                userPluginsDir.copyRecursively(File(filesOutDir, "user_plugins"))
-            }
             if (workspaceDir.exists()) {
                 workspaceDir.copyRecursively(File(filesOutDir, "workspace"))
             }
@@ -265,7 +261,7 @@ class BackupManager(
             // 6. Import files
             val filesSourceDir = File(stagingDir, "files")
             if (filesSourceDir.exists()) {
-                val targetDirs = listOf("user_plugins", "workspace", "chat_images", "chat_video")
+                val targetDirs = listOf("workspace", "chat_images", "chat_video")
                 for (dirName in targetDirs) {
                     val sourceDir = File(filesSourceDir, dirName)
                     val targetDir = File(context.filesDir, dirName)
@@ -273,6 +269,13 @@ class BackupManager(
                         targetDir.deleteRecursively()
                         sourceDir.copyRecursively(targetDir, overwrite = true)
                     }
+                }
+                // Legacy backups stored plugins in user_plugins/; merge into workspace/plugins/
+                val legacyPlugins = File(filesSourceDir, "user_plugins")
+                if (legacyPlugins.exists()) {
+                    val target = File(context.filesDir, "workspace/plugins")
+                    target.mkdirs()
+                    legacyPlugins.copyRecursively(target, overwrite = true)
                 }
             }
             currentStep++

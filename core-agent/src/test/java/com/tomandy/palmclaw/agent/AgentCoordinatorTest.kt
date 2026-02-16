@@ -53,6 +53,10 @@ class AgentCoordinatorTest {
 
         // Default: no tools available
         coEvery { mockToolRegistry.getToolDefinitions() } returns emptyList()
+        coEvery { mockToolRegistry.getToolDefinitions(any<Set<String>>()) } returns emptyList()
+        coEvery { mockToolRegistry.registerPlugin(any()) } returns Unit
+        coEvery { mockToolRegistry.getTool(any()) } returns null
+        coEvery { mockLlmClient.cancel() } returns Unit
 
         coordinator = AgentCoordinator(
             clientProvider = { mockLlmClient },
@@ -171,7 +175,7 @@ class AgentCoordinatorTest {
 
         // Then: Result is failure
         assertTrue(result.isFailure)
-        assertEquals("No choices in response", result.exceptionOrNull()?.message)
+        assertEquals("No choices in LLM response", result.exceptionOrNull()?.message)
 
         // And: State is Error
         assertTrue(coordinator.state.value is AgentState.Error)
@@ -205,12 +209,12 @@ class AgentCoordinatorTest {
 
         // Then: Result is failure
         assertTrue(result.isFailure)
-        assertEquals("Empty response from LLM", result.exceptionOrNull()?.message)
+        assertEquals("Empty final response from LLM", result.exceptionOrNull()?.message)
     }
 
     @Test
-    fun `execute detects tool calls and returns description`() = testScope.runTest {
-        // Given: Mock response with tool calls
+    fun `execute handles tool calls via ReAct loop`() = testScope.runTest {
+        // Given: Mock response with tool calls, then a final answer
         val toolCalls = listOf(
             ToolCall(
                 id = "call_123",
@@ -240,17 +244,26 @@ class AgentCoordinatorTest {
                 ),
                 usage = null
             )
+        ) andThen Result.success(
+            createLlmResponse(content = "The weather in San Francisco is sunny.")
+        )
+
+        // Mock tool execution
+        coEvery {
+            mockToolExecutor.executeBatch(any(), any())
+        } returns listOf(
+            ToolExecutionResult.Success(
+                toolCall = toolCalls[0],
+                output = """{"temp": 72, "condition": "sunny"}"""
+            )
         )
 
         // When: Execute request
         val result = coordinator.execute("What's the weather?")
 
-        // Then: Result contains tool call description
+        // Then: Result is the final answer after tool execution
         assertTrue(result.isSuccess)
-        val response = result.getOrNull()!!
-        assertTrue(response.contains("Agent wants to call tools"))
-        assertTrue(response.contains("get_weather"))
-        assertTrue(response.contains("San Francisco"))
+        assertEquals("The weather in San Francisco is sunny.", result.getOrNull())
     }
 
     @Test
@@ -387,8 +400,8 @@ class AgentCoordinatorTest {
     }
 
     @Test
-    fun `multiple tool calls are properly formatted`() = testScope.runTest {
-        // Given: Mock response with multiple tool calls
+    fun `multiple tool calls are executed via ReAct loop`() = testScope.runTest {
+        // Given: Mock response with multiple tool calls, then a final answer
         val toolCalls = listOf(
             ToolCall(
                 id = "call_1",
@@ -426,18 +439,30 @@ class AgentCoordinatorTest {
                 ),
                 usage = null
             )
+        ) andThen Result.success(
+            createLlmResponse(content = "It's sunny in SF and 3pm PST.")
+        )
+
+        // Mock tool execution
+        coEvery {
+            mockToolExecutor.executeBatch(any(), any())
+        } returns listOf(
+            ToolExecutionResult.Success(
+                toolCall = toolCalls[0],
+                output = """{"temp": 72, "condition": "sunny"}"""
+            ),
+            ToolExecutionResult.Success(
+                toolCall = toolCalls[1],
+                output = """{"time": "3:00 PM PST"}"""
+            )
         )
 
         // When: Execute request
         val result = coordinator.execute("Check weather and time")
 
-        // Then: Result contains both tool calls
+        // Then: Result is the final answer after both tools were executed
         assertTrue(result.isSuccess)
-        val response = result.getOrNull()!!
-        assertTrue(response.contains("get_weather"))
-        assertTrue(response.contains("get_time"))
-        assertTrue(response.contains("SF"))
-        assertTrue(response.contains("PST"))
+        assertEquals("It's sunny in SF and 3pm PST.", result.getOrNull())
     }
 
     @Test

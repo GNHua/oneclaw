@@ -180,6 +180,14 @@ class OpenAiClient(
                                                     put("format", openAiAudioFormat(media.mimeType))
                                                 })
                                             })
+                                        } else if (media.isDocument) {
+                                            add(buildJsonObject {
+                                                put("type", "file")
+                                                put("file", buildJsonObject {
+                                                    put("filename", media.fileName ?: "document.pdf")
+                                                    put("file_data", "data:${media.mimeType};base64,${media.base64}")
+                                                })
+                                            })
                                         }
                                     }
                                 })

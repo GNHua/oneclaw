@@ -19,11 +19,13 @@ import com.tomandy.palmclaw.data.entity.MessageEntity
 import com.tomandy.palmclaw.llm.MediaData
 import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.llm.NetworkConfig
+import kotlinx.serialization.json.jsonArray
 import com.tomandy.palmclaw.llm.LlmProvider
 import com.tomandy.palmclaw.llm.Message
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import com.tomandy.palmclaw.skill.SkillRepository
 import com.tomandy.palmclaw.skill.SystemPromptBuilder
+import com.tomandy.palmclaw.util.DocumentStorageHelper
 import com.tomandy.palmclaw.util.ImageStorageHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -58,12 +60,15 @@ class ChatExecutionService : Service(), KoinComponent {
                 val imagePaths = intent.getStringArrayListExtra(EXTRA_IMAGE_PATHS) ?: emptyList()
                 val audioPaths = intent.getStringArrayListExtra(EXTRA_AUDIO_PATHS) ?: emptyList()
                 val videoPaths = intent.getStringArrayListExtra(EXTRA_VIDEO_PATHS) ?: emptyList()
+                val documentPaths = intent.getStringArrayListExtra(EXTRA_DOCUMENT_PATHS) ?: emptyList()
+                val documentNames = intent.getStringArrayListExtra(EXTRA_DOCUMENT_NAMES) ?: emptyList()
+                val documentMimeTypes = intent.getStringArrayListExtra(EXTRA_DOCUMENT_MIMETYPES) ?: emptyList()
                 if (conversationId == null || userMessage == null) {
                     stopSelfIfIdle()
                     return START_NOT_STICKY
                 }
                 startForeground(NOTIFICATION_ID, createNotification("Processing message..."))
-                executeChat(conversationId, userMessage, imagePaths, audioPaths, videoPaths)
+                executeChat(conversationId, userMessage, imagePaths, audioPaths, videoPaths, documentPaths, documentNames, documentMimeTypes)
             }
             ACTION_CANCEL -> {
                 val conversationId = intent.getStringExtra(EXTRA_CONVERSATION_ID)
@@ -94,7 +99,7 @@ class ChatExecutionService : Service(), KoinComponent {
         return START_NOT_STICKY
     }
 
-    private fun executeChat(conversationId: String, userMessage: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList(), videoPaths: List<String> = emptyList()) {
+    private fun executeChat(conversationId: String, userMessage: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList(), videoPaths: List<String> = emptyList(), documentPaths: List<String> = emptyList(), documentNames: List<String> = emptyList(), documentMimeTypes: List<String> = emptyList()) {
         ChatExecutionTracker.markActive(conversationId)
 
         val job = serviceScope.launch {
@@ -166,6 +171,13 @@ class ChatExecutionService : Service(), KoinComponent {
                                     } catch (_: Exception) { 1 }
                                     content = "$content\n[$videoCount video(s) were attached to this message]"
                                 }
+                                if (msg.role == "user" && !msg.documentPaths.isNullOrEmpty()) {
+                                    val docCount = try {
+                                        NetworkConfig.json.parseToJsonElement(msg.documentPaths)
+                                            .jsonArray.size
+                                    } catch (_: Exception) { 1 }
+                                    content = "$content\n[$docCount document(s) were attached to this message]"
+                                }
                                 add(Message(role = msg.role, content = content))
                             }
                             msg.role == "meta" && msg.toolName == "stopped" ->
@@ -192,7 +204,9 @@ class ChatExecutionService : Service(), KoinComponent {
                     baseSystemPrompt
                 }
 
-                // Load current message's media (images + audio + video) as base64
+                // Load current message's media (images + audio + video + documents) as base64
+                // Text documents are inlined into the message; binary documents (PDF) sent as MediaData
+                var effectiveMessage = userMessage
                 val allMediaData = buildList {
                     imagePaths.forEach { path ->
                         ImageStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
@@ -209,10 +223,25 @@ class ChatExecutionService : Service(), KoinComponent {
                             add(MediaData(base64 = base64, mimeType = mime))
                         }
                     }
+                    documentPaths.forEachIndexed { index, path ->
+                        val mimeType = documentMimeTypes.getOrNull(index) ?: "application/octet-stream"
+                        val name = documentNames.getOrNull(index) ?: "document"
+                        if (DocumentStorageHelper.isTextFile(mimeType)) {
+                            // Inline text file content into the message
+                            DocumentStorageHelper.readAsText(path)?.let { text ->
+                                effectiveMessage = "$effectiveMessage\n\n--- $name ---\n$text\n---"
+                            }
+                        } else {
+                            // Binary document (PDF) -- send as media
+                            DocumentStorageHelper.readAsBase64(path, mimeType)?.let { (base64, mime) ->
+                                add(MediaData(base64 = base64, mimeType = mime, fileName = name))
+                            }
+                        }
+                    }
                 }
 
                 val result = coordinator.execute(
-                    userMessage = userMessage,
+                    userMessage = effectiveMessage,
                     systemPrompt = systemPrompt,
                     model = selectedModel,
                     maxIterations = maxIterations,
@@ -418,6 +447,9 @@ class ChatExecutionService : Service(), KoinComponent {
         const val EXTRA_IMAGE_PATHS = "image_paths"
         const val EXTRA_AUDIO_PATHS = "audio_paths"
         const val EXTRA_VIDEO_PATHS = "video_paths"
+        const val EXTRA_DOCUMENT_PATHS = "document_paths"
+        const val EXTRA_DOCUMENT_NAMES = "document_names"
+        const val EXTRA_DOCUMENT_MIMETYPES = "document_mimetypes"
         private const val CHANNEL_ID = "chat_processing_channel"
         private const val NOTIFICATION_ID = 1002
 
@@ -437,7 +469,7 @@ class ChatExecutionService : Service(), KoinComponent {
             job?.cancel()
         }
 
-        fun startExecution(context: Context, conversationId: String, userMessage: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList(), videoPaths: List<String> = emptyList()) {
+        fun startExecution(context: Context, conversationId: String, userMessage: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList(), videoPaths: List<String> = emptyList(), documentPaths: List<String> = emptyList(), documentNames: List<String> = emptyList(), documentMimeTypes: List<String> = emptyList()) {
             val intent = Intent(context, ChatExecutionService::class.java).apply {
                 action = ACTION_EXECUTE
                 putExtra(EXTRA_CONVERSATION_ID, conversationId)
@@ -450,6 +482,11 @@ class ChatExecutionService : Service(), KoinComponent {
                 }
                 if (videoPaths.isNotEmpty()) {
                     putStringArrayListExtra(EXTRA_VIDEO_PATHS, ArrayList(videoPaths))
+                }
+                if (documentPaths.isNotEmpty()) {
+                    putStringArrayListExtra(EXTRA_DOCUMENT_PATHS, ArrayList(documentPaths))
+                    putStringArrayListExtra(EXTRA_DOCUMENT_NAMES, ArrayList(documentNames))
+                    putStringArrayListExtra(EXTRA_DOCUMENT_MIMETYPES, ArrayList(documentMimeTypes))
                 }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

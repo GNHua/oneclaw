@@ -2,4 +2,5 @@
 <paths>
     <files-path name="chat_images" path="chat_images/" />
     <files-path name="chat_video" path="chat_video/" />
+    <files-path name="chat_documents" path="chat_documents/" />
 </paths>

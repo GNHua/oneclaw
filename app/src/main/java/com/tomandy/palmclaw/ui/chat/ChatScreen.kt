@@ -61,6 +61,7 @@ import com.tomandy.palmclaw.audio.AndroidSttProvider
 import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import com.tomandy.palmclaw.notification.ChatScreenTracker
+import com.tomandy.palmclaw.util.DocumentStorageHelper
 import com.tomandy.palmclaw.util.ImageStorageHelper
 import com.tomandy.palmclaw.util.VideoStorageHelper
 import android.net.Uri
@@ -120,6 +121,7 @@ fun ChatScreen(
     val attachedImages = remember { mutableStateListOf<String>() }
     val attachedAudios = remember { mutableStateListOf<String>() }
     val attachedVideos = remember { mutableStateListOf<String>() }
+    val attachedDocuments = remember { mutableStateListOf<Triple<String, String, String>>() } // (path, displayName, mimeType)
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -236,6 +238,26 @@ fun ChatScreen(
         }
     }
 
+    // Document picker launcher
+    val documentPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val displayName = withContext(Dispatchers.IO) {
+                    DocumentStorageHelper.getFileName(context, uri)
+                }
+                val result = withContext(Dispatchers.IO) {
+                    DocumentStorageHelper.copyDocumentToStorage(context, uri, currentConversationId)
+                }
+                if (result != null) {
+                    val (path, mimeType) = result
+                    attachedDocuments.add(Triple(path, displayName, mimeType))
+                }
+            }
+        }
+    }
+
     // Maintain scroll position when keyboard opens/closes
     val imeHeight = WindowInsets.ime.getBottom(LocalDensity.current)
     var previousImeHeight by remember { mutableStateOf(0) }
@@ -334,11 +356,18 @@ fun ChatScreen(
                 value = inputText,
                 onValueChange = { inputText = it },
                 onSend = {
-                    viewModel.sendMessage(inputText, attachedImages.toList(), attachedAudios.toList(), attachedVideos.toList())
+                    viewModel.sendMessage(
+                        inputText,
+                        attachedImages.toList(),
+                        attachedAudios.toList(),
+                        attachedVideos.toList(),
+                        attachedDocuments.map { Triple(it.first, it.second, it.third) }
+                    )
                     inputText = ""
                     attachedImages.clear()
                     attachedAudios.clear()
                     attachedVideos.clear()
+                    attachedDocuments.clear()
                 },
                 onStop = { viewModel.cancelRequest() },
                 onPickFromGallery = {
@@ -374,6 +403,9 @@ fun ChatScreen(
                         takeVideoLauncher.launch(uri)
                     }
                 },
+                onPickDocument = {
+                    documentPickerLauncher.launch(arrayOf("application/pdf", "text/*"))
+                },
                 onMicTap = {
                     // Check permission first
                     val hasPermission = ContextCompat.checkSelfPermission(
@@ -403,12 +435,14 @@ fun ChatScreen(
                 attachedImages = attachedImages,
                 attachedAudios = attachedAudios,
                 attachedVideos = attachedVideos,
+                attachedDocuments = attachedDocuments.map { it.first to it.second },
                 onRemoveImage = { index -> attachedImages.removeAt(index) },
                 onRemoveAudio = { index ->
                     attachedAudios.removeAt(index)
                     audioInputController.cancelRecording()
                 },
-                onRemoveVideo = { index -> attachedVideos.removeAt(index) }
+                onRemoveVideo = { index -> attachedVideos.removeAt(index) },
+                onRemoveDocument = { index -> attachedDocuments.removeAt(index) }
             )
         }
     }

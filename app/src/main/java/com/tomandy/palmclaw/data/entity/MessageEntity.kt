@@ -31,5 +31,6 @@ data class MessageEntity(
     val toolCalls: String? = null,      // JSON serialized List<ToolCall> for assistant messages
     val imagePaths: String? = null,       // JSON array of file paths for image attachments
     val audioPaths: String? = null,        // JSON array of file paths for audio attachments
-    val videoPaths: String? = null         // JSON array of file paths for video attachments
+    val videoPaths: String? = null,        // JSON array of file paths for video attachments
+    val documentPaths: String? = null      // JSON array of {path, name, mimeType} for document attachments
 )

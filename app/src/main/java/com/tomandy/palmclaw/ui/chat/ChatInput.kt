@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -61,6 +62,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -74,6 +76,7 @@ fun ChatInput(
     onPickFromGallery: () -> Unit = {},
     onTakePhoto: () -> Unit = {},
     onTakeVideo: () -> Unit = {},
+    onPickDocument: () -> Unit = {},
     onMicTap: () -> Unit = {},
     isProcessing: Boolean = false,
     isRecording: Boolean = false,
@@ -81,16 +84,18 @@ fun ChatInput(
     attachedImages: List<String> = emptyList(),
     attachedAudios: List<String> = emptyList(),
     attachedVideos: List<String> = emptyList(),
+    attachedDocuments: List<Pair<String, String>> = emptyList(),
     onRemoveImage: (Int) -> Unit = {},
     onRemoveAudio: (Int) -> Unit = {},
     onRemoveVideo: (Int) -> Unit = {},
+    onRemoveDocument: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val canSend = value.isNotBlank() || attachedImages.isNotEmpty() || attachedAudios.isNotEmpty() || attachedVideos.isNotEmpty()
+    val canSend = value.isNotBlank() || attachedImages.isNotEmpty() || attachedAudios.isNotEmpty() || attachedVideos.isNotEmpty() || attachedDocuments.isNotEmpty()
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Attached previews (images + audio + video)
-        if (attachedImages.isNotEmpty() || attachedAudios.isNotEmpty() || attachedVideos.isNotEmpty()) {
+        if (attachedImages.isNotEmpty() || attachedAudios.isNotEmpty() || attachedVideos.isNotEmpty() || attachedDocuments.isNotEmpty()) {
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -109,6 +114,9 @@ fun ChatInput(
                 }
                 itemsIndexed(attachedVideos) { index, path ->
                     AttachedVideoPreview(filePath = path, onRemove = { onRemoveVideo(index) })
+                }
+                itemsIndexed(attachedDocuments) { index, (_, displayName) ->
+                    AttachedDocumentPreview(displayName = displayName, onRemove = { onRemoveDocument(index) })
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
@@ -148,6 +156,11 @@ fun ChatInput(
                         text = { Text("Take Video") },
                         onClick = { menuExpanded = false; onTakeVideo() },
                         leadingIcon = { Icon(Icons.Default.Videocam, contentDescription = null) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("File") },
+                        onClick = { menuExpanded = false; onPickDocument() },
+                        leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) }
                     )
                 }
             }
@@ -388,6 +401,57 @@ private fun AttachedVideoPreview(filePath: String, onRemove: () -> Unit) {
                     .size(14.dp)
                     .padding(2.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun AttachedDocumentPreview(displayName: String, onRemove: () -> Unit) {
+    Surface(
+        modifier = Modifier.height(56.dp).width(160.dp),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer
+    ) {
+        Box {
+            Row(
+                modifier = Modifier.padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Description,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = displayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Remove button
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(20.dp)
+                    .clickable(role = Role.Button, onClick = onRemove),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.error
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Remove document",
+                    tint = MaterialTheme.colorScheme.onError,
+                    modifier = Modifier
+                        .size(14.dp)
+                        .padding(2.dp)
+                )
+            }
         }
     }
 }

@@ -22,7 +22,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,8 +50,12 @@ import android.util.Log
 import androidx.core.content.FileProvider
 import com.tomandy.palmclaw.data.entity.MessageEntity
 import com.tomandy.palmclaw.llm.NetworkConfig
+import androidx.compose.ui.text.style.TextOverflow
 import com.tomandy.palmclaw.llm.ToolCall
 import com.tomandy.palmclaw.util.formatTimestamp
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -103,6 +109,26 @@ fun MessageBubble(
                 NetworkConfig.json.decodeFromString<List<String>>(it)
             } catch (e: Exception) {
                 Log.w("MessageBubble", "Failed to parse videoPaths: ${e.message}")
+                emptyList()
+            }
+        } ?: emptyList()
+    }
+
+    // Document attachments: list of (path, name, mimeType)
+    data class DocMeta(val path: String, val name: String, val mimeType: String)
+    val documentMetas: List<DocMeta> = remember(message.documentPaths) {
+        message.documentPaths?.let {
+            try {
+                NetworkConfig.json.parseToJsonElement(it).jsonArray.map { element ->
+                    val obj = element.jsonObject
+                    DocMeta(
+                        path = obj["path"]?.jsonPrimitive?.content ?: "",
+                        name = obj["name"]?.jsonPrimitive?.content ?: "document",
+                        mimeType = obj["mimeType"]?.jsonPrimitive?.content ?: ""
+                    )
+                }
+            } catch (e: Exception) {
+                Log.w("MessageBubble", "Failed to parse documentPaths: ${e.message}")
                 emptyList()
             }
         } ?: emptyList()
@@ -165,6 +191,23 @@ fun MessageBubble(
                 if (videoPaths.isNotEmpty()) {
                     videoPaths.forEach { path ->
                         MessageVideoThumbnail(filePath = path)
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                }
+
+                // Show attached documents
+                if (documentMetas.isNotEmpty()) {
+                    documentMetas.forEach { doc ->
+                        MessageDocumentChip(
+                            filePath = doc.path,
+                            displayName = doc.name,
+                            mimeType = doc.mimeType,
+                            tintColor = if (isUser) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
                         Spacer(modifier = Modifier.height(4.dp))
                     }
                 }
@@ -311,6 +354,54 @@ private fun MessageVideoThumbnail(filePath: String) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun MessageDocumentChip(
+    filePath: String,
+    displayName: String,
+    mimeType: String,
+    tintColor: Color
+) {
+    val context = LocalContext.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable {
+                try {
+                    val file = File(filePath)
+                    val uri = FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        file
+                    )
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, mimeType.ifEmpty { "application/octet-stream" })
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(intent)
+                } catch (_: Exception) {}
+            }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Description,
+            contentDescription = "Document",
+            modifier = Modifier.size(20.dp),
+            tint = tintColor
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = displayName,
+            style = MaterialTheme.typography.bodySmall,
+            color = tintColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

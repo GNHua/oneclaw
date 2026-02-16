@@ -9,6 +9,8 @@ import com.anthropic.models.messages.MessageParam
 import com.anthropic.models.messages.StopReason
 import com.anthropic.models.messages.TextBlockParam
 import com.anthropic.models.messages.Base64ImageSource
+import com.anthropic.models.messages.Base64PdfSource
+import com.anthropic.models.messages.DocumentBlockParam
 import com.anthropic.models.messages.ImageBlockParam
 import com.anthropic.models.messages.ToolResultBlockParam
 import com.anthropic.models.messages.ToolUseBlockParam
@@ -211,8 +213,20 @@ class AnthropicClient(
                                             .build()
                                     )
                                 )
+                            } else if (media.isDocument) {
+                                contentBlocks.add(
+                                    ContentBlockParam.ofDocument(
+                                        DocumentBlockParam.builder()
+                                            .source(
+                                                Base64PdfSource.builder()
+                                                    .data(media.base64)
+                                                    .build()
+                                            )
+                                            .build()
+                                    )
+                                )
                             }
-                            // Audio media silently skipped -- Anthropic does not support audio input
+                            // Audio/video media silently skipped -- Anthropic does not support them
                         }
                         params.add(
                             MessageParam.builder()

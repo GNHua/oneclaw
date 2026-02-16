@@ -96,9 +96,9 @@ class ChatViewModel(
         }
     }
 
-    fun sendMessage(text: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList(), videoPaths: List<String> = emptyList()) {
-        Log.d("ChatViewModel", "sendMessage called with text: $text, images: ${imagePaths.size}, audios: ${audioPaths.size}, videos: ${videoPaths.size}")
-        if (text.isBlank() && imagePaths.isEmpty() && audioPaths.isEmpty() && videoPaths.isEmpty()) return
+    fun sendMessage(text: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList(), videoPaths: List<String> = emptyList(), documentMetas: List<Triple<String, String, String>> = emptyList()) {
+        Log.d("ChatViewModel", "sendMessage called with text: $text, images: ${imagePaths.size}, audios: ${audioPaths.size}, videos: ${videoPaths.size}, docs: ${documentMetas.size}")
+        if (text.isBlank() && imagePaths.isEmpty() && audioPaths.isEmpty() && videoPaths.isEmpty() && documentMetas.isEmpty()) return
 
         // Handle /summarize command
         if (imagePaths.isEmpty() && text.trim().equals("/summarize", ignoreCase = true)) {
@@ -129,12 +129,12 @@ class ChatViewModel(
                         append(parsedCommand.arguments)
                     }
                 }
-                sendMessageInternal(text, skillMessage, imagePaths, audioPaths, videoPaths)
+                sendMessageInternal(text, skillMessage, imagePaths, audioPaths, videoPaths, documentMetas)
                 return
             }
         }
 
-        sendMessageInternal(text, text, imagePaths, audioPaths, videoPaths)
+        sendMessageInternal(text, text, imagePaths, audioPaths, videoPaths, documentMetas)
     }
 
     /**
@@ -151,7 +151,8 @@ class ChatViewModel(
         executionText: String,
         imagePaths: List<String> = emptyList(),
         audioPaths: List<String> = emptyList(),
-        videoPaths: List<String> = emptyList()
+        videoPaths: List<String> = emptyList(),
+        documentMetas: List<Triple<String, String, String>> = emptyList()
     ) {
         viewModelScope.launch {
             ChatExecutionTracker.clearError(_conversationId.value)
@@ -202,6 +203,20 @@ class ChatViewModel(
                 )
             } else null
 
+            // Serialize document metadata to JSON if present
+            // Format: [{"path":"...","name":"...","mimeType":"..."},...]
+            val documentPathsJson = if (documentMetas.isNotEmpty()) {
+                kotlinx.serialization.json.buildJsonArray {
+                    documentMetas.forEach { (path, name, mimeType) ->
+                        add(kotlinx.serialization.json.buildJsonObject {
+                            put("path", kotlinx.serialization.json.JsonPrimitive(path))
+                            put("name", kotlinx.serialization.json.JsonPrimitive(name))
+                            put("mimeType", kotlinx.serialization.json.JsonPrimitive(mimeType))
+                        })
+                    }
+                }.toString()
+            } else null
+
             // Persist user message (always -- so it shows in the chat immediately)
             val userMessage = MessageEntity(
                 id = UUID.randomUUID().toString(),
@@ -211,7 +226,8 @@ class ChatViewModel(
                 timestamp = System.currentTimeMillis(),
                 imagePaths = imagePathsJson,
                 audioPaths = audioPathsJson,
-                videoPaths = videoPathsJson
+                videoPaths = videoPathsJson,
+                documentPaths = documentPathsJson
             )
             messageDao.insert(userMessage)
 
@@ -220,7 +236,12 @@ class ChatViewModel(
                 Log.d("ChatViewModel", "Injecting message into active loop: $executionText")
                 ChatExecutionService.injectMessage(appContext, convId, executionText)
             } else {
-                ChatExecutionService.startExecution(appContext, convId, executionText, imagePaths, audioPaths, videoPaths)
+                ChatExecutionService.startExecution(
+                    appContext, convId, executionText, imagePaths, audioPaths, videoPaths,
+                    documentMetas.map { it.first },
+                    documentMetas.map { it.second },
+                    documentMetas.map { it.third }
+                )
             }
         }
     }

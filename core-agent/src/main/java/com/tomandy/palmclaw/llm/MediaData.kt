@@ -6,9 +6,11 @@ package com.tomandy.palmclaw.llm
  */
 data class MediaData(
     val base64: String,
-    val mimeType: String
+    val mimeType: String,
+    val fileName: String? = null
 ) {
     val isAudio: Boolean get() = mimeType.startsWith("audio/")
     val isImage: Boolean get() = mimeType.startsWith("image/")
     val isVideo: Boolean get() = mimeType.startsWith("video/")
+    val isDocument: Boolean get() = mimeType == "application/pdf"
 }

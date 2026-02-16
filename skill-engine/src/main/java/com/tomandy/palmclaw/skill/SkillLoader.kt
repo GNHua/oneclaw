@@ -10,7 +10,8 @@ class SkillLoader(
 ) {
 
     /**
-     * Load bundled skills from assets/skills/{skill-name}/SKILL.md
+     * Load bundled skill metadata from assets/skills/{skill-name}/SKILL.md.
+     * Only parses frontmatter -- bodies are loaded on demand via [loadBody].
      */
     fun loadBundledSkills(): List<SkillEntry> {
         val skillDirs = try {
@@ -25,10 +26,9 @@ class SkillLoader(
                 val assetPath = "skills/$dirName/SKILL.md"
                 val content = context.assets.open(assetPath)
                     .bufferedReader().use { it.readText() }
-                val result = SkillFrontmatterParser.parse(content, dirName)
+                val metadata = SkillFrontmatterParser.parseMetadataOnly(content, dirName)
                 SkillEntry(
-                    metadata = result.metadata,
-                    body = result.body,
+                    metadata = metadata,
                     source = SkillSource.BUNDLED,
                     filePath = assetPath,
                     baseDir = dirName
@@ -41,7 +41,8 @@ class SkillLoader(
     }
 
     /**
-     * Load user-installed skills from {userSkillsDir}/{skill-name}/SKILL.md
+     * Load user-installed skill metadata from {userSkillsDir}/{skill-name}/SKILL.md.
+     * Only parses frontmatter -- bodies are loaded on demand via [loadBody].
      */
     fun loadUserSkills(): List<SkillEntry> {
         if (!userSkillsDir.exists()) return emptyList()
@@ -53,12 +54,11 @@ class SkillLoader(
                 if (!skillFile.exists()) return@mapNotNull null
                 try {
                     val content = skillFile.readText()
-                    val result = SkillFrontmatterParser.parse(content, dir.name)
+                    val metadata = SkillFrontmatterParser.parseMetadataOnly(content, dir.name)
                     SkillEntry(
-                        metadata = result.metadata,
-                        body = result.body,
+                        metadata = metadata,
                         source = SkillSource.USER,
-                        filePath = skillFile.absolutePath,
+                        filePath = "skills/${dir.name}/SKILL.md",
                         baseDir = dir.name
                     )
                 } catch (e: Exception) {
@@ -66,6 +66,25 @@ class SkillLoader(
                     null
                 }
             } ?: emptyList()
+    }
+
+    /**
+     * Load the full body of a skill on demand (reads from disk/assets).
+     * Returns null if the skill file cannot be read.
+     */
+    fun loadBody(skill: SkillEntry): String? {
+        val path = skill.filePath ?: return null
+        return try {
+            val content = when (skill.source) {
+                SkillSource.BUNDLED -> context.assets.open(path)
+                    .bufferedReader().use { it.readText() }
+                SkillSource.USER -> File(userSkillsDir.parentFile, path).readText()
+            }
+            SkillFrontmatterParser.parse(content).body
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to load body for skill '${skill.metadata.name}': ${e.message}")
+            null
+        }
     }
 
     companion object {

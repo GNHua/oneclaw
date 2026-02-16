@@ -11,8 +11,9 @@ object SystemPromptBuilder {
 
         val sb = StringBuilder()
         sb.appendLine()
-        sb.appendLine("You also have access to skills that users can invoke via slash commands.")
-        sb.appendLine("When a skill is invoked, you will receive its instructions as context.")
+        sb.appendLine("The following skills provide specialized instructions for specific tasks.")
+        sb.appendLine("Use the read_file tool to load a skill's file when the task matches its description.")
+        sb.appendLine("When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md) and use that absolute path in tool commands.")
         sb.appendLine()
         sb.appendLine("<available_skills>")
         for (skill in visibleSkills) {

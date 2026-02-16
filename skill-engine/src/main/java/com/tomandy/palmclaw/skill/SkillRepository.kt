@@ -49,4 +49,12 @@ class SkillRepository(
             skill.metadata.command.equals(command, ignoreCase = true)
         }
     }
+
+    /**
+     * Load the full body of a skill on demand (reads from disk/assets).
+     * Returns null if the skill file cannot be read.
+     */
+    fun loadBody(skill: SkillEntry): String? {
+        return loader.loadBody(skill)
+    }
 }

@@ -45,6 +45,22 @@ object SkillFrontmatterParser {
         return ParseResult(metadata, body)
     }
 
+    /**
+     * Parse only the frontmatter metadata, skipping the body.
+     * Used for lightweight skill discovery without loading full content.
+     */
+    fun parseMetadataOnly(content: String, dirName: String? = null): SkillMetadata {
+        val trimmed = content.trimStart()
+        require(trimmed.startsWith("---")) { "SKILL.md must start with ---" }
+
+        val afterFirst = trimmed.removePrefix("---")
+        val endIndex = afterFirst.indexOf("\n---")
+        require(endIndex >= 0) { "SKILL.md must have a closing --- delimiter" }
+
+        val frontmatter = afterFirst.substring(0, endIndex)
+        return parseFrontmatter(frontmatter, dirName)
+    }
+
     private fun parseFrontmatter(raw: String, dirName: String?): SkillMetadata {
         val lines = raw.lines()
 

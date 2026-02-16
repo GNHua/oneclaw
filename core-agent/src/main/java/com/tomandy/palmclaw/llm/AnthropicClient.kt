@@ -185,8 +185,8 @@ class AnthropicClient(
 
             when (msg.role) {
                 "user" -> {
-                    if (!msg.imageData.isNullOrEmpty()) {
-                        // Build content blocks with text + images
+                    if (!msg.mediaData.isNullOrEmpty()) {
+                        // Build content blocks with text + images (audio is filtered out -- Anthropic does not support it)
                         val contentBlocks = mutableListOf<ContentBlockParam>()
                         if (!msg.content.isNullOrBlank()) {
                             contentBlocks.add(
@@ -195,21 +195,24 @@ class AnthropicClient(
                                 )
                             )
                         }
-                        for (img in msg.imageData) {
-                            contentBlocks.add(
-                                ContentBlockParam.ofImage(
-                                    ImageBlockParam.builder()
-                                        .source(
-                                            ImageBlockParam.Source.ofBase64(
-                                                Base64ImageSource.builder()
-                                                    .data(img.base64)
-                                                    .mediaType(toAnthropicMediaType(img.mimeType))
-                                                    .build()
+                        for (media in msg.mediaData) {
+                            if (media.isImage) {
+                                contentBlocks.add(
+                                    ContentBlockParam.ofImage(
+                                        ImageBlockParam.builder()
+                                            .source(
+                                                ImageBlockParam.Source.ofBase64(
+                                                    Base64ImageSource.builder()
+                                                        .data(media.base64)
+                                                        .mediaType(toAnthropicMediaType(media.mimeType))
+                                                        .build()
+                                                )
                                             )
-                                        )
-                                        .build()
+                                            .build()
+                                    )
                                 )
-                            )
+                            }
+                            // Audio media silently skipped -- Anthropic does not support audio input
                         }
                         params.add(
                             MessageParam.builder()

@@ -1,7 +1,9 @@
 package com.tomandy.palmclaw.ui.chat
 
+import android.Manifest
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,34 +49,24 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalContext
+import com.tomandy.palmclaw.audio.AudioInputController
+import com.tomandy.palmclaw.audio.AudioState
+import com.tomandy.palmclaw.audio.AndroidSttProvider
+import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import com.tomandy.palmclaw.notification.ChatScreenTracker
 import com.tomandy.palmclaw.util.ImageStorageHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.compose.koinInject
 
-/**
- * Main chat screen for the PalmClaw application.
- *
- * This composable orchestrates the entire chat experience:
- * - Message list with conversation history
- * - Chat input field for user messages
- * - Loading indicators during AI processing
- * - Error handling with snackbars
- * - Empty state for new conversations
- * - Navigation to settings
- * - New conversation creation
- *
- * @param viewModel The ChatViewModel for state management
- * @param onNavigateToSettings Callback to navigate to settings screen
- * @param modifier Modifier for styling
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
@@ -89,9 +81,13 @@ fun ChatScreen(
     val error by viewModel.error.collectAsState()
     val currentConversationId by viewModel.conversationId.collectAsState()
 
+    // Audio input
+    val audioInputController: AudioInputController = koinInject()
+    val sttProvider: AndroidSttProvider = koinInject()
+    val llmClientProvider: LlmClientProvider = koinInject()
+    val audioState by audioInputController.state.collectAsState()
+
     // Track whether this screen is visible and dismiss any pending notification.
-    // Uses lifecycle observer so that going to home screen or locking the device
-    // clears the tracker, allowing notifications to fire.
     val lifecycleOwner = LocalLifecycleOwner.current
     val appContext = LocalContext.current.applicationContext
     DisposableEffect(currentConversationId, lifecycleOwner) {
@@ -108,7 +104,6 @@ fun ChatScreen(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        // Set immediately if already resumed
         if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
             ChatScreenTracker.activeConversationId = currentConversationId
             ChatNotificationHelper.dismiss(appContext, currentConversationId)
@@ -121,10 +116,37 @@ fun ChatScreen(
 
     var inputText by remember { mutableStateOf("") }
     val attachedImages = remember { mutableStateListOf<String>() }
+    val attachedAudios = remember { mutableStateListOf<String>() }
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // RECORD_AUDIO permission launcher
+    var pendingMicAction by remember { mutableStateOf(false) }
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted && pendingMicAction) {
+            pendingMicAction = false
+            // Trigger the mic action now that permission is granted
+            handleMicTap(
+                audioInputController = audioInputController,
+                sttProvider = sttProvider,
+                llmClientProvider = llmClientProvider,
+                conversationId = currentConversationId,
+                audioState = audioState,
+                scope = scope,
+                onTextResult = { text -> inputText = (inputText + " " + text).trim() },
+                onAudioResult = { path -> attachedAudios.add(path) },
+                onError = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
+            )
+        } else if (!granted) {
+            scope.launch {
+                snackbarHostState.showSnackbar("Microphone permission is required for voice input")
+            }
+        }
+    }
 
     // Image picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -142,8 +164,7 @@ fun ChatScreen(
         }
     }
 
-    // Maintain scroll position when keyboard opens/closes by scrolling the list
-    // by exactly the same pixel delta as the keyboard height change.
+    // Maintain scroll position when keyboard opens/closes
     val imeHeight = WindowInsets.ime.getBottom(LocalDensity.current)
     var previousImeHeight by remember { mutableStateOf(0) }
     LaunchedEffect(imeHeight) {
@@ -241,9 +262,10 @@ fun ChatScreen(
                 value = inputText,
                 onValueChange = { inputText = it },
                 onSend = {
-                    viewModel.sendMessage(inputText, attachedImages.toList())
+                    viewModel.sendMessage(inputText, attachedImages.toList(), attachedAudios.toList())
                     inputText = ""
                     attachedImages.clear()
+                    attachedAudios.clear()
                 },
                 onStop = { viewModel.cancelRequest() },
                 onAttachImage = {
@@ -271,10 +293,82 @@ fun ChatScreen(
                         )
                     }
                 },
+                onMicTap = {
+                    // Check permission first
+                    val hasPermission = ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.RECORD_AUDIO
+                    ) == PackageManager.PERMISSION_GRANTED
+
+                    if (!hasPermission) {
+                        pendingMicAction = true
+                        audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    } else {
+                        handleMicTap(
+                            audioInputController = audioInputController,
+                            sttProvider = sttProvider,
+                            llmClientProvider = llmClientProvider,
+                            conversationId = currentConversationId,
+                            audioState = audioState,
+                            scope = scope,
+                            onTextResult = { text -> inputText = (inputText + " " + text).trim() },
+                            onAudioResult = { path -> attachedAudios.add(path) },
+                            onError = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
+                        )
+                    }
+                },
                 isProcessing = isProcessing,
+                isRecording = audioState == AudioState.RECORDING || audioState == AudioState.LISTENING,
                 attachedImages = attachedImages,
-                onRemoveImage = { index -> attachedImages.removeAt(index) }
+                attachedAudios = attachedAudios,
+                onRemoveImage = { index -> attachedImages.removeAt(index) },
+                onRemoveAudio = { index ->
+                    attachedAudios.removeAt(index)
+                    audioInputController.cancelRecording()
+                }
             )
+        }
+    }
+}
+
+private fun handleMicTap(
+    audioInputController: AudioInputController,
+    sttProvider: AndroidSttProvider,
+    llmClientProvider: LlmClientProvider,
+    conversationId: String,
+    audioState: AudioState,
+    scope: kotlinx.coroutines.CoroutineScope,
+    onTextResult: (String) -> Unit,
+    onAudioResult: (String) -> Unit,
+    onError: (String) -> Unit
+) {
+    when (audioState) {
+        AudioState.IDLE -> {
+            val currentProvider = llmClientProvider.selectedProvider.value
+            if (audioInputController.willSendNativeAudio(currentProvider)) {
+                // Native audio mode: record to file
+                audioInputController.startRecording(conversationId)
+            } else {
+                // STT mode: live recognition
+                audioInputController.setListening()
+                scope.launch {
+                    val result = sttProvider.recognizeLive()
+                    audioInputController.setIdle()
+                    result.fold(
+                        onSuccess = { text -> onTextResult(text) },
+                        onFailure = { e -> onError(e.message ?: "Speech recognition failed") }
+                    )
+                }
+            }
+        }
+        AudioState.RECORDING -> {
+            // Stop recording and attach the audio
+            val path = audioInputController.stopRecording()
+            if (path != null) {
+                onAudioResult(path)
+            }
+        }
+        AudioState.LISTENING -> {
+            // Can't stop live STT mid-recognition; it will finish on its own
         }
     }
 }

@@ -199,9 +199,9 @@ class GeminiClient(
                     if (!msg.content.isNullOrBlank()) {
                         parts.add(Part.fromText(msg.content))
                     }
-                    msg.imageData?.forEach { img ->
-                        val bytes = java.util.Base64.getDecoder().decode(img.base64)
-                        parts.add(Part.fromBytes(bytes, img.mimeType))
+                    msg.mediaData?.forEach { media ->
+                        val bytes = java.util.Base64.getDecoder().decode(media.base64)
+                        parts.add(Part.fromBytes(bytes, media.mimeType))
                     }
                     if (parts.isNotEmpty()) {
                         contents.add(

@@ -110,6 +110,17 @@ val appModule = module {
         )
     }
 
+    // Audio
+    single { com.tomandy.palmclaw.audio.AudioRecorder(androidContext()) }
+    single { com.tomandy.palmclaw.audio.AndroidSttProvider(androidContext()) }
+    single {
+        com.tomandy.palmclaw.audio.AudioInputController(
+            audioRecorder = get(),
+            sttProvider = get(),
+            modelPreferences = get()
+        )
+    }
+
     // Navigation State
     single { NavigationState() }
 

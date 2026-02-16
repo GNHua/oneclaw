@@ -25,6 +25,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,16 +65,20 @@ fun ChatInput(
     onSend: () -> Unit,
     onStop: () -> Unit = {},
     onAttachImage: () -> Unit = {},
+    onMicTap: () -> Unit = {},
     isProcessing: Boolean = false,
+    isRecording: Boolean = false,
     attachedImages: List<String> = emptyList(),
+    attachedAudios: List<String> = emptyList(),
     onRemoveImage: (Int) -> Unit = {},
+    onRemoveAudio: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val canSend = value.isNotBlank() || attachedImages.isNotEmpty()
+    val canSend = value.isNotBlank() || attachedImages.isNotEmpty() || attachedAudios.isNotEmpty()
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Attached image previews
-        if (attachedImages.isNotEmpty()) {
+        // Attached previews (images + audio)
+        if (attachedImages.isNotEmpty() || attachedAudios.isNotEmpty()) {
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -85,6 +91,9 @@ fun ChatInput(
                         filePath = path,
                         onRemove = { onRemoveImage(index) }
                     )
+                }
+                itemsIndexed(attachedAudios) { index, _ ->
+                    AttachedAudioPreview(onRemove = { onRemoveAudio(index) })
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
@@ -130,18 +139,82 @@ fun ChatInput(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            IconButton(
-                onClick = onSend,
-                enabled = canSend
+            // Right-side button: Send (when content), Mic/Stop (when empty)
+            if (canSend || isProcessing) {
+                IconButton(
+                    onClick = onSend,
+                    enabled = canSend
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send message",
+                        tint = if (canSend) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+            } else {
+                // Mic button (or stop-recording button)
+                IconButton(onClick = onMicTap) {
+                    Icon(
+                        imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                        contentDescription = if (isRecording) "Stop recording" else "Voice input",
+                        tint = if (isRecording) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AttachedAudioPreview(onRemove: () -> Unit) {
+    Surface(
+        modifier = Modifier.height(72.dp),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer
+    ) {
+        Box {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send message",
-                    tint = if (canSend) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Audio",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+
+            // Remove button
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(20.dp)
+                    .clickable(role = Role.Button, onClick = onRemove),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.error
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Remove audio",
+                    tint = MaterialTheme.colorScheme.onError,
+                    modifier = Modifier
+                        .size(14.dp)
+                        .padding(2.dp)
                 )
             }
         }

@@ -16,7 +16,7 @@ import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.data.AppDatabase
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.entity.MessageEntity
-import com.tomandy.palmclaw.llm.ImageData
+import com.tomandy.palmclaw.llm.MediaData
 import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.llm.NetworkConfig
 import com.tomandy.palmclaw.llm.LlmProvider
@@ -56,12 +56,13 @@ class ChatExecutionService : Service(), KoinComponent {
                 val conversationId = intent.getStringExtra(EXTRA_CONVERSATION_ID)
                 val userMessage = intent.getStringExtra(EXTRA_USER_MESSAGE)
                 val imagePaths = intent.getStringArrayListExtra(EXTRA_IMAGE_PATHS) ?: emptyList()
+                val audioPaths = intent.getStringArrayListExtra(EXTRA_AUDIO_PATHS) ?: emptyList()
                 if (conversationId == null || userMessage == null) {
                     stopSelfIfIdle()
                     return START_NOT_STICKY
                 }
                 startForeground(NOTIFICATION_ID, createNotification("Processing message..."))
-                executeChat(conversationId, userMessage, imagePaths)
+                executeChat(conversationId, userMessage, imagePaths, audioPaths)
             }
             ACTION_CANCEL -> {
                 val conversationId = intent.getStringExtra(EXTRA_CONVERSATION_ID)
@@ -92,7 +93,7 @@ class ChatExecutionService : Service(), KoinComponent {
         return START_NOT_STICKY
     }
 
-    private fun executeChat(conversationId: String, userMessage: String, imagePaths: List<String> = emptyList()) {
+    private fun executeChat(conversationId: String, userMessage: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList()) {
         ChatExecutionTracker.markActive(conversationId)
 
         val job = serviceScope.launch {
@@ -144,14 +145,19 @@ class ChatExecutionService : Service(), KoinComponent {
                     for (msg in messagesAfterSummary) {
                         when {
                             msg.role == "user" || msg.role == "assistant" -> {
-                                // Annotate old user messages that had images
-                                val content = if (msg.role == "user" && !msg.imagePaths.isNullOrEmpty()) {
-                                    val count = try {
+                                // Annotate old user messages that had media attachments
+                                var content = msg.content
+                                if (msg.role == "user" && !msg.imagePaths.isNullOrEmpty()) {
+                                    val imageCount = try {
                                         NetworkConfig.json.decodeFromString<List<String>>(msg.imagePaths).size
                                     } catch (_: Exception) { 1 }
-                                    "${msg.content}\n[$count image(s) were attached to this message]"
-                                } else {
-                                    msg.content
+                                    content = "$content\n[$imageCount image(s) were attached to this message]"
+                                }
+                                if (msg.role == "user" && !msg.audioPaths.isNullOrEmpty()) {
+                                    val audioCount = try {
+                                        NetworkConfig.json.decodeFromString<List<String>>(msg.audioPaths).size
+                                    } catch (_: Exception) { 1 }
+                                    content = "$content\n[$audioCount audio file(s) were attached to this message]"
                                 }
                                 add(Message(role = msg.role, content = content))
                             }
@@ -179,10 +185,17 @@ class ChatExecutionService : Service(), KoinComponent {
                     baseSystemPrompt
                 }
 
-                // Load current message's images as base64
-                val currentImageData = imagePaths.mapNotNull { path ->
-                    ImageStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
-                        ImageData(base64 = base64, mimeType = mime)
+                // Load current message's media (images + audio) as base64
+                val allMediaData = buildList {
+                    imagePaths.forEach { path ->
+                        ImageStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
+                            add(MediaData(base64 = base64, mimeType = mime))
+                        }
+                    }
+                    audioPaths.forEach { path ->
+                        com.tomandy.palmclaw.util.AudioStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
+                            add(MediaData(base64 = base64, mimeType = mime))
+                        }
                     }
                 }
 
@@ -192,7 +205,7 @@ class ChatExecutionService : Service(), KoinComponent {
                     model = selectedModel,
                     maxIterations = maxIterations,
                     temperature = temperature,
-                    imageData = currentImageData.takeIf { it.isNotEmpty() }
+                    mediaData = allMediaData.takeIf { it.isNotEmpty() }
                 )
 
                 val conversationDao = database.conversationDao()
@@ -391,6 +404,7 @@ class ChatExecutionService : Service(), KoinComponent {
         const val EXTRA_CONVERSATION_ID = "conversation_id"
         const val EXTRA_USER_MESSAGE = "user_message"
         const val EXTRA_IMAGE_PATHS = "image_paths"
+        const val EXTRA_AUDIO_PATHS = "audio_paths"
         private const val CHANNEL_ID = "chat_processing_channel"
         private const val NOTIFICATION_ID = 1002
 
@@ -410,13 +424,16 @@ class ChatExecutionService : Service(), KoinComponent {
             job?.cancel()
         }
 
-        fun startExecution(context: Context, conversationId: String, userMessage: String, imagePaths: List<String> = emptyList()) {
+        fun startExecution(context: Context, conversationId: String, userMessage: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList()) {
             val intent = Intent(context, ChatExecutionService::class.java).apply {
                 action = ACTION_EXECUTE
                 putExtra(EXTRA_CONVERSATION_ID, conversationId)
                 putExtra(EXTRA_USER_MESSAGE, userMessage)
                 if (imagePaths.isNotEmpty()) {
                     putStringArrayListExtra(EXTRA_IMAGE_PATHS, ArrayList(imagePaths))
+                }
+                if (audioPaths.isNotEmpty()) {
+                    putStringArrayListExtra(EXTRA_AUDIO_PATHS, ArrayList(audioPaths))
                 }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

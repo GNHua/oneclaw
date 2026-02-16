@@ -77,9 +77,9 @@ class OpenAiClient(
         maxTokens: Int?,
         tools: List<Tool>?
     ): Result<LlmResponse> {
-        val hasImages = messages.any { !it.imageData.isNullOrEmpty() }
-        return if (hasImages) {
-            completeWithImages(messages, model, temperature, maxTokens, tools)
+        val hasMedia = messages.any { !it.mediaData.isNullOrEmpty() }
+        return if (hasMedia) {
+            completeWithMedia(messages, model, temperature, maxTokens, tools)
         } else {
             completeText(messages, model, temperature, maxTokens, tools)
         }
@@ -131,11 +131,11 @@ class OpenAiClient(
     }
 
     /**
-     * Send a request with image content blocks.
+     * Send a request with media content blocks (images, audio).
      * Bypasses Retrofit serialization to build the content-parts array format
-     * required by the OpenAI vision API.
+     * required by the OpenAI vision/audio API.
      */
-    private suspend fun completeWithImages(
+    private suspend fun completeWithMedia(
         messages: List<Message>,
         model: String,
         temperature: Float,
@@ -155,7 +155,7 @@ class OpenAiClient(
                     for (msg in messages) {
                         add(buildJsonObject {
                             put("role", msg.role)
-                            if (!msg.imageData.isNullOrEmpty()) {
+                            if (!msg.mediaData.isNullOrEmpty()) {
                                 // Content as array of blocks
                                 put("content", buildJsonArray {
                                     if (!msg.content.isNullOrBlank()) {
@@ -164,13 +164,23 @@ class OpenAiClient(
                                             put("text", msg.content)
                                         })
                                     }
-                                    for (img in msg.imageData) {
-                                        add(buildJsonObject {
-                                            put("type", "image_url")
-                                            put("image_url", buildJsonObject {
-                                                put("url", "data:${img.mimeType};base64,${img.base64}")
+                                    for (media in msg.mediaData) {
+                                        if (media.isImage) {
+                                            add(buildJsonObject {
+                                                put("type", "image_url")
+                                                put("image_url", buildJsonObject {
+                                                    put("url", "data:${media.mimeType};base64,${media.base64}")
+                                                })
                                             })
-                                        })
+                                        } else if (media.isAudio) {
+                                            add(buildJsonObject {
+                                                put("type", "input_audio")
+                                                put("input_audio", buildJsonObject {
+                                                    put("data", media.base64)
+                                                    put("format", openAiAudioFormat(media.mimeType))
+                                                })
+                                            })
+                                        }
                                     }
                                 })
                             } else {
@@ -257,6 +267,18 @@ class OpenAiClient(
 
     override fun cancel() {
         httpClient.dispatcher.cancelAll()
+    }
+
+    private fun openAiAudioFormat(mimeType: String): String {
+        // OpenAI input_audio accepts: wav, mp3, flac, opus, pcm16
+        return when {
+            mimeType.contains("wav") -> "wav"
+            mimeType.contains("mpeg") || mimeType.contains("mp3") -> "mp3"
+            mimeType.contains("flac") -> "flac"
+            mimeType.contains("opus") -> "opus"
+            mimeType.contains("pcm") -> "pcm16"
+            else -> "wav"
+        }
     }
 }
 

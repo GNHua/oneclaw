@@ -77,6 +77,23 @@ class ModelPreferences(context: Context) {
             .apply()
     }
 
+    enum class AudioInputMode { ALWAYS_TRANSCRIBE, NATIVE_WHEN_SUPPORTED }
+
+    fun getAudioInputMode(): AudioInputMode {
+        val value = prefs.getString("audio_input_mode", AudioInputMode.ALWAYS_TRANSCRIBE.name)
+        return try {
+            AudioInputMode.valueOf(value ?: AudioInputMode.ALWAYS_TRANSCRIBE.name)
+        } catch (_: Exception) {
+            AudioInputMode.ALWAYS_TRANSCRIBE
+        }
+    }
+
+    fun saveAudioInputMode(mode: AudioInputMode) {
+        prefs.edit()
+            .putString("audio_input_mode", mode.name)
+            .apply()
+    }
+
     companion object {
         const val DEFAULT_MAX_ITERATIONS = 200
         const val DEFAULT_TEMPERATURE = 0.7f

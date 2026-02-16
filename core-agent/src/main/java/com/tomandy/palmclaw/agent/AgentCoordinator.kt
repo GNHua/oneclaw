@@ -99,7 +99,7 @@ class AgentCoordinator(
         maxIterations: Int = 200,
         temperature: Float = 0.7f,
         context: ExecutionContext = ExecutionContext.Interactive,
-        imageData: List<com.tomandy.palmclaw.llm.ImageData>? = null
+        mediaData: List<com.tomandy.palmclaw.llm.MediaData>? = null
     ): Result<String> {
         Log.d("AgentCoordinator", "execute called with message: $userMessage, model: $model")
         lastModel = model
@@ -158,15 +158,15 @@ class AgentCoordinator(
                 // Add conversation history
                 addAll(conversationHistory)
 
-                // Add user message with images (if any) for the current turn only
+                // Add user message with media (if any) for the current turn only
                 add(Message(
                     role = "user",
                     content = userMessage,
-                    imageData = imageData?.takeIf { it.isNotEmpty() }
+                    mediaData = mediaData?.takeIf { it.isNotEmpty() }
                 ))
             }
 
-            // Store user message in history WITHOUT imageData (avoid keeping large base64 in memory)
+            // Store user message in history WITHOUT mediaData (avoid keeping large base64 in memory)
             conversationHistory.add(Message(role = "user", content = userMessage))
 
             // Get available tools from registry

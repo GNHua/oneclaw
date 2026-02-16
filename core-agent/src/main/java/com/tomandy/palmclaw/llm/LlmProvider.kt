@@ -7,7 +7,8 @@ enum class LlmProvider(
     val displayName: String,
     val apiKeyLabel: String,
     val defaultModel: String,
-    val availableModels: List<String>
+    val availableModels: List<String>,
+    val supportsAudioInput: Boolean = false
 ) {
     OPENAI(
         displayName = "OpenAI",
@@ -19,7 +20,8 @@ enum class LlmProvider(
             "gpt-4.1-nano",
             "gpt-4o",
             "gpt-4o-mini"
-        )
+        ),
+        supportsAudioInput = true
     ),
     GEMINI(
         displayName = "Google Gemini",
@@ -30,7 +32,8 @@ enum class LlmProvider(
             "gemini-2.5-flash",
             "gemini-3-pro-preview",
             "gemini-3-flash-preview"
-        )
+        ),
+        supportsAudioInput = true
     ),
     ANTHROPIC(
         displayName = "Anthropic",
@@ -40,7 +43,8 @@ enum class LlmProvider(
             "claude-sonnet-4-5",
             "claude-opus-4-6",
             "claude-haiku-4-5"
-        )
+        ),
+        supportsAudioInput = false
     );
 
     companion object {

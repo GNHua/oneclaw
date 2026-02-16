@@ -115,6 +115,11 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Audio Input Mode
+        AudioInputModeCard(modelPreferences = modelPreferences)
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         // Max Iterations setting
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -162,6 +167,94 @@ fun SettingsScreen(
                     valueRange = 1f..500f,
                     steps = 0
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AudioInputModeCard(modelPreferences: ModelPreferences) {
+    var audioInputMode by remember {
+        mutableStateOf(modelPreferences.getAudioInputMode())
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Voice Input",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "How to handle microphone input",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        audioInputMode = ModelPreferences.AudioInputMode.ALWAYS_TRANSCRIBE
+                        modelPreferences.saveAudioInputMode(audioInputMode)
+                    }
+                    .padding(vertical = 4.dp)
+            ) {
+                RadioButton(
+                    selected = audioInputMode == ModelPreferences.AudioInputMode.ALWAYS_TRANSCRIBE,
+                    onClick = {
+                        audioInputMode = ModelPreferences.AudioInputMode.ALWAYS_TRANSCRIBE
+                        modelPreferences.saveAudioInputMode(audioInputMode)
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text("Always transcribe", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Convert speech to text (works with all providers)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        audioInputMode = ModelPreferences.AudioInputMode.NATIVE_WHEN_SUPPORTED
+                        modelPreferences.saveAudioInputMode(audioInputMode)
+                    }
+                    .padding(vertical = 4.dp)
+            ) {
+                RadioButton(
+                    selected = audioInputMode == ModelPreferences.AudioInputMode.NATIVE_WHEN_SUPPORTED,
+                    onClick = {
+                        audioInputMode = ModelPreferences.AudioInputMode.NATIVE_WHEN_SUPPORTED
+                        modelPreferences.saveAudioInputMode(audioInputMode)
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text("Send audio when supported", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Send raw audio to OpenAI/Gemini (transcribe for others)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

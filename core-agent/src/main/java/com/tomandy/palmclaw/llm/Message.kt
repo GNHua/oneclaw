@@ -10,5 +10,5 @@ data class Message(
     val tool_call_id: String? = null,        // For tool role messages
     val name: String? = null,                // Tool name for tool role messages
     @kotlinx.serialization.Transient
-    val imageData: List<ImageData>? = null   // Not serialized -- used in-memory for image attachments
+    val mediaData: List<MediaData>? = null   // Not serialized -- used in-memory for media attachments (images, audio)
 )

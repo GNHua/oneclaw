@@ -56,9 +56,15 @@ class JsPlugin(
 
         return try {
             val argsJson = arguments.toString()
-            val resultJson = js.evaluate<String>(
-                "(async () => JSON.stringify(await execute('$toolName', $argsJson)))()"
-            ) ?: return ToolResult.Failure("Plugin returned null")
+            // Use Promise.resolve() to handle both sync and async execute() functions.
+            // The .then() stores the JSON-stringified result in a global variable.
+            // evaluate() internally calls awaitAsyncJobs(), so by the time it returns,
+            // the Promise chain has resolved and __pcResult holds the final value.
+            js.evaluate<Any?>(
+                "Promise.resolve(execute('$toolName', $argsJson))" +
+                    ".then(function(r) { globalThis.__pcResult = JSON.stringify(r); })"
+            )
+            val resultJson = js.evaluate<String>("globalThis.__pcResult")
 
             val resultObj = Json.parseToJsonElement(resultJson).jsonObject
             val error = resultObj["error"]?.jsonPrimitive?.content

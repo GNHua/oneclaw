@@ -66,6 +66,8 @@ class MemoryPlugin : Plugin {
         }
     }
 
+    // TODO: improve search -- consider multi-word query splitting, regex support,
+    //  or vector embeddings (sqlite-vec / ObjectBox 4.0) for semantic search.
     private fun searchFile(
         file: File,
         displayPath: String,

@@ -4,6 +4,7 @@ import com.tomandy.palmclaw.agent.ScheduledAgentExecutor
 import com.tomandy.palmclaw.agent.ToolExecutor
 import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.agent.MessageStore
+import com.tomandy.palmclaw.backup.BackupManager
 import com.tomandy.palmclaw.data.AppDatabase
 import com.tomandy.palmclaw.data.ConversationPreferences
 import com.tomandy.palmclaw.data.ModelPreferences
@@ -23,6 +24,7 @@ import com.tomandy.palmclaw.pluginmanager.PluginPreferences
 import com.tomandy.palmclaw.pluginmanager.UserPluginManager
 import com.tomandy.palmclaw.scheduler.AgentExecutor
 import com.tomandy.palmclaw.scheduler.CronjobManager
+import com.tomandy.palmclaw.scheduler.data.CronjobDatabase
 import com.tomandy.palmclaw.security.CredentialVaultImpl
 import com.tomandy.palmclaw.skill.SkillLoader
 import com.tomandy.palmclaw.skill.SkillPreferences
@@ -75,8 +77,9 @@ val appModule = module {
     // LLM Client Provider
     single { LlmClientProvider(credentialVault = get(), modelPreferences = get()) }
 
-    // Cronjob Manager
-    single { CronjobManager(androidContext()) }
+    // Cronjob Database & Manager
+    single { CronjobDatabase.getDatabase(androidContext()) }
+    single { CronjobManager(androidContext(), get()) }
 
     // Plugin Managers
     single {
@@ -148,6 +151,18 @@ val appModule = module {
             messageStore = get(),
             modelPreferences = get(),
             skillRepository = get()
+        )
+    }
+
+    // Backup
+    single {
+        BackupManager(
+            context = androidContext(),
+            appDatabase = get(),
+            cronjobDatabase = get(),
+            modelPreferences = get(),
+            pluginPreferences = get(),
+            skillPreferences = get()
         )
     }
 }

@@ -34,6 +34,9 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY timestamp ASC")
     suspend fun getMessagesOnce(conversationId: String): List<MessageEntity>
 
+    @Query("SELECT * FROM messages")
+    suspend fun getAllOnce(): List<MessageEntity>
+
     @Query(
         """
         SELECT * FROM messages

@@ -1,5 +1,6 @@
 package com.tomandy.palmclaw.di
 
+import com.tomandy.palmclaw.backup.BackupViewModel
 import com.tomandy.palmclaw.engine.PluginEngine
 import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.plugin.PluginCoordinator
@@ -56,4 +57,6 @@ val viewModelModule = module {
             messageDao = get()
         )
     }
+
+    viewModel { BackupViewModel(backupManager = get()) }
 }

@@ -27,6 +27,8 @@ import com.tomandy.palmclaw.ui.cronjobs.CronjobsScreen
 import com.tomandy.palmclaw.ui.cronjobs.CronjobsViewModel
 import com.tomandy.palmclaw.ui.history.ConversationHistoryScreen
 import com.tomandy.palmclaw.ui.history.ConversationHistoryViewModel
+import com.tomandy.palmclaw.backup.BackupViewModel
+import com.tomandy.palmclaw.ui.settings.BackupScreen
 import com.tomandy.palmclaw.ui.settings.PluginsScreen
 import com.tomandy.palmclaw.ui.settings.ProvidersScreen
 import com.tomandy.palmclaw.ui.settings.SettingsScreen
@@ -50,6 +52,7 @@ enum class Screen(val route: String) {
     Plugins("settings/plugins"),
     Skills("settings/skills"),
     SkillEditor("settings/skills/editor"),
+    Backup("settings/backup"),
     Cronjobs("cronjobs"),
     History("history")
 }
@@ -149,6 +152,9 @@ fun PalmClawNavGraph(
                     },
                     onNavigateToSkills = {
                         navController.navigate(Screen.Skills.route)
+                    },
+                    onNavigateToBackup = {
+                        navController.navigate(Screen.Backup.route)
                     },
                     modelPreferences = modelPreferences,
                     availableModels = availableModels,
@@ -256,6 +262,28 @@ fun PalmClawNavGraph(
                     navController.popBackStack(Screen.Chat.route, inclusive = false)
                 }
             )
+        }
+
+        composable(Screen.Backup.route) {
+            val backupViewModel: BackupViewModel = koinViewModel()
+
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Backup & Restore") },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            }
+                        }
+                    )
+                }
+            ) { paddingValues ->
+                BackupScreen(
+                    viewModel = backupViewModel,
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
         }
 
         composable(Screen.Cronjobs.route) {

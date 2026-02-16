@@ -50,4 +50,7 @@ interface CronjobDao {
 
     @Query("SELECT * FROM cronjobs WHERE enabled = 0 ORDER BY createdAt DESC LIMIT :limit OFFSET :offset")
     suspend fun getDisabledPaged(limit: Int, offset: Int): List<CronjobEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(cronjobs: List<CronjobEntity>)
 }

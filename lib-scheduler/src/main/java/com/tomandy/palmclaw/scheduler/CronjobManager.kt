@@ -19,9 +19,11 @@ import java.util.concurrent.TimeUnit
  * This manager coordinates between WorkManager (for recurring tasks)
  * and AlarmManager (for exact-time tasks) to provide a unified scheduling interface.
  */
-class CronjobManager(private val context: Context) {
+class CronjobManager(
+    private val context: Context,
+    private val database: CronjobDatabase = CronjobDatabase.getDatabase(context)
+) {
 
-    private val database = CronjobDatabase.getDatabase(context)
     private val cronjobDao = database.cronjobDao()
     private val executionLogDao = database.executionLogDao()
     private val workManager = WorkManager.getInstance(context)

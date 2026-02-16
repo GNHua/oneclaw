@@ -35,4 +35,10 @@ interface ExecutionLogDao {
 
     @Query("DELETE FROM cronjob_executions WHERE startedAt < :timestamp")
     suspend fun deleteLogsOlderThan(timestamp: Long)
+
+    @Query("SELECT * FROM cronjob_executions")
+    suspend fun getAllOnce(): List<ExecutionLog>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(logs: List<ExecutionLog>)
 }

@@ -162,6 +162,8 @@ class ChatExecutionService : Service(), KoinComponent {
                 }.dropLast(1)
                 coordinator.seedHistory(history, summaryContent)
                 val maxIterations = modelPreferences.getMaxIterations()
+                val temperature = modelPreferences.getTemperature()
+                val baseSystemPrompt = modelPreferences.getSystemPrompt()
 
                 // Reload skills and augment system prompt (only when
                 // read_file is available so the model can load skill files)
@@ -171,10 +173,10 @@ class ChatExecutionService : Service(), KoinComponent {
                     toolRegistry.hasTool("read_file") && enabledSkills.isNotEmpty()
                 ) {
                     SystemPromptBuilder.augmentSystemPrompt(
-                        AgentCoordinator.DEFAULT_SYSTEM_PROMPT, enabledSkills
+                        baseSystemPrompt, enabledSkills
                     )
                 } else {
-                    AgentCoordinator.DEFAULT_SYSTEM_PROMPT
+                    baseSystemPrompt
                 }
 
                 // Load current message's images as base64
@@ -189,6 +191,7 @@ class ChatExecutionService : Service(), KoinComponent {
                     systemPrompt = systemPrompt,
                     model = selectedModel,
                     maxIterations = maxIterations,
+                    temperature = temperature,
                     imageData = currentImageData.takeIf { it.isNotEmpty() }
                 )
 

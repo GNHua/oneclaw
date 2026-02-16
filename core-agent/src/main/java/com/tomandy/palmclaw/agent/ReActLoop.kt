@@ -66,7 +66,8 @@ class ReActLoop(
         tools: List<ToolDefinition>,
         conversationId: String,
         model: String = "gpt-4o-mini",
-        maxIterations: Int = 200
+        maxIterations: Int = 200,
+        temperature: Float = 0.7f
     ): Result<String> {
         Log.d("ReActLoop", "step called with ${messages.size} messages, ${tools.size} tools, model: $model")
         val workingMessages = messages.toMutableList()
@@ -93,6 +94,7 @@ class ReActLoop(
             val result = llmClient.complete(
                 messages = workingMessages,
                 model = model,
+                temperature = temperature,
                 tools = if (llmTools.isNotEmpty()) llmTools else null
             )
             Log.d("ReActLoop", "llmClient.complete returned")

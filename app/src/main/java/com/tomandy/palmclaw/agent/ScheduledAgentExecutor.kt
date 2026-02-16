@@ -60,13 +60,15 @@ class ScheduledAgentExecutor(
                 triggerTime = triggerTime
             )
 
-            // Get the selected model from preferences
+            // Get preferences
             val model = modelPreferences.getSelectedModel() ?: ""
+            val temperature = modelPreferences.getTemperature()
 
             val result = coordinator.execute(
                 userMessage = instruction,
                 systemPrompt = AgentCoordinator.TOOL_AWARE_SYSTEM_PROMPT,
                 model = model,
+                temperature = temperature,
                 context = context
             )
 

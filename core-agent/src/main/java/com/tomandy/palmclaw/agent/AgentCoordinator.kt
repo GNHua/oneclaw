@@ -97,6 +97,7 @@ class AgentCoordinator(
         systemPrompt: String = DEFAULT_SYSTEM_PROMPT,
         model: String = "",
         maxIterations: Int = 200,
+        temperature: Float = 0.7f,
         context: ExecutionContext = ExecutionContext.Interactive,
         imageData: List<com.tomandy.palmclaw.llm.ImageData>? = null
     ): Result<String> {
@@ -179,7 +180,8 @@ class AgentCoordinator(
                 tools = tools,
                 conversationId = conversationId,
                 model = model,
-                maxIterations = maxIterations
+                maxIterations = maxIterations,
+                temperature = temperature
             )
             Log.d("AgentCoordinator", "reActLoop.step completed")
 

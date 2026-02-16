@@ -7,6 +7,7 @@ import com.tomandy.palmclaw.plugin.PluginCoordinator
 import com.tomandy.palmclaw.ui.chat.ChatViewModel
 import com.tomandy.palmclaw.ui.cronjobs.CronjobsViewModel
 import com.tomandy.palmclaw.ui.history.ConversationHistoryViewModel
+import com.tomandy.palmclaw.ui.settings.MemoryViewModel
 import com.tomandy.palmclaw.ui.settings.SettingsViewModel
 import com.tomandy.palmclaw.ui.settings.SkillsViewModel
 import org.koin.android.ext.koin.androidContext
@@ -46,6 +47,12 @@ val viewModelModule = module {
             skillPreferences = get(),
             userSkillsDir = java.io.File(androidContext().filesDir, "workspace/skills"),
             navigationState = get()
+        )
+    }
+
+    viewModel {
+        MemoryViewModel(
+            workspaceDir = java.io.File(androidContext().filesDir, "workspace")
         )
     }
 

@@ -36,6 +36,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.UUID
@@ -99,7 +100,16 @@ class ChatExecutionService : Service(), KoinComponent {
         return START_NOT_STICKY
     }
 
-    private fun executeChat(conversationId: String, userMessage: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList(), videoPaths: List<String> = emptyList(), documentPaths: List<String> = emptyList(), documentNames: List<String> = emptyList(), documentMimeTypes: List<String> = emptyList()) {
+    private fun executeChat(
+        conversationId: String,
+        userMessage: String,
+        imagePaths: List<String> = emptyList(),
+        audioPaths: List<String> = emptyList(),
+        videoPaths: List<String> = emptyList(),
+        documentPaths: List<String> = emptyList(),
+        documentNames: List<String> = emptyList(),
+        documentMimeTypes: List<String> = emptyList()
+    ) {
         ChatExecutionTracker.markActive(conversationId)
 
         val job = serviceScope.launch {
@@ -108,13 +118,25 @@ class ChatExecutionService : Service(), KoinComponent {
                     ?: modelPreferences.getModel(llmClientProvider.selectedProvider.value)
                 val contextWindow = LlmProvider.getContextWindow(selectedModel)
 
-                val coordinator = AgentCoordinator(
+                lateinit var coordinator: AgentCoordinator
+                coordinator = AgentCoordinator(
                     clientProvider = { llmClientProvider.getCurrentLlmClient() },
                     toolRegistry = toolRegistry,
                     toolExecutor = toolExecutor,
                     messageStore = messageStore,
                     conversationId = conversationId,
-                    contextWindow = contextWindow
+                    contextWindow = contextWindow,
+                    onBeforeSummarize = {
+                        memoryFlush(
+                            clientProvider = { llmClientProvider.getCurrentLlmClient() },
+                            toolExecutor = toolExecutor,
+                            toolRegistry = toolRegistry,
+                            messageStore = messageStore,
+                            conversationHistory = coordinator.getConversationHistory(),
+                            conversationId = conversationId,
+                            model = selectedModel
+                        )
+                    }
                 )
 
                 synchronized(activeCoordinators) {
@@ -204,6 +226,15 @@ class ChatExecutionService : Service(), KoinComponent {
                     baseSystemPrompt
                 }
 
+                // Load memory context and inject into system prompt
+                val workspaceRoot = File(filesDir, "workspace")
+                val memoryContext = MemoryBootstrap.loadMemoryContext(workspaceRoot)
+                val finalSystemPrompt = if (memoryContext.isNotBlank()) {
+                    "$systemPrompt\n\n$memoryContext"
+                } else {
+                    systemPrompt
+                }
+
                 // Load current message's media (images + audio + video + documents) as base64
                 // Text documents are inlined into the message; binary documents (PDF) sent as MediaData
                 var effectiveMessage = userMessage
@@ -242,7 +273,7 @@ class ChatExecutionService : Service(), KoinComponent {
 
                 val result = coordinator.execute(
                     userMessage = effectiveMessage,
-                    systemPrompt = systemPrompt,
+                    systemPrompt = finalSystemPrompt,
                     model = selectedModel,
                     maxIterations = maxIterations,
                     temperature = temperature,
@@ -427,6 +458,53 @@ class ChatExecutionService : Service(), KoinComponent {
         }
     }
 
+    // -- Memory flush ---------------------------------------------------------
+
+    /**
+     * Runs a short ReAct loop asking the model to persist important context
+     * to memory files before conversation history is summarized/compacted.
+     */
+    private suspend fun memoryFlush(
+        clientProvider: () -> com.tomandy.palmclaw.llm.LlmClient,
+        toolExecutor: ToolExecutor,
+        toolRegistry: ToolRegistry,
+        messageStore: MessageStore,
+        conversationHistory: List<Message>,
+        conversationId: String,
+        model: String
+    ) {
+        if (conversationHistory.size <= 2) return
+
+        val flushMessages = buildList {
+            add(
+                Message(
+                    role = "system",
+                    content = "You are about to lose older conversation context due to " +
+                        "summarization. Review the conversation below and use write_file " +
+                        "to save any important information (decisions, preferences, facts, " +
+                        "pending tasks) to memory files (memory/YYYY-MM-DD.md or MEMORY.md). " +
+                        "If nothing is worth saving, respond with just 'OK'."
+                )
+            )
+            addAll(conversationHistory)
+        }
+
+        val tools = toolRegistry.getToolDefinitions()
+        val flushLoop = com.tomandy.palmclaw.agent.ReActLoop(
+            llmClient = clientProvider(),
+            toolExecutor = toolExecutor,
+            messageStore = messageStore
+        )
+        flushLoop.step(
+            messages = flushMessages,
+            tools = tools,
+            conversationId = conversationId,
+            model = model,
+            maxIterations = 5,
+            temperature = 0.3f
+        )
+    }
+
     // -- Lifecycle ------------------------------------------------------------
 
     override fun onDestroy() {
@@ -469,7 +547,17 @@ class ChatExecutionService : Service(), KoinComponent {
             job?.cancel()
         }
 
-        fun startExecution(context: Context, conversationId: String, userMessage: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList(), videoPaths: List<String> = emptyList(), documentPaths: List<String> = emptyList(), documentNames: List<String> = emptyList(), documentMimeTypes: List<String> = emptyList()) {
+        fun startExecution(
+            context: Context,
+            conversationId: String,
+            userMessage: String,
+            imagePaths: List<String> = emptyList(),
+            audioPaths: List<String> = emptyList(),
+            videoPaths: List<String> = emptyList(),
+            documentPaths: List<String> = emptyList(),
+            documentNames: List<String> = emptyList(),
+            documentMimeTypes: List<String> = emptyList()
+        ) {
             val intent = Intent(context, ChatExecutionService::class.java).apply {
                 action = ACTION_EXECUTE
                 putExtra(EXTRA_CONVERSATION_ID, conversationId)

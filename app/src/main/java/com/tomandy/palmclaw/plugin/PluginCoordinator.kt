@@ -15,6 +15,8 @@ import com.tomandy.palmclaw.data.dao.ConversationDao
 import com.tomandy.palmclaw.data.dao.MessageDao
 import com.tomandy.palmclaw.security.CredentialVault
 import com.tomandy.palmclaw.skill.SkillRepository
+import com.tomandy.palmclaw.workspace.MemoryPlugin
+import com.tomandy.palmclaw.workspace.MemoryPluginMetadata
 import com.tomandy.palmclaw.workspace.WorkspacePlugin
 import com.tomandy.palmclaw.workspace.WorkspacePluginMetadata
 
@@ -84,6 +86,25 @@ class PluginCoordinator(
                 LoadedPlugin(
                     metadata = WorkspacePluginMetadata.get(),
                     instance = workspacePlugin
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Register MemoryPlugin
+        try {
+            val memoryPlugin = MemoryPlugin()
+            val memoryContext = PluginContext.create(
+                androidContext = context,
+                pluginId = "memory",
+                credentialVault = credentialVault
+            )
+            memoryPlugin.onLoad(memoryContext)
+            toolRegistry.registerPlugin(
+                LoadedPlugin(
+                    metadata = MemoryPluginMetadata.get(),
+                    instance = memoryPlugin
                 )
             )
         } catch (e: Exception) {

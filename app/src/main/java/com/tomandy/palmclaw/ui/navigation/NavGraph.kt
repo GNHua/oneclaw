@@ -29,6 +29,9 @@ import com.tomandy.palmclaw.ui.history.ConversationHistoryScreen
 import com.tomandy.palmclaw.ui.history.ConversationHistoryViewModel
 import com.tomandy.palmclaw.backup.BackupViewModel
 import com.tomandy.palmclaw.ui.settings.BackupScreen
+import com.tomandy.palmclaw.ui.settings.MemoryDetailScreen
+import com.tomandy.palmclaw.ui.settings.MemoryScreen
+import com.tomandy.palmclaw.ui.settings.MemoryViewModel
 import com.tomandy.palmclaw.ui.settings.PluginsScreen
 import com.tomandy.palmclaw.ui.settings.ProvidersScreen
 import com.tomandy.palmclaw.ui.settings.SettingsScreen
@@ -52,6 +55,8 @@ enum class Screen(val route: String) {
     Plugins("settings/plugins"),
     Skills("settings/skills"),
     SkillEditor("settings/skills/editor"),
+    Memory("settings/memory"),
+    MemoryDetail("settings/memory/detail"),
     Backup("settings/backup"),
     Cronjobs("cronjobs"),
     History("history")
@@ -152,6 +157,9 @@ fun PalmClawNavGraph(
                     },
                     onNavigateToSkills = {
                         navController.navigate(Screen.Skills.route)
+                    },
+                    onNavigateToMemory = {
+                        navController.navigate(Screen.Memory.route)
                     },
                     onNavigateToBackup = {
                         navController.navigate(Screen.Backup.route)
@@ -262,6 +270,71 @@ fun PalmClawNavGraph(
                     navController.popBackStack(Screen.Chat.route, inclusive = false)
                 }
             )
+        }
+
+        composable(Screen.Memory.route) {
+            val memoryViewModel: MemoryViewModel = koinViewModel()
+
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Memory") },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            }
+                        }
+                    )
+                }
+            ) { paddingValues ->
+                MemoryScreen(
+                    viewModel = memoryViewModel,
+                    onNavigateToDetail = { relativePath, displayName ->
+                        val encoded = java.net.URLEncoder.encode(relativePath, "UTF-8")
+                        val encodedName = java.net.URLEncoder.encode(displayName, "UTF-8")
+                        navController.navigate(
+                            "${Screen.MemoryDetail.route}?path=$encoded&name=$encodedName"
+                        )
+                    },
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
+        }
+
+        composable(
+            route = "${Screen.MemoryDetail.route}?path={path}&name={name}",
+            arguments = listOf(
+                navArgument("path") { type = NavType.StringType },
+                navArgument("name") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val relativePath = java.net.URLDecoder.decode(
+                backStackEntry.arguments?.getString("path") ?: "", "UTF-8"
+            )
+            val displayName = java.net.URLDecoder.decode(
+                backStackEntry.arguments?.getString("name") ?: "", "UTF-8"
+            )
+            val memoryViewModel: MemoryViewModel = koinViewModel()
+
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text(displayName) },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            }
+                        }
+                    )
+                }
+            ) { paddingValues ->
+                MemoryDetailScreen(
+                    viewModel = memoryViewModel,
+                    relativePath = relativePath,
+                    onDelete = { navController.popBackStack() },
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
         }
 
         composable(Screen.Backup.route) {

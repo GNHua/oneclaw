@@ -21,6 +21,7 @@ fun SettingsScreen(
     onNavigateToProviders: () -> Unit,
     onNavigateToPlugins: () -> Unit,
     onNavigateToSkills: () -> Unit,
+    onNavigateToMemory: () -> Unit,
     onNavigateToBackup: () -> Unit,
     modelPreferences: ModelPreferences,
     availableModels: List<Pair<String, LlmProvider>>,
@@ -115,6 +116,11 @@ fun SettingsScreen(
             title = "Skills",
             subtitle = "Manage skill slash commands",
             onClick = onNavigateToSkills
+        )
+        SettingsMenuItem(
+            title = "Memory",
+            subtitle = "View agent memories across conversations",
+            onClick = onNavigateToMemory
         )
         SettingsMenuItem(
             title = "Backup & Restore",

@@ -39,6 +39,7 @@ class AgentCoordinator(
     private val conversationId: String,
     private val contextWindow: Int = 200_000,
     private val summarizationThreshold: Float = 0.8f,
+    private val onBeforeSummarize: (suspend () -> Unit)? = null,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 ) {
 
@@ -234,6 +235,13 @@ class AgentCoordinator(
     private suspend fun summarizeHistory(model: String) {
         if (conversationHistory.size <= 2) return
 
+        // Flush important context to memory before summarizing
+        try {
+            onBeforeSummarize?.invoke()
+        } catch (e: Exception) {
+            Log.w("AgentCoordinator", "Pre-summarize callback failed, continuing: ${e.message}")
+        }
+
         // Keep recent messages that fit in ~30% of context window
         val recentBudget = contextWindow * 0.3
         var recentChars = 0
@@ -322,6 +330,13 @@ class AgentCoordinator(
      */
     private suspend fun forceSummarizeHistory(model: String) {
         if (conversationHistory.size <= 2) return
+
+        // Flush important context to memory before summarizing
+        try {
+            onBeforeSummarize?.invoke()
+        } catch (e: Exception) {
+            Log.w("AgentCoordinator", "Pre-summarize callback failed, continuing: ${e.message}")
+        }
 
         val splitIndex = conversationHistory.size - 2
         val oldMessages = conversationHistory.subList(0, splitIndex).toList()

@@ -97,15 +97,17 @@ class ToolExecutor(
                 put("_conversation_id", JsonPrimitive(conversationId))
             }
             Log.d("ToolExecutor", "Calling plugin.execute with arguments: $enrichedArguments")
+            val timeout = registeredTool.definition.timeoutMs.takeIf { it > 0 }
+                ?: TOOL_EXECUTION_TIMEOUT_MS
             val result = try {
-                withTimeout(TOOL_EXECUTION_TIMEOUT_MS) {
+                withTimeout(timeout) {
                     registeredTool.plugin.execute(toolCall.function.name, enrichedArguments)
                 }
             } catch (e: TimeoutCancellationException) {
                 Log.e("ToolExecutor", "Tool execution timed out", e)
                 return@withContext ToolExecutionResult.Failure(
                     toolCall = toolCall,
-                    error = "Tool execution timed out (${TOOL_EXECUTION_TIMEOUT_MS / 1000}s)",
+                    error = "Tool execution timed out (${timeout / 1000}s)",
                     exception = e
                 )
             } catch (e: Exception) {

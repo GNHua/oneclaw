@@ -131,7 +131,12 @@ val appModule = module {
             configRegistry = get(),
             skillRepository = get(),
             messageDao = get(),
-            conversationDao = get()
+            conversationDao = get(),
+            agentProfileRepository = get(),
+            llmClientProvider = get(),
+            modelPreferences = get(),
+            database = get(),
+            messageStore = get()
         )
     }
 

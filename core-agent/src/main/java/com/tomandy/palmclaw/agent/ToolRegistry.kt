@@ -156,6 +156,21 @@ class ToolRegistry {
     fun hasTool(toolName: String): Boolean {
         return tools.containsKey(toolName)
     }
+
+    /**
+     * Create an isolated copy of this registry with only tools matching [filter].
+     *
+     * Useful for sub-agent execution where the sub-agent needs its own registry
+     * to avoid conflicts with the parent agent's plugin registrations.
+     */
+    fun copyFiltered(filter: (RegisteredTool) -> Boolean): ToolRegistry {
+        val copy = ToolRegistry()
+        tools.values.filter(filter).forEach { tool ->
+            copy.tools[tool.definition.name] = tool
+        }
+        categoryDescriptions.forEach { (k, v) -> copy.categoryDescriptions[k] = v }
+        return copy
+    }
 }
 
 /**

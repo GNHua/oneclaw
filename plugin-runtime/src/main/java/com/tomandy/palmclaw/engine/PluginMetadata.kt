@@ -129,5 +129,13 @@ data class ToolDefinition(
      * }
      * ```
      */
-    val parameters: JsonObject
+    val parameters: JsonObject,
+
+    /**
+     * Custom timeout in milliseconds for this tool's execution.
+     * 0 means use the default timeout from ToolExecutor.
+     * Useful for long-running tools like agent delegation.
+     */
+    @kotlinx.serialization.Transient
+    val timeoutMs: Long = 0
 )

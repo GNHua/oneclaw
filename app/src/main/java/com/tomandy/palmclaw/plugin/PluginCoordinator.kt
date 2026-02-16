@@ -12,8 +12,13 @@ import com.tomandy.palmclaw.pluginmanager.PluginPreferences
 import com.tomandy.palmclaw.pluginmanager.UserPluginManager
 import com.tomandy.palmclaw.scheduler.plugin.SchedulerPlugin
 import com.tomandy.palmclaw.scheduler.plugin.SchedulerPluginMetadata
+import com.tomandy.palmclaw.agent.MessageStore
+import com.tomandy.palmclaw.agent.profile.AgentProfileRepository
+import com.tomandy.palmclaw.data.AppDatabase
+import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.dao.ConversationDao
 import com.tomandy.palmclaw.data.dao.MessageDao
+import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.security.CredentialVault
 import com.tomandy.palmclaw.skill.SkillRepository
 import com.tomandy.palmclaw.workspace.MemoryPlugin
@@ -32,7 +37,12 @@ class PluginCoordinator(
     private val configRegistry: ConfigRegistry,
     private val skillRepository: SkillRepository,
     private val messageDao: MessageDao,
-    private val conversationDao: ConversationDao
+    private val conversationDao: ConversationDao,
+    private val agentProfileRepository: AgentProfileRepository,
+    private val llmClientProvider: LlmClientProvider,
+    private val modelPreferences: ModelPreferences,
+    private val database: AppDatabase,
+    private val messageStore: MessageStore
 ) {
     suspend fun initializePlugins() {
         registerBuiltInPlugins()
@@ -131,6 +141,33 @@ class PluginCoordinator(
                 instance = searchPlugin
             )
         )
+
+        // Register agent delegation plugin (only if there are non-main profiles)
+        try {
+            agentProfileRepository.reload()
+            val profiles = agentProfileRepository.profiles.value
+            val delegatable = profiles.filter { it.name != "main" }
+            if (delegatable.isNotEmpty()) {
+                val delegatePlugin = DelegateAgentPlugin(
+                    agentProfileRepository = agentProfileRepository,
+                    llmClientProvider = llmClientProvider,
+                    toolRegistry = toolRegistry,
+                    messageStore = messageStore,
+                    modelPreferences = modelPreferences,
+                    database = database,
+                    skillRepository = skillRepository,
+                    filesDir = context.filesDir
+                )
+                toolRegistry.registerPlugin(
+                    LoadedPlugin(
+                        metadata = DelegateAgentPluginMetadata.get(profiles),
+                        instance = delegatePlugin
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     /**

@@ -4,7 +4,10 @@ import android.content.Context
 import android.util.Log
 import java.io.File
 
-class SkillLoader(private val context: Context) {
+class SkillLoader(
+    private val context: Context,
+    private val userSkillsDir: File
+) {
 
     /**
      * Load bundled skills from assets/skills/{skill-name}/SKILL.md
@@ -35,10 +38,9 @@ class SkillLoader(private val context: Context) {
     }
 
     /**
-     * Load user-installed skills from files/user_skills/{skill-name}/SKILL.md
+     * Load user-installed skills from {userSkillsDir}/{skill-name}/SKILL.md
      */
     fun loadUserSkills(): List<SkillEntry> {
-        val userSkillsDir = File(context.filesDir, "user_skills")
         if (!userSkillsDir.exists()) return emptyList()
 
         return userSkillsDir.listFiles()

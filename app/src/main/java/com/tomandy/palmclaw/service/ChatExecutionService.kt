@@ -20,6 +20,7 @@ import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.llm.LlmProvider
 import com.tomandy.palmclaw.llm.Message
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
+import com.tomandy.palmclaw.skill.SkillRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -41,6 +42,7 @@ class ChatExecutionService : Service(), KoinComponent {
     private val messageStore: MessageStore by inject()
     private val modelPreferences: ModelPreferences by inject()
     private val database: AppDatabase by inject()
+    private val skillRepository: SkillRepository by inject()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -89,6 +91,7 @@ class ChatExecutionService : Service(), KoinComponent {
         ChatExecutionTracker.markActive(conversationId)
 
         val job = serviceScope.launch {
+            skillRepository.reload()
             try {
                 val selectedModel = modelPreferences.getSelectedModel()
                     ?: modelPreferences.getModel(llmClientProvider.selectedProvider.value)
@@ -237,6 +240,7 @@ class ChatExecutionService : Service(), KoinComponent {
         ChatExecutionTracker.markActive(conversationId)
 
         val job = serviceScope.launch {
+            skillRepository.reload()
             try {
                 val selectedModel = modelPreferences.getSelectedModel()
                     ?: modelPreferences.getModel(llmClientProvider.selectedProvider.value)

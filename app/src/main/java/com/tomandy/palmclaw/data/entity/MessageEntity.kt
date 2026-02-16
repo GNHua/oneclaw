@@ -28,5 +28,6 @@ data class MessageEntity(
     // Tool support fields
     val toolCallId: String? = null,    // Links tool result to assistant's tool call
     val toolName: String? = null,      // Name of tool that was executed
-    val toolCalls: String? = null      // JSON serialized List<ToolCall> for assistant messages
+    val toolCalls: String? = null,      // JSON serialized List<ToolCall> for assistant messages
+    val imagePaths: String? = null       // JSON array of file paths for image attachments
 )

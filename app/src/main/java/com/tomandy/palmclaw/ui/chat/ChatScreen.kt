@@ -1,5 +1,7 @@
 package com.tomandy.palmclaw.ui.chat
 
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,13 +32,18 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +54,10 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalContext
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import com.tomandy.palmclaw.notification.ChatScreenTracker
+import com.tomandy.palmclaw.util.ImageStorageHelper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Main chat screen for the PalmClaw application.
@@ -109,8 +120,27 @@ fun ChatScreen(
     }
 
     var inputText by remember { mutableStateOf("") }
+    val attachedImages = remember { mutableStateListOf<String>() }
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 4)
+    ) { uris ->
+        scope.launch {
+            uris.forEach { uri ->
+                val path = withContext(Dispatchers.IO) {
+                    ImageStorageHelper.copyImageToStorage(context, uri, currentConversationId)
+                }
+                if (path != null) {
+                    attachedImages.add(path)
+                }
+            }
+        }
+    }
 
     // Maintain scroll position when keyboard opens/closes by scrolling the list
     // by exactly the same pixel delta as the keyboard height change.
@@ -211,11 +241,39 @@ fun ChatScreen(
                 value = inputText,
                 onValueChange = { inputText = it },
                 onSend = {
-                    viewModel.sendMessage(inputText)
+                    viewModel.sendMessage(inputText, attachedImages.toList())
                     inputText = ""
+                    attachedImages.clear()
                 },
                 onStop = { viewModel.cancelRequest() },
-                isProcessing = isProcessing
+                onAttachImage = {
+                    // Check clipboard for image first
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clipUri = clipboard.primaryClip?.let { clip ->
+                        if (clip.itemCount > 0) {
+                            val mime = clipboard.primaryClipDescription?.getMimeType(0)
+                            if (mime?.startsWith("image/") == true) clip.getItemAt(0).uri else null
+                        } else null
+                    }
+
+                    if (clipUri != null) {
+                        scope.launch {
+                            val path = withContext(Dispatchers.IO) {
+                                ImageStorageHelper.copyImageToStorage(context, clipUri, currentConversationId)
+                            }
+                            if (path != null) {
+                                attachedImages.add(path)
+                            }
+                        }
+                    } else {
+                        imagePickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }
+                },
+                isProcessing = isProcessing,
+                attachedImages = attachedImages,
+                onRemoveImage = { index -> attachedImages.removeAt(index) }
             )
         }
     }

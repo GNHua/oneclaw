@@ -2,13 +2,20 @@ package com.tomandy.palmclaw.llm
 
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.http.Body
 import retrofit2.http.POST
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runInterruptible
 import java.io.IOException
 import java.net.SocketTimeoutException
 
@@ -70,8 +77,22 @@ class OpenAiClient(
         maxTokens: Int?,
         tools: List<Tool>?
     ): Result<LlmResponse> {
+        val hasImages = messages.any { !it.imageData.isNullOrEmpty() }
+        return if (hasImages) {
+            completeWithImages(messages, model, temperature, maxTokens, tools)
+        } else {
+            completeText(messages, model, temperature, maxTokens, tools)
+        }
+    }
+
+    private suspend fun completeText(
+        messages: List<Message>,
+        model: String,
+        temperature: Float,
+        maxTokens: Int?,
+        tools: List<Tool>?
+    ): Result<LlmResponse> {
         return try {
-            // Use provider's default model if empty
             val modelToUse = model.ifEmpty { "gpt-4o-mini" }
 
             val request = LlmRequest(
@@ -104,6 +125,115 @@ class OpenAiClient(
 
         } catch (e: CancellationException) {
             throw e
+        } catch (e: Exception) {
+            Result.failure(IOException("Unexpected error: ${e.message}", e))
+        }
+    }
+
+    /**
+     * Send a request with image content blocks.
+     * Bypasses Retrofit serialization to build the content-parts array format
+     * required by the OpenAI vision API.
+     */
+    private suspend fun completeWithImages(
+        messages: List<Message>,
+        model: String,
+        temperature: Float,
+        maxTokens: Int?,
+        tools: List<Tool>?
+    ): Result<LlmResponse> = runInterruptible(Dispatchers.IO) {
+        try {
+            val modelToUse = model.ifEmpty { "gpt-4o-mini" }
+
+            val body = buildJsonObject {
+                put("model", modelToUse)
+                put("temperature", temperature)
+                maxTokens?.let { put("max_tokens", it) }
+                put("stream", false)
+
+                put("messages", buildJsonArray {
+                    for (msg in messages) {
+                        add(buildJsonObject {
+                            put("role", msg.role)
+                            if (!msg.imageData.isNullOrEmpty()) {
+                                // Content as array of blocks
+                                put("content", buildJsonArray {
+                                    if (!msg.content.isNullOrBlank()) {
+                                        add(buildJsonObject {
+                                            put("type", "text")
+                                            put("text", msg.content)
+                                        })
+                                    }
+                                    for (img in msg.imageData) {
+                                        add(buildJsonObject {
+                                            put("type", "image_url")
+                                            put("image_url", buildJsonObject {
+                                                put("url", "data:${img.mimeType};base64,${img.base64}")
+                                            })
+                                        })
+                                    }
+                                })
+                            } else {
+                                put("content", msg.content ?: "")
+                            }
+                            // Tool calls for assistant messages
+                            msg.tool_calls?.let { tcs ->
+                                put("tool_calls", NetworkConfig.json.encodeToJsonElement(
+                                    kotlinx.serialization.builtins.ListSerializer(ToolCall.serializer()),
+                                    tcs
+                                ))
+                            }
+                            msg.tool_call_id?.let { put("tool_call_id", it) }
+                            msg.name?.let { put("name", it) }
+                        })
+                    }
+                })
+
+                tools?.takeIf { it.isNotEmpty() }?.let { toolList ->
+                    put("tools", NetworkConfig.json.encodeToJsonElement(
+                        kotlinx.serialization.builtins.ListSerializer(Tool.serializer()),
+                        toolList
+                    ))
+                }
+            }
+
+            val requestBody = body.toString()
+                .toRequestBody("application/json".toMediaType())
+
+            val request = Request.Builder()
+                .url("${baseUrl}chat/completions")
+                .post(requestBody)
+                .addHeader("Authorization", "Bearer $apiKey")
+                .addHeader("Content-Type", "application/json")
+                .build()
+
+            val response = httpClient.newCall(request).execute()
+            val responseBody = response.body?.string()
+
+            if (!response.isSuccessful) {
+                val errorMessage = when (response.code) {
+                    401 -> "Unauthorized: Invalid API key"
+                    429 -> "Rate limit exceeded: ${parseApiError(responseBody)}"
+                    500 -> "Server error: ${parseApiError(responseBody)}"
+                    502, 503, 504 -> "Service unavailable: ${response.code}"
+                    else -> "HTTP error ${response.code}: ${parseApiError(responseBody)}"
+                }
+                return@runInterruptible Result.failure(IOException(errorMessage))
+            }
+
+            if (responseBody == null) {
+                return@runInterruptible Result.failure(IOException("Empty response body"))
+            }
+
+            val llmResponse = NetworkConfig.json.decodeFromString<LlmResponse>(responseBody)
+            Result.success(llmResponse)
+
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: SocketTimeoutException) {
+            Result.failure(IOException("Request timed out: ${e.message}", e))
+        } catch (e: IOException) {
+            Result.failure(IOException("Network error: ${e.message}", e))
         } catch (e: Exception) {
             Result.failure(IOException("Unexpected error: ${e.message}", e))
         }

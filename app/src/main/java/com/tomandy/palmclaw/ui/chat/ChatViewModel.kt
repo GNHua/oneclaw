@@ -10,11 +10,14 @@ import com.tomandy.palmclaw.data.dao.ConversationDao
 import com.tomandy.palmclaw.data.dao.MessageDao
 import com.tomandy.palmclaw.data.entity.ConversationEntity
 import com.tomandy.palmclaw.data.entity.MessageEntity
+import com.tomandy.palmclaw.llm.NetworkConfig
 import com.tomandy.palmclaw.service.ChatExecutionService
 import com.tomandy.palmclaw.service.ChatExecutionTracker
 import com.tomandy.palmclaw.skill.SkillRepository
 import com.tomandy.palmclaw.skill.SlashCommandRouter
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -93,12 +96,12 @@ class ChatViewModel(
         }
     }
 
-    fun sendMessage(text: String) {
-        Log.d("ChatViewModel", "sendMessage called with text: $text")
-        if (text.isBlank()) return
+    fun sendMessage(text: String, imagePaths: List<String> = emptyList()) {
+        Log.d("ChatViewModel", "sendMessage called with text: $text, images: ${imagePaths.size}")
+        if (text.isBlank() && imagePaths.isEmpty()) return
 
         // Handle /summarize command
-        if (text.trim().equals("/summarize", ignoreCase = true)) {
+        if (imagePaths.isEmpty() && text.trim().equals("/summarize", ignoreCase = true)) {
             handleSummarizeCommand(text)
             return
         }
@@ -117,12 +120,12 @@ class ChatViewModel(
                         append(parsedCommand.arguments)
                     }
                 }
-                sendMessageInternal(text, skillMessage)
+                sendMessageInternal(text, skillMessage, imagePaths)
                 return
             }
         }
 
-        sendMessageInternal(text, text)
+        sendMessageInternal(text, text, imagePaths)
     }
 
     /**
@@ -130,8 +133,9 @@ class ChatViewModel(
      *
      * @param displayText Text shown in the chat UI (what the user typed)
      * @param executionText Text sent to the agent (may include skill context)
+     * @param imagePaths File paths of attached images
      */
-    private fun sendMessageInternal(displayText: String, executionText: String) {
+    private fun sendMessageInternal(displayText: String, executionText: String, imagePaths: List<String> = emptyList()) {
         viewModelScope.launch {
             ChatExecutionTracker.clearError(_conversationId.value)
 
@@ -160,13 +164,21 @@ class ChatViewModel(
                 ))
             }
 
+            // Serialize image paths to JSON if present
+            val imagePathsJson = if (imagePaths.isNotEmpty()) {
+                NetworkConfig.json.encodeToString(
+                    ListSerializer(String.serializer()), imagePaths
+                )
+            } else null
+
             // Persist user message (always -- so it shows in the chat immediately)
             val userMessage = MessageEntity(
                 id = UUID.randomUUID().toString(),
                 conversationId = convId,
                 role = "user",
                 content = displayText,
-                timestamp = System.currentTimeMillis()
+                timestamp = System.currentTimeMillis(),
+                imagePaths = imagePathsJson
             )
             messageDao.insert(userMessage)
 
@@ -175,7 +187,7 @@ class ChatViewModel(
                 Log.d("ChatViewModel", "Injecting message into active loop: $executionText")
                 ChatExecutionService.injectMessage(appContext, convId, executionText)
             } else {
-                ChatExecutionService.startExecution(appContext, convId, executionText)
+                ChatExecutionService.startExecution(appContext, convId, executionText, imagePaths)
             }
         }
     }

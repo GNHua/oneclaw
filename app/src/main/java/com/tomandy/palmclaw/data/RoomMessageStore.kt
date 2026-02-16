@@ -22,7 +22,8 @@ class RoomMessageStore(private val messageDao: MessageDao) : MessageStore {
                 timestamp = record.timestamp,
                 toolCallId = record.toolCallId,
                 toolName = record.toolName,
-                toolCalls = record.toolCalls
+                toolCalls = record.toolCalls,
+                imagePaths = record.imagePaths
             )
         )
     }

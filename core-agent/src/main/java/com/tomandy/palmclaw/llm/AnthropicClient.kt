@@ -8,6 +8,8 @@ import com.anthropic.models.messages.MessageCreateParams
 import com.anthropic.models.messages.MessageParam
 import com.anthropic.models.messages.StopReason
 import com.anthropic.models.messages.TextBlockParam
+import com.anthropic.models.messages.Base64ImageSource
+import com.anthropic.models.messages.ImageBlockParam
 import com.anthropic.models.messages.ToolResultBlockParam
 import com.anthropic.models.messages.ToolUseBlockParam
 import kotlinx.coroutines.CancellationException
@@ -183,12 +185,46 @@ class AnthropicClient(
 
             when (msg.role) {
                 "user" -> {
-                    params.add(
-                        MessageParam.builder()
-                            .role(MessageParam.Role.USER)
-                            .content(msg.content ?: "")
-                            .build()
-                    )
+                    if (!msg.imageData.isNullOrEmpty()) {
+                        // Build content blocks with text + images
+                        val contentBlocks = mutableListOf<ContentBlockParam>()
+                        if (!msg.content.isNullOrBlank()) {
+                            contentBlocks.add(
+                                ContentBlockParam.ofText(
+                                    TextBlockParam.builder().text(msg.content).build()
+                                )
+                            )
+                        }
+                        for (img in msg.imageData) {
+                            contentBlocks.add(
+                                ContentBlockParam.ofImage(
+                                    ImageBlockParam.builder()
+                                        .source(
+                                            ImageBlockParam.Source.ofBase64(
+                                                Base64ImageSource.builder()
+                                                    .data(img.base64)
+                                                    .mediaType(toAnthropicMediaType(img.mimeType))
+                                                    .build()
+                                            )
+                                        )
+                                        .build()
+                                )
+                            )
+                        }
+                        params.add(
+                            MessageParam.builder()
+                                .role(MessageParam.Role.USER)
+                                .content(MessageParam.Content.ofBlockParams(contentBlocks))
+                                .build()
+                        )
+                    } else {
+                        params.add(
+                            MessageParam.builder()
+                                .role(MessageParam.Role.USER)
+                                .content(msg.content ?: "")
+                                .build()
+                        )
+                    }
                     i++
                 }
                 "assistant" -> {
@@ -344,6 +380,15 @@ class AnthropicClient(
             JsonValue.from(jsonElementToAny(parsed))
         } catch (e: Exception) {
             JsonValue.from(mapOf<String, Any?>())
+        }
+    }
+
+    private fun toAnthropicMediaType(mimeType: String): Base64ImageSource.MediaType {
+        return when (mimeType) {
+            "image/png" -> Base64ImageSource.MediaType.IMAGE_PNG
+            "image/webp" -> Base64ImageSource.MediaType.IMAGE_WEBP
+            "image/gif" -> Base64ImageSource.MediaType.IMAGE_GIF
+            else -> Base64ImageSource.MediaType.IMAGE_JPEG
         }
     }
 }

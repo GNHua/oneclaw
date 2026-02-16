@@ -46,6 +46,7 @@ class ToolExecutor(
 ) {
     companion object {
         private const val TOOL_EXECUTION_TIMEOUT_MS = 30_000L
+        private const val MAX_STORED_RESULT_LENGTH = 16_384
     }
 
     /**
@@ -123,13 +124,19 @@ class ToolExecutor(
                 is ToolResult.Success -> result.output
                 is ToolResult.Failure -> "Error: ${result.error}"
             }
+            val storedContent = if (resultContent.length > MAX_STORED_RESULT_LENGTH) {
+                resultContent.take(MAX_STORED_RESULT_LENGTH) +
+                    "\n\n[Truncated: ${resultContent.length} chars total]"
+            } else {
+                resultContent
+            }
             Log.d("ToolExecutor", "Saving tool result to database")
 
             val resultMessage = MessageRecord(
                 id = UUID.randomUUID().toString(),
                 conversationId = conversationId,
                 role = "tool",
-                content = resultContent,
+                content = storedContent,
                 toolCallId = toolCall.id,
                 toolName = toolCall.function.name,
                 timestamp = System.currentTimeMillis()

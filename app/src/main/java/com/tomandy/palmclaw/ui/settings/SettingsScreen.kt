@@ -18,6 +18,7 @@ import kotlin.math.roundToInt
 fun SettingsScreen(
     onNavigateToProviders: () -> Unit,
     onNavigateToPlugins: () -> Unit,
+    onNavigateToSkills: () -> Unit,
     modelPreferences: ModelPreferences,
     availableModels: List<Pair<String, LlmProvider>>,
     selectedModel: String,
@@ -105,6 +106,11 @@ fun SettingsScreen(
             title = "Plugins",
             subtitle = "Enable or disable plugins",
             onClick = onNavigateToPlugins
+        )
+        SettingsMenuItem(
+            title = "Skills",
+            subtitle = "Manage skill slash commands",
+            onClick = onNavigateToSkills
         )
 
         Spacer(modifier = Modifier.height(8.dp))

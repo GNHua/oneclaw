@@ -16,6 +16,7 @@ import com.tomandy.palmclaw.workspace.WorkspacePluginMetadata
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.security.CredentialVault
+import com.tomandy.palmclaw.skill.SkillRepository
 
 class PluginCoordinator(
     private val context: Context,
@@ -26,13 +27,15 @@ class PluginCoordinator(
     private val builtInPluginManager: BuiltInPluginManager,
     private val userPluginManager: UserPluginManager,
     private val llmClientProvider: LlmClientProvider,
-    private val modelPreferences: ModelPreferences
+    private val modelPreferences: ModelPreferences,
+    private val skillRepository: SkillRepository
 ) {
     suspend fun initializePlugins() {
         registerBuiltInPlugins()
         registerInstallPluginTool()
         builtInPluginManager.loadBuiltInPlugins()
         userPluginManager.loadAllUserPlugins()
+        skillRepository.loadAll()
     }
 
     fun setPluginEnabled(pluginId: String, enabled: Boolean) {

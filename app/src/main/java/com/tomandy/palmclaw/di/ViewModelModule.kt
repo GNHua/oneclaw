@@ -18,6 +18,8 @@ val viewModelModule = module {
             conversationDao = get(),
             conversationPreferences = get(),
             appContext = androidContext(),
+            slashCommandRouter = get(),
+            skillRepository = get(),
             conversationId = params.getOrNull()
         )
     }

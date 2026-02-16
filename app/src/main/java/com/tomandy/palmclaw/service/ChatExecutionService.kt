@@ -21,6 +21,7 @@ import com.tomandy.palmclaw.llm.LlmProvider
 import com.tomandy.palmclaw.llm.Message
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import com.tomandy.palmclaw.skill.SkillRepository
+import com.tomandy.palmclaw.skill.SystemPromptBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -91,7 +92,6 @@ class ChatExecutionService : Service(), KoinComponent {
         ChatExecutionTracker.markActive(conversationId)
 
         val job = serviceScope.launch {
-            skillRepository.reload()
             try {
                 val selectedModel = modelPreferences.getSelectedModel()
                     ?: modelPreferences.getModel(llmClientProvider.selectedProvider.value)
@@ -149,9 +149,17 @@ class ChatExecutionService : Service(), KoinComponent {
                 coordinator.seedHistory(history, summaryContent)
                 val maxIterations = modelPreferences.getMaxIterations()
 
+                // Reload skills from disk (picks up workspace-created skills)
+                // and augment system prompt with enabled skills
+                skillRepository.reload()
+                val systemPrompt = SystemPromptBuilder.augmentSystemPrompt(
+                    AgentCoordinator.DEFAULT_SYSTEM_PROMPT,
+                    skillRepository.getEnabledSkills()
+                )
+
                 val result = coordinator.execute(
                     userMessage = userMessage,
-                    systemPrompt = AgentCoordinator.DEFAULT_SYSTEM_PROMPT,
+                    systemPrompt = systemPrompt,
                     model = selectedModel,
                     maxIterations = maxIterations
                 )
@@ -240,7 +248,6 @@ class ChatExecutionService : Service(), KoinComponent {
         ChatExecutionTracker.markActive(conversationId)
 
         val job = serviceScope.launch {
-            skillRepository.reload()
             try {
                 val selectedModel = modelPreferences.getSelectedModel()
                     ?: modelPreferences.getModel(llmClientProvider.selectedProvider.value)

@@ -11,7 +11,13 @@ import com.tomandy.palmclaw.data.RoomMessageStore
 import com.tomandy.palmclaw.engine.PluginEngine
 import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.navigation.NavigationState
+import com.tomandy.palmclaw.plugin.ConfigContributor
+import com.tomandy.palmclaw.plugin.ConfigRegistry
 import com.tomandy.palmclaw.plugin.PluginCoordinator
+import com.tomandy.palmclaw.plugin.config.ModelConfigContributor
+import com.tomandy.palmclaw.plugin.config.ModelPreferencesConfigContributor
+import com.tomandy.palmclaw.plugin.config.PluginConfigContributor
+import com.tomandy.palmclaw.plugin.config.SkillConfigContributor
 import com.tomandy.palmclaw.pluginmanager.BuiltInPluginManager
 import com.tomandy.palmclaw.pluginmanager.PluginPreferences
 import com.tomandy.palmclaw.pluginmanager.UserPluginManager
@@ -23,6 +29,7 @@ import com.tomandy.palmclaw.skill.SkillPreferences
 import com.tomandy.palmclaw.skill.SkillRepository
 import com.tomandy.palmclaw.skill.SlashCommandRouter
 import org.koin.android.ext.koin.androidContext
+import org.koin.dsl.bind
 import org.koin.dsl.module
 import com.tomandy.palmclaw.security.CredentialVault as AppCredentialVault
 import com.tomandy.palmclaw.engine.CredentialVault as EngineCredentialVault
@@ -91,6 +98,15 @@ val appModule = module {
         )
     }
 
+    // Config Contributors
+    single { ModelPreferencesConfigContributor(modelPreferences = get()) } bind ConfigContributor::class
+    single { ModelConfigContributor(llmClientProvider = get(), modelPreferences = get()) } bind ConfigContributor::class
+    single { PluginConfigContributor(pluginEngine = get(), pluginPreferences = get(), toolRegistry = get()) } bind ConfigContributor::class
+    single { SkillConfigContributor(skillRepository = get(), skillPreferences = get()) } bind ConfigContributor::class
+
+    // Config Registry
+    single { ConfigRegistry(contributors = getAll()) }
+
     // Plugin Coordinator
     single {
         PluginCoordinator(
@@ -101,10 +117,8 @@ val appModule = module {
             credentialVault = get(),
             builtInPluginManager = get(),
             userPluginManager = get(),
-            llmClientProvider = get(),
-            modelPreferences = get(),
+            configRegistry = get(),
             skillRepository = get(),
-            skillPreferences = get(),
             messageDao = get(),
             conversationDao = get()
         )

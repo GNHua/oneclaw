@@ -19,11 +19,15 @@ data class ConfigEntry(
     val customHandler: (suspend (String) -> ToolResult)? = null
 )
 
-class ConfigRegistry {
+class ConfigRegistry(contributors: List<ConfigContributor>) {
     private val entries = mutableMapOf<String, ConfigEntry>()
 
-    fun register(entry: ConfigEntry) {
-        entries[entry.key] = entry
+    init {
+        for (contributor in contributors) {
+            for (entry in contributor.contribute()) {
+                entries[entry.key] = entry
+            }
+        }
     }
 
     fun get(key: String): ConfigEntry? = entries[key]

@@ -97,7 +97,8 @@ class AgentCoordinator(
         systemPrompt: String = DEFAULT_SYSTEM_PROMPT,
         model: String = "",
         maxIterations: Int = 200,
-        context: ExecutionContext = ExecutionContext.Interactive
+        context: ExecutionContext = ExecutionContext.Interactive,
+        imageData: List<com.tomandy.palmclaw.llm.ImageData>? = null
     ): Result<String> {
         Log.d("AgentCoordinator", "execute called with message: $userMessage, model: $model")
         lastModel = model
@@ -156,11 +157,15 @@ class AgentCoordinator(
                 // Add conversation history
                 addAll(conversationHistory)
 
-                // Add user message (or task instruction in scheduled context)
-                add(Message(role = "user", content = userMessage))
+                // Add user message with images (if any) for the current turn only
+                add(Message(
+                    role = "user",
+                    content = userMessage,
+                    imageData = imageData?.takeIf { it.isNotEmpty() }
+                ))
             }
 
-            // Store user message in history
+            // Store user message in history WITHOUT imageData (avoid keeping large base64 in memory)
             conversationHistory.add(Message(role = "user", content = userMessage))
 
             // Get available tools from registry

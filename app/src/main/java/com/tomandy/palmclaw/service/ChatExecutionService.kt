@@ -16,10 +16,13 @@ import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.data.AppDatabase
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.entity.MessageEntity
+import com.tomandy.palmclaw.llm.ImageData
 import com.tomandy.palmclaw.llm.LlmClientProvider
+import com.tomandy.palmclaw.llm.NetworkConfig
 import com.tomandy.palmclaw.llm.LlmProvider
 import com.tomandy.palmclaw.llm.Message
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
+import com.tomandy.palmclaw.util.ImageStorageHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -49,12 +52,13 @@ class ChatExecutionService : Service(), KoinComponent {
             ACTION_EXECUTE -> {
                 val conversationId = intent.getStringExtra(EXTRA_CONVERSATION_ID)
                 val userMessage = intent.getStringExtra(EXTRA_USER_MESSAGE)
+                val imagePaths = intent.getStringArrayListExtra(EXTRA_IMAGE_PATHS) ?: emptyList()
                 if (conversationId == null || userMessage == null) {
                     stopSelfIfIdle()
                     return START_NOT_STICKY
                 }
                 startForeground(NOTIFICATION_ID, createNotification("Processing message..."))
-                executeChat(conversationId, userMessage)
+                executeChat(conversationId, userMessage, imagePaths)
             }
             ACTION_CANCEL -> {
                 val conversationId = intent.getStringExtra(EXTRA_CONVERSATION_ID)
@@ -85,7 +89,7 @@ class ChatExecutionService : Service(), KoinComponent {
         return START_NOT_STICKY
     }
 
-    private fun executeChat(conversationId: String, userMessage: String) {
+    private fun executeChat(conversationId: String, userMessage: String, imagePaths: List<String> = emptyList()) {
         ChatExecutionTracker.markActive(conversationId)
 
         val job = serviceScope.launch {
@@ -136,8 +140,18 @@ class ChatExecutionService : Service(), KoinComponent {
                 val history = buildList {
                     for (msg in messagesAfterSummary) {
                         when {
-                            msg.role == "user" || msg.role == "assistant" ->
-                                add(Message(role = msg.role, content = msg.content))
+                            msg.role == "user" || msg.role == "assistant" -> {
+                                // Annotate old user messages that had images
+                                val content = if (msg.role == "user" && !msg.imagePaths.isNullOrEmpty()) {
+                                    val count = try {
+                                        NetworkConfig.json.decodeFromString<List<String>>(msg.imagePaths).size
+                                    } catch (_: Exception) { 1 }
+                                    "${msg.content}\n[$count image(s) were attached to this message]"
+                                } else {
+                                    msg.content
+                                }
+                                add(Message(role = msg.role, content = content))
+                            }
                             msg.role == "meta" && msg.toolName == "stopped" ->
                                 add(Message(role = "assistant", content = "[The previous response was cancelled by the user. Do not continue or retry the cancelled task unless explicitly asked.]"))
                         }
@@ -146,11 +160,19 @@ class ChatExecutionService : Service(), KoinComponent {
                 coordinator.seedHistory(history, summaryContent)
                 val maxIterations = modelPreferences.getMaxIterations()
 
+                // Load current message's images as base64
+                val currentImageData = imagePaths.mapNotNull { path ->
+                    ImageStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
+                        ImageData(base64 = base64, mimeType = mime)
+                    }
+                }
+
                 val result = coordinator.execute(
                     userMessage = userMessage,
                     systemPrompt = AgentCoordinator.DEFAULT_SYSTEM_PROMPT,
                     model = selectedModel,
-                    maxIterations = maxIterations
+                    maxIterations = maxIterations,
+                    imageData = currentImageData.takeIf { it.isNotEmpty() }
                 )
 
                 val conversationDao = database.conversationDao()
@@ -348,6 +370,7 @@ class ChatExecutionService : Service(), KoinComponent {
         const val ACTION_SUMMARIZE = "com.tomandy.palmclaw.service.SUMMARIZE_CHAT"
         const val EXTRA_CONVERSATION_ID = "conversation_id"
         const val EXTRA_USER_MESSAGE = "user_message"
+        const val EXTRA_IMAGE_PATHS = "image_paths"
         private const val CHANNEL_ID = "chat_processing_channel"
         private const val NOTIFICATION_ID = 1002
 
@@ -367,11 +390,14 @@ class ChatExecutionService : Service(), KoinComponent {
             job?.cancel()
         }
 
-        fun startExecution(context: Context, conversationId: String, userMessage: String) {
+        fun startExecution(context: Context, conversationId: String, userMessage: String, imagePaths: List<String> = emptyList()) {
             val intent = Intent(context, ChatExecutionService::class.java).apply {
                 action = ACTION_EXECUTE
                 putExtra(EXTRA_CONVERSATION_ID, conversationId)
                 putExtra(EXTRA_USER_MESSAGE, userMessage)
+                if (imagePaths.isNotEmpty()) {
+                    putStringArrayListExtra(EXTRA_IMAGE_PATHS, ArrayList(imagePaths))
+                }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)

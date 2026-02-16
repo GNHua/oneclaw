@@ -26,5 +26,6 @@ data class MessageRecord(
     val timestamp: Long = System.currentTimeMillis(),
     val toolCallId: String? = null,
     val toolName: String? = null,
-    val toolCalls: String? = null
+    val toolCalls: String? = null,
+    val imagePaths: String? = null
 )

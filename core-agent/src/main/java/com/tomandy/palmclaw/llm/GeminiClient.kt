@@ -195,11 +195,19 @@ class GeminiClient(
                     }
                 }
                 "user" -> {
+                    val parts = mutableListOf<Part>()
                     if (!msg.content.isNullOrBlank()) {
+                        parts.add(Part.fromText(msg.content))
+                    }
+                    msg.imageData?.forEach { img ->
+                        val bytes = java.util.Base64.getDecoder().decode(img.base64)
+                        parts.add(Part.fromBytes(bytes, img.mimeType))
+                    }
+                    if (parts.isNotEmpty()) {
                         contents.add(
                             Content.builder()
                                 .role("user")
-                                .parts(Part.fromText(msg.content))
+                                .parts(parts)
                                 .build()
                         )
                     }

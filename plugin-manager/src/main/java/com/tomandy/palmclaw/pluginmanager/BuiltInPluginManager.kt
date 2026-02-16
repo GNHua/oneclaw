@@ -24,7 +24,9 @@ class BuiltInPluginManager(
             "plugins/calculator",
             "plugins/time",
             "plugins/notes",
-            "plugins/echo"
+            "plugins/echo",
+            "plugins/workspace-notes",
+            "plugins/web-fetch"
         )
     }
 

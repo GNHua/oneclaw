@@ -1,0 +1,74 @@
+{
+  "id": "web-fetch",
+  "name": "Web Fetch",
+  "version": "1.0.0",
+  "description": "Fetch content from URLs. Supports GET and POST with headers.",
+  "author": "PalmClaw Team",
+  "entryPoint": "WebFetchPlugin",
+  "tools": [
+    {
+      "name": "http_get",
+      "description": "Fetch content from a URL via HTTP GET",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL to fetch"
+          }
+        },
+        "required": ["url"]
+      }
+    },
+    {
+      "name": "http_post",
+      "description": "Send a POST request to a URL with a JSON body",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL to post to"
+          },
+          "body": {
+            "type": "string",
+            "description": "The request body (JSON string)"
+          }
+        },
+        "required": ["url", "body"]
+      }
+    },
+    {
+      "name": "http_request",
+      "description": "Make an HTTP request with full control over method, headers, and body. Returns status code, headers, and body.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "description": "HTTP method (GET, POST, PUT, PATCH, DELETE)"
+          },
+          "url": {
+            "type": "string",
+            "description": "The URL"
+          },
+          "body": {
+            "type": "string",
+            "description": "Optional request body"
+          },
+          "content_type": {
+            "type": "string",
+            "description": "Content-Type header (default: application/json)"
+          },
+          "headers": {
+            "type": "object",
+            "description": "Optional additional headers as key-value pairs"
+          }
+        },
+        "required": ["method", "url"]
+      }
+    }
+  ],
+  "permissions": [],
+  "dependencies": []
+}

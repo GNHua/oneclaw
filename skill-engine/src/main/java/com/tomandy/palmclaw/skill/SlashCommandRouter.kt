@@ -2,6 +2,8 @@ package com.tomandy.palmclaw.skill
 
 /**
  * Parses slash commands from user input and resolves them to skills.
+ *
+ * Skills use the standard /skill:name format.
  */
 class SlashCommandRouter(private val repository: SkillRepository) {
 

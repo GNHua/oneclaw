@@ -1,11 +1,6 @@
 ---
 name: code-review
 description: Review code for bugs, style issues, and improvements
-command: /review
-enabled: true
-tags:
-  - development
-  - code
 ---
 
 You are an expert code reviewer. Analyze the provided code for:

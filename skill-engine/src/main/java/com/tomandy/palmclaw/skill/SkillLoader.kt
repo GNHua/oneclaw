@@ -19,13 +19,16 @@ class SkillLoader(private val context: Context) {
 
         return skillDirs.mapNotNull { dirName ->
             try {
-                val content = context.assets.open("skills/$dirName/SKILL.md")
+                val assetPath = "skills/$dirName/SKILL.md"
+                val content = context.assets.open(assetPath)
                     .bufferedReader().use { it.readText() }
-                val result = SkillFrontmatterParser.parse(content)
+                val result = SkillFrontmatterParser.parse(content, dirName)
                 SkillEntry(
                     metadata = result.metadata,
                     body = result.body,
-                    source = SkillSource.BUNDLED
+                    source = SkillSource.BUNDLED,
+                    filePath = assetPath,
+                    baseDir = dirName
                 )
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to load bundled skill '$dirName': ${e.message}")
@@ -35,10 +38,13 @@ class SkillLoader(private val context: Context) {
     }
 
     /**
-     * Load user-installed skills from files/user_skills/{skill-name}/SKILL.md
+     * Load workspace skills from files/workspace/skills/{skill-name}/SKILL.md
+     *
+     * These live inside the agent workspace so users can create and edit
+     * skill files via chat using the workspace tools.
      */
     fun loadUserSkills(): List<SkillEntry> {
-        val userSkillsDir = File(context.filesDir, "user_skills")
+        val userSkillsDir = File(context.filesDir, "workspace/skills")
         if (!userSkillsDir.exists()) return emptyList()
 
         return userSkillsDir.listFiles()
@@ -48,11 +54,13 @@ class SkillLoader(private val context: Context) {
                 if (!skillFile.exists()) return@mapNotNull null
                 try {
                     val content = skillFile.readText()
-                    val result = SkillFrontmatterParser.parse(content)
+                    val result = SkillFrontmatterParser.parse(content, dir.name)
                     SkillEntry(
                         metadata = result.metadata,
                         body = result.body,
-                        source = SkillSource.USER
+                        source = SkillSource.USER,
+                        filePath = skillFile.absolutePath,
+                        baseDir = dir.name
                     )
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to load user skill '${dir.name}': ${e.message}")

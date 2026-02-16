@@ -111,6 +111,9 @@ class DelegateAgentPlugin(
                 }
             )
         } finally {
+            // TODO: Before deleting, collect sub-agent's intermediate messages
+            //  (tool calls, tool results, reasoning) and return them alongside the
+            //  final result so the UI can show them in a collapsible block.
             conversationDao.deleteById(tempConversationId)
         }
     }

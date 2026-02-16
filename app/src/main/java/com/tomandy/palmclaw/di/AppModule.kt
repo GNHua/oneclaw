@@ -19,7 +19,6 @@ import com.tomandy.palmclaw.scheduler.AgentExecutor
 import com.tomandy.palmclaw.scheduler.CronjobManager
 import com.tomandy.palmclaw.security.CredentialVaultImpl
 import org.koin.android.ext.koin.androidContext
-import org.koin.dsl.bind
 import org.koin.dsl.module
 import com.tomandy.palmclaw.security.CredentialVault as AppCredentialVault
 import com.tomandy.palmclaw.engine.CredentialVault as EngineCredentialVault

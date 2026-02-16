@@ -2,6 +2,8 @@ package com.tomandy.palmclaw.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -19,6 +21,7 @@ fun SettingsScreen(
     onNavigateToProviders: () -> Unit,
     onNavigateToPlugins: () -> Unit,
     onNavigateToSkills: () -> Unit,
+    onNavigateToBackup: () -> Unit,
     modelPreferences: ModelPreferences,
     availableModels: List<Pair<String, LlmProvider>>,
     selectedModel: String,
@@ -33,6 +36,7 @@ fun SettingsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -111,6 +115,11 @@ fun SettingsScreen(
             title = "Skills",
             subtitle = "Manage skill slash commands",
             onClick = onNavigateToSkills
+        )
+        SettingsMenuItem(
+            title = "Backup & Restore",
+            subtitle = "Export or import app data",
+            onClick = onNavigateToBackup
         )
 
         Spacer(modifier = Modifier.height(8.dp))

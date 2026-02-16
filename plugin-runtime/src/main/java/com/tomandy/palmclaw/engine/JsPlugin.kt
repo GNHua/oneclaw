@@ -6,6 +6,7 @@ import com.dokar.quickjs.binding.function
 import com.dokar.quickjs.binding.asyncFunction
 import com.dokar.quickjs.evaluate
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
@@ -29,7 +30,7 @@ import java.io.File
  * - palmclaw.credentials: Encrypted credential storage (async)
  * - palmclaw.notifications: Android notifications
  * - palmclaw.env: Plugin metadata (pluginId, pluginName, pluginVersion)
- * - palmclaw.log: Logging
+ * - palmclaw.log: Logging (info/error/debug/warn)
  */
 class JsPlugin(
     private val scriptSource: String,
@@ -166,114 +167,114 @@ class JsPlugin(
                 }
             }
 
-            // -- HTTP --
+            // -- HTTP (async to avoid blocking QuickJS dispatcher) --
             define("http") {
-                function<String, String>("get") { url ->
-                    val request = Request.Builder().url(url).build()
-                    context.httpClient.newCall(request).execute().use {
-                        it.body?.string() ?: ""
+                asyncFunction<String, String>("get") { url ->
+                    executeHttp(context) {
+                        Request.Builder().url(url).build()
                     }
                 }
 
-                function("post") { args ->
+                asyncFunction("post") { args ->
                     val url = args[0] as String
                     val body = args[1] as String
                     val contentType = (args.getOrNull(2) as? String) ?: "application/json"
-                    val requestBody = body.toRequestBody(contentType.toMediaType())
-                    val request = Request.Builder().url(url).post(requestBody).build()
-                    context.httpClient.newCall(request).execute().use {
-                        it.body?.string() ?: ""
+                    executeHttp(context) {
+                        Request.Builder().url(url)
+                            .post(body.toRequestBody(contentType.toMediaType()))
+                            .build()
                     }
                 }
 
-                function("put") { args ->
+                asyncFunction("put") { args ->
                     val url = args[0] as String
                     val body = args[1] as String
                     val contentType = (args.getOrNull(2) as? String) ?: "application/json"
-                    val requestBody = body.toRequestBody(contentType.toMediaType())
-                    val request = Request.Builder().url(url).put(requestBody).build()
-                    context.httpClient.newCall(request).execute().use {
-                        it.body?.string() ?: ""
+                    executeHttp(context) {
+                        Request.Builder().url(url)
+                            .put(body.toRequestBody(contentType.toMediaType()))
+                            .build()
                     }
                 }
 
-                function("patch") { args ->
+                asyncFunction("patch") { args ->
                     val url = args[0] as String
                     val body = args[1] as String
                     val contentType = (args.getOrNull(2) as? String) ?: "application/json"
-                    val requestBody = body.toRequestBody(contentType.toMediaType())
-                    val request = Request.Builder().url(url).patch(requestBody).build()
-                    context.httpClient.newCall(request).execute().use {
-                        it.body?.string() ?: ""
+                    executeHttp(context) {
+                        Request.Builder().url(url)
+                            .patch(body.toRequestBody(contentType.toMediaType()))
+                            .build()
                     }
                 }
 
-                function<String, String>("delete") { url ->
-                    val request = Request.Builder().url(url).delete().build()
-                    context.httpClient.newCall(request).execute().use {
-                        it.body?.string() ?: ""
+                asyncFunction<String, String>("delete") { url ->
+                    executeHttp(context) {
+                        Request.Builder().url(url).delete().build()
                     }
                 }
 
-                function("request") { args ->
+                asyncFunction("request") { args ->
                     val method = (args[0] as String).uppercase()
                     val url = args[1] as String
                     val body = args.getOrNull(2) as? String
                     val contentType = (args.getOrNull(3) as? String) ?: "application/json"
                     val headers = args.getOrNull(4)
-                    val builder = Request.Builder().url(url)
-                    if (body != null) {
-                        builder.method(method, body.toRequestBody(contentType.toMediaType()))
-                    } else {
-                        builder.method(method, null)
-                    }
-                    @Suppress("UNCHECKED_CAST")
-                    if (headers is Map<*, *>) {
-                        (headers as Map<String, Any?>).forEach { (k, v) ->
-                            builder.addHeader(k, v.toString())
+                    executeHttp(context) {
+                        val builder = Request.Builder().url(url)
+                        if (body != null) {
+                            builder.method(method, body.toRequestBody(contentType.toMediaType()))
+                        } else {
+                            builder.method(method, null)
                         }
-                    }
-                    context.httpClient.newCall(builder.build()).execute().use {
-                        it.body?.string() ?: ""
+                        @Suppress("UNCHECKED_CAST")
+                        if (headers is Map<*, *>) {
+                            (headers as Map<String, Any?>).forEach { (k, v) ->
+                                builder.addHeader(k, v.toString())
+                            }
+                        }
+                        builder.build()
                     }
                 }
 
-                function("fetch") { args ->
+                asyncFunction("fetch") { args ->
                     val method = (args[0] as String).uppercase()
                     val url = args[1] as String
                     val body = args.getOrNull(2) as? String
                     val contentType = (args.getOrNull(3) as? String) ?: "application/json"
                     val headers = args.getOrNull(4)
-                    val builder = Request.Builder().url(url)
-                    if (body != null) {
-                        builder.method(method, body.toRequestBody(contentType.toMediaType()))
-                    } else {
-                        builder.method(method, null)
-                    }
-                    @Suppress("UNCHECKED_CAST")
-                    if (headers is Map<*, *>) {
-                        (headers as Map<String, Any?>).forEach { (k, v) ->
-                            builder.addHeader(k, v.toString())
+                    withContext(Dispatchers.IO) {
+                        val builder = Request.Builder().url(url)
+                        if (body != null) {
+                            builder.method(method, body.toRequestBody(contentType.toMediaType()))
+                        } else {
+                            builder.method(method, null)
                         }
-                    }
-                    context.httpClient.newCall(builder.build()).execute().use { resp ->
-                        val respHeaders = buildMap {
-                            resp.headers.forEach { (name, value) -> put(name, value) }
+                        @Suppress("UNCHECKED_CAST")
+                        if (headers is Map<*, *>) {
+                            (headers as Map<String, Any?>).forEach { (k, v) ->
+                                builder.addHeader(k, v.toString())
+                            }
                         }
-                        val headersJson = respHeaders.entries.joinToString(",") { (k, v) ->
-                            "\"${k.replace("\"", "\\\"")}\":" +
-                                "\"${v.replace("\"", "\\\"")}\""
+                        context.httpClient.newCall(builder.build()).execute().use { resp ->
+                            val respHeaders = buildMap {
+                                resp.headers.forEach { (name, value) -> put(name, value) }
+                            }
+                            val headersJson = respHeaders.entries.joinToString(",") { (k, v) ->
+                                "\"${k.replace("\"", "\\\"")}\":" +
+                                    "\"${v.replace("\"", "\\\"")}\""
+                            }
+                            val respBody = resp.body?.string() ?: ""
+                            val escapedBody = respBody
+                                .replace("\\", "\\\\")
+                                .replace("\"", "\\\"")
+                                .replace("\n", "\\n")
+                                .replace("\r", "\\r")
+                                .replace("\t", "\\t")
+                            "{\"status\":${resp.code}," +
+                                "\"headers\":{$headersJson}," +
+                                "\"body\":\"$escapedBody\"}"
                         }
-                        val respBody = resp.body?.string() ?: ""
-                        val escapedBody = respBody
-                            .replace("\\", "\\\\")
-                            .replace("\"", "\\\"")
-                            .replace("\n", "\\n")
-                            .replace("\r", "\\r")
-                            .replace("\t", "\\t")
-                        "{\"status\":${resp.code}," +
-                            "\"headers\":{$headersJson}," +
-                            "\"body\":\"$escapedBody\"}"
                     }
                 }
             }
@@ -313,19 +314,27 @@ class JsPlugin(
             }
 
             // -- Logging --
-            function("log") { args ->
-                context.log(
-                    LogLevel.INFO,
-                    args.joinToString(" ") { it?.toString() ?: "null" }
-                )
+            define("log") {
+                function("info") { args ->
+                    context.log(LogLevel.INFO, formatLog(args))
+                }
+
+                function("error") { args ->
+                    context.log(LogLevel.ERROR, formatLog(args))
+                }
+
+                function("debug") { args ->
+                    context.log(LogLevel.DEBUG, formatLog(args))
+                }
+
+                function("warn") { args ->
+                    context.log(LogLevel.WARN, formatLog(args))
+                }
             }
         }
     }
 
     companion object {
-        /**
-         * Resolve a relative path within the workspace root, preventing traversal attacks.
-         */
         private fun resolveSafePath(root: File, relativePath: String): File {
             if (relativePath.startsWith("/")) {
                 throw SecurityException("Absolute paths not allowed: $relativePath")
@@ -336,5 +345,17 @@ class JsPlugin(
             }
             return resolved
         }
+
+        private suspend fun executeHttp(
+            context: PluginContext,
+            buildRequest: () -> Request
+        ): String = withContext(Dispatchers.IO) {
+            context.httpClient.newCall(buildRequest()).execute().use {
+                it.body?.string() ?: ""
+            }
+        }
+
+        private fun formatLog(args: Array<Any?>): String =
+            args.joinToString(" ") { it?.toString() ?: "null" }
     }
 }

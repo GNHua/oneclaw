@@ -108,10 +108,19 @@ class ChatViewModel(
         if (parsedCommand != null) {
             val skill = slashCommandRouter.resolve(parsedCommand)
             if (skill != null) {
+                val body = skillRepository.loadBody(skill)
+                if (body == null) {
+                    _error.value = "Failed to load skill: ${skill.metadata.name}"
+                    return
+                }
+                val location = skill.filePath ?: "skills/${skill.metadata.name}/SKILL.md"
+                val baseDir = skill.baseDir ?: "skills/${skill.metadata.name}"
                 val skillMessage = buildString {
-                    appendLine("<skill-context name=\"${skill.metadata.name}\">")
-                    appendLine(skill.body)
-                    appendLine("</skill-context>")
+                    appendLine("<skill name=\"${skill.metadata.name}\" location=\"$location\">")
+                    appendLine("References are relative to $baseDir.")
+                    appendLine()
+                    appendLine(body)
+                    appendLine("</skill>")
                     if (parsedCommand.arguments.isNotBlank()) {
                         appendLine()
                         append(parsedCommand.arguments)

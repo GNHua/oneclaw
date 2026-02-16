@@ -149,13 +149,19 @@ class ChatExecutionService : Service(), KoinComponent {
                 coordinator.seedHistory(history, summaryContent)
                 val maxIterations = modelPreferences.getMaxIterations()
 
-                // Reload skills from disk (picks up workspace-created skills)
-                // and augment system prompt with enabled skills
+                // Reload skills and augment system prompt (only when
+                // read_file is available so the model can load skill files)
                 skillRepository.reload()
-                val systemPrompt = SystemPromptBuilder.augmentSystemPrompt(
-                    AgentCoordinator.DEFAULT_SYSTEM_PROMPT,
-                    skillRepository.getEnabledSkills()
-                )
+                val enabledSkills = skillRepository.getEnabledSkills()
+                val systemPrompt = if (
+                    toolRegistry.hasTool("read_file") && enabledSkills.isNotEmpty()
+                ) {
+                    SystemPromptBuilder.augmentSystemPrompt(
+                        AgentCoordinator.DEFAULT_SYSTEM_PROMPT, enabledSkills
+                    )
+                } else {
+                    AgentCoordinator.DEFAULT_SYSTEM_PROMPT
+                }
 
                 val result = coordinator.execute(
                     userMessage = userMessage,

@@ -18,9 +18,16 @@ import com.tomandy.palmclaw.pluginmanager.UserPluginManager
 import com.tomandy.palmclaw.scheduler.AgentExecutor
 import com.tomandy.palmclaw.scheduler.CronjobManager
 import com.tomandy.palmclaw.security.CredentialVaultImpl
+import com.tomandy.palmclaw.skill.SkillEligibilityChecker
+import com.tomandy.palmclaw.skill.SkillLoader
+import com.tomandy.palmclaw.skill.SkillPreferences
+import com.tomandy.palmclaw.skill.SkillRepository
+import com.tomandy.palmclaw.skill.SlashCommandRouter
+import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import java.io.File
 import com.tomandy.palmclaw.security.CredentialVault as AppCredentialVault
 import com.tomandy.palmclaw.engine.CredentialVault as EngineCredentialVault
 
@@ -92,6 +99,29 @@ val appModule = module {
         )
     }
 
+    // Skill Engine
+    single { SkillPreferences(androidContext()) }
+    single {
+        SkillLoader(
+            context = androidContext(),
+            userSkillsDir = File(androidContext().filesDir, "workspace/skills")
+        )
+    }
+    single {
+        val vault = get<AppCredentialVault>()
+        SkillEligibilityChecker { provider ->
+            runBlocking { vault.getApiKey(provider) != null }
+        }
+    }
+    single {
+        SkillRepository(
+            loader = get(),
+            preferences = get(),
+            eligibilityChecker = get()
+        ).also { it.loadAll() }
+    }
+    single { SlashCommandRouter(repository = get()) }
+
     // Navigation State
     single { NavigationState() }
 
@@ -103,7 +133,8 @@ val appModule = module {
             toolRegistry = get(),
             toolExecutor = get(),
             messageStore = get(),
-            modelPreferences = get()
+            modelPreferences = get(),
+            skillRepository = get()
         )
     }
 }

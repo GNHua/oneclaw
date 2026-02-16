@@ -5,6 +5,7 @@ import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.entity.ConversationEntity
 import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.scheduler.AgentExecutor
+import com.tomandy.palmclaw.skill.SkillRepository
 import java.util.UUID
 
 class ScheduledAgentExecutor(
@@ -13,7 +14,8 @@ class ScheduledAgentExecutor(
     private val toolRegistry: ToolRegistry,
     private val toolExecutor: ToolExecutor,
     private val messageStore: MessageStore,
-    private val modelPreferences: ModelPreferences
+    private val modelPreferences: ModelPreferences,
+    private val skillRepository: SkillRepository
 ) : AgentExecutor {
 
     override suspend fun executeTask(
@@ -23,6 +25,8 @@ class ScheduledAgentExecutor(
         conversationId: String?
     ): Result<String> {
         return try {
+            skillRepository.reload()
+
             // Use a temporary conversation for agent execution
             // (keeps intermediate tool calls out of the user's conversation)
             val tempConversationId = "scheduled_${cronjobId}_${System.currentTimeMillis()}"

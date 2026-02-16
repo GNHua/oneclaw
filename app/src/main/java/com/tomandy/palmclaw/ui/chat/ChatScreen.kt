@@ -318,6 +318,7 @@ fun ChatScreen(
                 },
                 isProcessing = isProcessing,
                 isRecording = audioState == AudioState.RECORDING || audioState == AudioState.LISTENING,
+                micAvailable = audioInputController.isMicAvailable(llmClientProvider.selectedProvider.value),
                 attachedImages = attachedImages,
                 attachedAudios = attachedAudios,
                 onRemoveImage = { index -> attachedImages.removeAt(index) },

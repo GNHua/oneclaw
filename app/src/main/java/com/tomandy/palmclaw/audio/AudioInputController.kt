@@ -21,6 +21,18 @@ class AudioInputController(
             currentProvider.supportsAudioInput
     }
 
+    /**
+     * Whether the mic button should be available for the current provider + mode.
+     * In ALWAYS_TRANSCRIBE mode, mic is always available (STT works with any provider).
+     * In NATIVE_WHEN_SUPPORTED mode, mic is only available when the provider supports audio.
+     */
+    fun isMicAvailable(currentProvider: LlmProvider): Boolean {
+        return when (modelPreferences.getAudioInputMode()) {
+            ModelPreferences.AudioInputMode.ALWAYS_TRANSCRIBE -> true
+            ModelPreferences.AudioInputMode.NATIVE_WHEN_SUPPORTED -> currentProvider.supportsAudioInput
+        }
+    }
+
     fun startRecording(conversationId: String): String {
         val path = audioRecorder.start(conversationId)
         _state.value = AudioState.RECORDING
@@ -28,9 +40,8 @@ class AudioInputController(
     }
 
     fun stopRecording(): String? {
-        val path = audioRecorder.stop()
         _state.value = AudioState.IDLE
-        return path
+        return audioRecorder.stop()
     }
 
     fun cancelRecording() {

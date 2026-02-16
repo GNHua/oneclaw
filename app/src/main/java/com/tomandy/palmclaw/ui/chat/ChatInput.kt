@@ -68,6 +68,7 @@ fun ChatInput(
     onMicTap: () -> Unit = {},
     isProcessing: Boolean = false,
     isRecording: Boolean = false,
+    micAvailable: Boolean = true,
     attachedImages: List<String> = emptyList(),
     attachedAudios: List<String> = emptyList(),
     onRemoveImage: (Int) -> Unit = {},
@@ -139,7 +140,7 @@ fun ChatInput(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Right-side button: Send (when content), Mic/Stop (when empty)
+            // Right-side button: Send (when content), Mic/Stop (when empty + mic available)
             if (canSend || isProcessing) {
                 IconButton(
                     onClick = onSend,
@@ -155,7 +156,7 @@ fun ChatInput(
                         }
                     )
                 }
-            } else {
+            } else if (micAvailable || isRecording) {
                 // Mic button (or stop-recording button)
                 IconButton(onClick = onMicTap) {
                     Icon(
@@ -166,6 +167,15 @@ fun ChatInput(
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         }
+                    )
+                }
+            } else {
+                // No mic available, show disabled send button as placeholder
+                IconButton(onClick = {}, enabled = false) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send message",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

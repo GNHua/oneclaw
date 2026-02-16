@@ -156,201 +156,41 @@ class ChatExecutionService : Service(), KoinComponent {
                     activeCoordinators[conversationId] = coordinator
                 }
 
-                // Forward agent state to the tracker
                 launch {
                     coordinator.state.collect { state ->
                         ChatExecutionTracker.updateAgentState(conversationId, state)
                     }
                 }
 
-                // Seed history from DB, excluding the latest user message
-                // (it will be passed to execute() separately)
                 val messageDao = database.messageDao()
                 val dbMessages = messageDao.getMessagesOnce(conversationId)
-
-                // Find the latest summary meta message
-                val lastSummaryIndex = dbMessages.indexOfLast {
-                    it.role == "meta" && it.toolName == "summary"
-                }
-                val summaryContent = if (lastSummaryIndex >= 0) {
-                    dbMessages[lastSummaryIndex].content
-                } else null
-
-                // Seed only messages after the last summary (or all if no summary)
-                val messagesAfterSummary = if (lastSummaryIndex >= 0) {
-                    dbMessages.subList(lastSummaryIndex + 1, dbMessages.size)
-                } else {
-                    dbMessages
-                }
-                val history = buildList {
-                    for (msg in messagesAfterSummary) {
-                        when {
-                            msg.role == "user" || msg.role == "assistant" -> {
-                                // Annotate old user messages that had media attachments
-                                var content = msg.content
-                                if (msg.role == "user" && !msg.imagePaths.isNullOrEmpty()) {
-                                    val imageCount = try {
-                                        NetworkConfig.json.decodeFromString<List<String>>(msg.imagePaths).size
-                                    } catch (_: Exception) { 1 }
-                                    content = "$content\n[$imageCount image(s) were attached to this message]"
-                                }
-                                if (msg.role == "user" && !msg.audioPaths.isNullOrEmpty()) {
-                                    val audioCount = try {
-                                        NetworkConfig.json.decodeFromString<List<String>>(msg.audioPaths).size
-                                    } catch (_: Exception) { 1 }
-                                    content = "$content\n[$audioCount audio file(s) were attached to this message]"
-                                }
-                                if (msg.role == "user" && !msg.videoPaths.isNullOrEmpty()) {
-                                    val videoCount = try {
-                                        NetworkConfig.json.decodeFromString<List<String>>(msg.videoPaths).size
-                                    } catch (_: Exception) { 1 }
-                                    content = "$content\n[$videoCount video(s) were attached to this message]"
-                                }
-                                if (msg.role == "user" && !msg.documentPaths.isNullOrEmpty()) {
-                                    val docCount = try {
-                                        NetworkConfig.json.parseToJsonElement(msg.documentPaths)
-                                            .jsonArray.size
-                                    } catch (_: Exception) { 1 }
-                                    content = "$content\n[$docCount document(s) were attached to this message]"
-                                }
-                                add(Message(role = msg.role, content = content))
-                            }
-                            msg.role == "meta" && msg.toolName == "stopped" ->
-                                add(Message(role = "assistant", content = "[The previous response was cancelled by the user. Do not continue or retry the cancelled task unless explicitly asked.]"))
-                        }
-                    }
-                }.dropLast(1)
+                val (summaryContent, lastSummaryIndex) = findLastSummary(dbMessages)
+                val history = buildConversationHistory(dbMessages, lastSummaryIndex)
+                    .dropLast(1) // exclude the latest user message; it's passed to execute() separately
                 coordinator.seedHistory(history, summaryContent)
-                val maxIterations = modelPreferences.getMaxIterations()
-                val temperature = modelPreferences.getTemperature()
+
                 val baseSystemPrompt = profile?.systemPrompt
                     ?: modelPreferences.getSystemPrompt()
-
-                // Reload skills and augment system prompt (only when
-                // read_file is available so the model can load skill files)
-                skillRepository.reload()
-                val enabledSkills = if (profile?.enabledSkills != null) {
-                    val allowed = profile.enabledSkills.toSet()
-                    skillRepository.getEnabledSkills().filter { it.metadata.name in allowed }
-                } else {
-                    skillRepository.getEnabledSkills()
-                }
-                val systemPrompt = if (
-                    toolRegistry.hasTool("read_file") && enabledSkills.isNotEmpty()
-                ) {
-                    SystemPromptBuilder.augmentSystemPrompt(
-                        baseSystemPrompt, enabledSkills
-                    )
-                } else {
-                    baseSystemPrompt
-                }
-
-                // Load memory context and inject into system prompt
-                val workspaceRoot = File(filesDir, "workspace")
-                val memoryContext = MemoryBootstrap.loadMemoryContext(workspaceRoot)
-                val finalSystemPrompt = if (memoryContext.isNotBlank()) {
-                    "$systemPrompt\n\n$memoryContext"
-                } else {
-                    systemPrompt
-                }
-
-                // Load current message's media (images + audio + video + documents) as base64
-                // Text documents are inlined into the message; binary documents (PDF) sent as MediaData
-                var effectiveMessage = userMessage
-                val allMediaData = buildList {
-                    imagePaths.forEach { path ->
-                        ImageStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
-                            add(MediaData(base64 = base64, mimeType = mime))
-                        }
-                    }
-                    audioPaths.forEach { path ->
-                        com.tomandy.palmclaw.util.AudioStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
-                            add(MediaData(base64 = base64, mimeType = mime))
-                        }
-                    }
-                    videoPaths.forEach { path ->
-                        com.tomandy.palmclaw.util.VideoStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
-                            add(MediaData(base64 = base64, mimeType = mime))
-                        }
-                    }
-                    documentPaths.forEachIndexed { index, path ->
-                        val mimeType = documentMimeTypes.getOrNull(index) ?: "application/octet-stream"
-                        val name = documentNames.getOrNull(index) ?: "document"
-                        if (DocumentStorageHelper.isTextFile(mimeType)) {
-                            // Inline text file content into the message
-                            DocumentStorageHelper.readAsText(path)?.let { text ->
-                                effectiveMessage = "$effectiveMessage\n\n--- $name ---\n$text\n---"
-                            }
-                        } else {
-                            // Binary document (PDF) -- send as media
-                            DocumentStorageHelper.readAsBase64(path, mimeType)?.let { (base64, mime) ->
-                                add(MediaData(base64 = base64, mimeType = mime, fileName = name))
-                            }
-                        }
-                    }
-                }
+                val systemPrompt = buildSystemPrompt(baseSystemPrompt, profile)
+                val (effectiveMessage, allMediaData) = loadMediaData(
+                    userMessage, imagePaths, audioPaths, videoPaths,
+                    documentPaths, documentNames, documentMimeTypes
+                )
 
                 val result = coordinator.execute(
                     userMessage = effectiveMessage,
-                    systemPrompt = finalSystemPrompt,
+                    systemPrompt = systemPrompt,
                     model = selectedModel,
-                    maxIterations = maxIterations,
-                    temperature = temperature,
+                    maxIterations = modelPreferences.getMaxIterations(),
+                    temperature = modelPreferences.getTemperature(),
                     mediaData = allMediaData.takeIf { it.isNotEmpty() }
                 )
 
-                val conversationDao = database.conversationDao()
-
-                result.fold(
-                    onSuccess = { response ->
-                        // Persist assistant message
-                        messageDao.insert(
-                            MessageEntity(
-                                id = UUID.randomUUID().toString(),
-                                conversationId = conversationId,
-                                role = "assistant",
-                                content = response,
-                                timestamp = System.currentTimeMillis()
-                            )
-                        )
-
-                        // Update conversation metadata
-                        val conv = conversationDao.getConversationOnce(conversationId)
-                        conv?.let { c ->
-                            conversationDao.update(
-                                c.copy(
-                                    updatedAt = System.currentTimeMillis(),
-                                    messageCount = c.messageCount + 1,
-                                    lastMessagePreview = response.take(100)
-                                )
-                            )
-                        }
-
-                        // Notify if user is not viewing this conversation
-                        ChatNotificationHelper.notifyIfNeeded(
-                            context = applicationContext,
-                            conversationId = conversationId,
-                            conversationTitle = conv?.title ?: "New response",
-                            responseText = response
-                        )
-                    },
-                    onFailure = { e ->
-                        if (e is CancellationException) {
-                            Log.d(TAG, "Execution result indicates cancellation for $conversationId")
-                        } else {
-                            Log.e(TAG, "Agent failure: ${e.message}", e)
-                            ChatExecutionTracker.setError(
-                                conversationId,
-                                e.message ?: "Unknown error"
-                            )
-                        }
-                    }
-                )
+                persistResult(conversationId, result, messageDao)
             } catch (e: CancellationException) {
                 Log.d(TAG, "Execution cancelled for $conversationId")
-                val messageDao = database.messageDao()
                 withContext(NonCancellable) {
-                    messageDao.insert(
+                    database.messageDao().insert(
                         MessageEntity(
                             id = UUID.randomUUID().toString(),
                             conversationId = conversationId,
@@ -379,6 +219,200 @@ class ChatExecutionService : Service(), KoinComponent {
         synchronized(activeJobs) { activeJobs[conversationId] = job }
     }
 
+    // -- executeChat helpers --------------------------------------------------
+
+    private fun findLastSummary(
+        dbMessages: List<MessageEntity>
+    ): Pair<String?, Int> {
+        val index = dbMessages.indexOfLast {
+            it.role == "meta" && it.toolName == "summary"
+        }
+        val content = if (index >= 0) dbMessages[index].content else null
+        return content to index
+    }
+
+    private fun buildConversationHistory(
+        dbMessages: List<MessageEntity>,
+        lastSummaryIndex: Int
+    ): List<Message> {
+        val messagesAfterSummary = if (lastSummaryIndex >= 0) {
+            dbMessages.subList(lastSummaryIndex + 1, dbMessages.size)
+        } else {
+            dbMessages
+        }
+        return buildList {
+            for (msg in messagesAfterSummary) {
+                when {
+                    msg.role == "user" || msg.role == "assistant" -> {
+                        var content = msg.content
+                        if (msg.role == "user") {
+                            content = annotateMediaAttachments(content, msg)
+                        }
+                        add(Message(role = msg.role, content = content))
+                    }
+                    msg.role == "meta" && msg.toolName == "stopped" ->
+                        add(Message(role = "assistant", content = "[The previous response was cancelled by the user. Do not continue or retry the cancelled task unless explicitly asked.]"))
+                }
+            }
+        }
+    }
+
+    private fun annotateMediaAttachments(
+        content: String,
+        msg: MessageEntity
+    ): String {
+        var result = content
+        if (!msg.imagePaths.isNullOrEmpty()) {
+            val count = try {
+                NetworkConfig.json.decodeFromString<List<String>>(msg.imagePaths).size
+            } catch (_: Exception) { 1 }
+            result = "$result\n[$count image(s) were attached to this message]"
+        }
+        if (!msg.audioPaths.isNullOrEmpty()) {
+            val count = try {
+                NetworkConfig.json.decodeFromString<List<String>>(msg.audioPaths).size
+            } catch (_: Exception) { 1 }
+            result = "$result\n[$count audio file(s) were attached to this message]"
+        }
+        if (!msg.videoPaths.isNullOrEmpty()) {
+            val count = try {
+                NetworkConfig.json.decodeFromString<List<String>>(msg.videoPaths).size
+            } catch (_: Exception) { 1 }
+            result = "$result\n[$count video(s) were attached to this message]"
+        }
+        if (!msg.documentPaths.isNullOrEmpty()) {
+            val count = try {
+                NetworkConfig.json.parseToJsonElement(msg.documentPaths)
+                    .jsonArray.size
+            } catch (_: Exception) { 1 }
+            result = "$result\n[$count document(s) were attached to this message]"
+        }
+        return result
+    }
+
+    private fun buildSystemPrompt(
+        basePrompt: String,
+        profile: AgentProfileEntry? = null
+    ): String {
+        skillRepository.reload()
+        val enabledSkills = if (profile?.enabledSkills != null) {
+            val allowed = profile.enabledSkills.toSet()
+            skillRepository.getEnabledSkills().filter { it.metadata.name in allowed }
+        } else {
+            skillRepository.getEnabledSkills()
+        }
+        val withSkills = if (
+            toolRegistry.hasTool("read_file") && enabledSkills.isNotEmpty()
+        ) {
+            SystemPromptBuilder.augmentSystemPrompt(basePrompt, enabledSkills)
+        } else {
+            basePrompt
+        }
+
+        val workspaceRoot = File(filesDir, "workspace")
+        val memoryContext = MemoryBootstrap.loadMemoryContext(workspaceRoot)
+        return if (memoryContext.isNotBlank()) {
+            "$withSkills\n\n$memoryContext"
+        } else {
+            withSkills
+        }
+    }
+
+    private fun loadMediaData(
+        userMessage: String,
+        imagePaths: List<String>,
+        audioPaths: List<String>,
+        videoPaths: List<String>,
+        documentPaths: List<String>,
+        documentNames: List<String>,
+        documentMimeTypes: List<String>
+    ): Pair<String, List<MediaData>> {
+        var effectiveMessage = userMessage
+        val mediaData = buildList {
+            imagePaths.forEach { path ->
+                ImageStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
+                    add(MediaData(base64 = base64, mimeType = mime))
+                }
+            }
+            audioPaths.forEach { path ->
+                com.tomandy.palmclaw.util.AudioStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
+                    add(MediaData(base64 = base64, mimeType = mime))
+                }
+            }
+            videoPaths.forEach { path ->
+                com.tomandy.palmclaw.util.VideoStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
+                    add(MediaData(base64 = base64, mimeType = mime))
+                }
+            }
+            documentPaths.forEachIndexed { index, path ->
+                val mimeType = documentMimeTypes.getOrNull(index) ?: "application/octet-stream"
+                val name = documentNames.getOrNull(index) ?: "document"
+                if (DocumentStorageHelper.isTextFile(mimeType)) {
+                    DocumentStorageHelper.readAsText(path)?.let { text ->
+                        effectiveMessage = "$effectiveMessage\n\n--- $name ---\n$text\n---"
+                    }
+                } else {
+                    DocumentStorageHelper.readAsBase64(path, mimeType)?.let { (base64, mime) ->
+                        add(MediaData(base64 = base64, mimeType = mime, fileName = name))
+                    }
+                }
+            }
+        }
+        return effectiveMessage to mediaData
+    }
+
+    private suspend fun persistResult(
+        conversationId: String,
+        result: Result<String>,
+        messageDao: com.tomandy.palmclaw.data.dao.MessageDao
+    ) {
+        val conversationDao = database.conversationDao()
+        result.fold(
+            onSuccess = { response ->
+                messageDao.insert(
+                    MessageEntity(
+                        id = UUID.randomUUID().toString(),
+                        conversationId = conversationId,
+                        role = "assistant",
+                        content = response,
+                        timestamp = System.currentTimeMillis()
+                    )
+                )
+
+                val conv = conversationDao.getConversationOnce(conversationId)
+                conv?.let { c ->
+                    conversationDao.update(
+                        c.copy(
+                            updatedAt = System.currentTimeMillis(),
+                            messageCount = c.messageCount + 1,
+                            lastMessagePreview = response.take(100)
+                        )
+                    )
+                }
+
+                ChatNotificationHelper.notifyIfNeeded(
+                    context = applicationContext,
+                    conversationId = conversationId,
+                    conversationTitle = conv?.title ?: "New response",
+                    responseText = response
+                )
+            },
+            onFailure = { e ->
+                if (e is CancellationException) {
+                    Log.d(TAG, "Execution result indicates cancellation for $conversationId")
+                } else {
+                    Log.e(TAG, "Agent failure: ${e.message}", e)
+                    ChatExecutionTracker.setError(
+                        conversationId,
+                        e.message ?: "Unknown error"
+                    )
+                }
+            }
+        )
+    }
+
+    // -- Summarization --------------------------------------------------------
+
     private fun executeSummarize(conversationId: String) {
         ChatExecutionTracker.markActive(conversationId)
 
@@ -397,16 +431,9 @@ class ChatExecutionService : Service(), KoinComponent {
                     contextWindow = contextWindow
                 )
 
-                // Seed history from DB (all messages, no "latest" to drop)
                 val messageDao = database.messageDao()
                 val dbMessages = messageDao.getMessagesOnce(conversationId)
-
-                val lastSummaryIndex = dbMessages.indexOfLast {
-                    it.role == "meta" && it.toolName == "summary"
-                }
-                val summaryContent = if (lastSummaryIndex >= 0) {
-                    dbMessages[lastSummaryIndex].content
-                } else null
+                val (summaryContent, lastSummaryIndex) = findLastSummary(dbMessages)
 
                 val messagesAfterSummary = if (lastSummaryIndex >= 0) {
                     dbMessages.subList(lastSummaryIndex + 1, dbMessages.size)

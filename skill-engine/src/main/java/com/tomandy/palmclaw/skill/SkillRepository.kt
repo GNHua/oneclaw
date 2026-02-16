@@ -57,4 +57,12 @@ class SkillRepository(
     fun loadBody(skill: SkillEntry): String? {
         return loader.loadBody(skill)
     }
+
+    /**
+     * Load the raw SKILL.md content (frontmatter + body) without parsing.
+     * Used by the skill editor to display and edit full file content.
+     */
+    fun loadRawContent(skill: SkillEntry): String? {
+        return loader.loadRawContent(skill)
+    }
 }

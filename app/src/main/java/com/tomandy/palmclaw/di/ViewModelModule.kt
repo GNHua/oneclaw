@@ -7,6 +7,7 @@ import com.tomandy.palmclaw.ui.chat.ChatViewModel
 import com.tomandy.palmclaw.ui.cronjobs.CronjobsViewModel
 import com.tomandy.palmclaw.ui.history.ConversationHistoryViewModel
 import com.tomandy.palmclaw.ui.settings.SettingsViewModel
+import com.tomandy.palmclaw.ui.settings.SkillsViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -35,6 +36,15 @@ val viewModelModule = module {
             userPluginManager = get(),
             onApiKeyChanged = { llmClientProvider.reloadApiKeys() },
             onPluginToggled = { id, enabled -> pluginCoordinator.setPluginEnabled(id, enabled) }
+        )
+    }
+
+    viewModel {
+        SkillsViewModel(
+            skillRepository = get(),
+            skillPreferences = get(),
+            userSkillsDir = java.io.File(androidContext().filesDir, "workspace/skills"),
+            navigationState = get()
         )
     }
 

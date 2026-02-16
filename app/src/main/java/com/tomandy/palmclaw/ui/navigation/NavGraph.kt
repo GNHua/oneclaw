@@ -31,12 +31,14 @@ import com.tomandy.palmclaw.ui.settings.PluginsScreen
 import com.tomandy.palmclaw.ui.settings.ProvidersScreen
 import com.tomandy.palmclaw.ui.settings.SettingsScreen
 import com.tomandy.palmclaw.ui.settings.SettingsViewModel
+import com.tomandy.palmclaw.ui.settings.SkillEditorScreen
 import com.tomandy.palmclaw.ui.settings.SkillsScreen
-import com.tomandy.palmclaw.skill.SkillPreferences
-import com.tomandy.palmclaw.skill.SkillRepository
+import com.tomandy.palmclaw.ui.settings.SkillsViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -47,6 +49,7 @@ enum class Screen(val route: String) {
     Providers("settings/providers"),
     Plugins("settings/plugins"),
     Skills("settings/skills"),
+    SkillEditor("settings/skills/editor"),
     Cronjobs("cronjobs"),
     History("history")
 }
@@ -89,6 +92,18 @@ fun PalmClawNavGraph(
             chatViewModel.loadConversation(convId)
             navController.popBackStack(Screen.Chat.route, inclusive = false)
             navigationState.pendingConversationId.value = null
+        }
+    }
+
+    // Handle agent-assisted skill creation/editing
+    val pendingSkillSeed by navigationState.pendingSkillSeed.collectAsState()
+    LaunchedEffect(pendingSkillSeed) {
+        pendingSkillSeed?.let { seed ->
+            chatViewModel.newConversation()
+            kotlinx.coroutines.delay(100)
+            chatViewModel.sendMessage(seed)
+            navController.popBackStack(Screen.Chat.route, inclusive = false)
+            navigationState.pendingSkillSeed.value = null
         }
     }
 
@@ -188,8 +203,7 @@ fun PalmClawNavGraph(
         }
 
         composable(Screen.Skills.route) {
-            val skillRepository: SkillRepository = koinInject()
-            val skillPreferences: SkillPreferences = koinInject()
+            val skillsViewModel: SkillsViewModel = koinViewModel()
 
             Scaffold(
                 topBar = {
@@ -204,14 +218,44 @@ fun PalmClawNavGraph(
                 }
             ) { paddingValues ->
                 SkillsScreen(
-                    skillRepository = skillRepository,
-                    skillPreferences = skillPreferences,
-                    onSkillToggled = { name, enabled ->
-                        skillPreferences.setSkillEnabled(name, enabled)
+                    viewModel = skillsViewModel,
+                    onNavigateToEditor = { skillName ->
+                        val route = if (skillName != null) {
+                            "${Screen.SkillEditor.route}?skillName=$skillName"
+                        } else {
+                            Screen.SkillEditor.route
+                        }
+                        navController.navigate(route)
+                    },
+                    onNavigateToChat = {
+                        navController.popBackStack(Screen.Chat.route, inclusive = false)
                     },
                     modifier = Modifier.padding(paddingValues)
                 )
             }
+        }
+
+        composable(
+            route = "${Screen.SkillEditor.route}?skillName={skillName}",
+            arguments = listOf(
+                navArgument("skillName") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val skillName = backStackEntry.arguments?.getString("skillName")
+            val skillsViewModel: SkillsViewModel = koinViewModel()
+
+            SkillEditorScreen(
+                viewModel = skillsViewModel,
+                skillName = skillName,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToChat = {
+                    navController.popBackStack(Screen.Chat.route, inclusive = false)
+                }
+            )
         }
 
         composable(Screen.Cronjobs.route) {

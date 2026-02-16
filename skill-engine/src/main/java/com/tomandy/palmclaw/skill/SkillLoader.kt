@@ -69,6 +69,24 @@ class SkillLoader(
     }
 
     /**
+     * Load the raw SKILL.md content (frontmatter + body) without parsing.
+     * Used by the skill editor to display and edit full file content.
+     */
+    fun loadRawContent(skill: SkillEntry): String? {
+        val path = skill.filePath ?: return null
+        return try {
+            when (skill.source) {
+                SkillSource.BUNDLED -> context.assets.open(path)
+                    .bufferedReader().use { it.readText() }
+                SkillSource.USER -> File(userSkillsDir.parentFile, path).readText()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to load raw content for skill '${skill.metadata.name}': ${e.message}")
+            null
+        }
+    }
+
+    /**
      * Load the full body of a skill on demand (reads from disk/assets).
      * Returns null if the skill file cannot be read.
      */

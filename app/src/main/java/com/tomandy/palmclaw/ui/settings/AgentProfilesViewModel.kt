@@ -50,13 +50,21 @@ class AgentProfilesViewModel(
         systemPrompt: String,
         model: String?,
         allowedTools: List<String>?,
-        enabledSkills: List<String>?
+        enabledSkills: List<String>?,
+        originalName: String? = null
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val content = buildAgentMd(name, description, model, allowedTools, enabledSkills, systemPrompt)
                 AgentProfileParser.parse(content)
                 userAgentsDir.mkdirs()
+                // Handle rename: delete old file if name changed
+                if (originalName != null && originalName != name) {
+                    File(userAgentsDir, "$originalName.md").delete()
+                    if (modelPreferences.getActiveAgent() == originalName) {
+                        modelPreferences.saveActiveAgent(name)
+                    }
+                }
                 File(userAgentsDir, "$name.md").writeText(content)
                 agentProfileRepository.reload()
             } catch (e: Exception) {

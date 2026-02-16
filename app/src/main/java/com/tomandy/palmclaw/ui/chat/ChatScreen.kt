@@ -102,6 +102,7 @@ fun ChatScreen(
                 Lifecycle.Event.ON_RESUME -> {
                     ChatScreenTracker.activeConversationId = currentConversationId
                     ChatNotificationHelper.dismiss(appContext, currentConversationId)
+                    viewModel.refreshActiveAgent()
                 }
                 Lifecycle.Event.ON_PAUSE -> {
                     ChatScreenTracker.activeConversationId = null
@@ -123,7 +124,7 @@ fun ChatScreen(
     // Agent profile selection
     val agentProfiles by viewModel.agentProfiles.collectAsState()
     val currentProfileId by viewModel.currentProfileId.collectAsState()
-    val currentProfileName = agentProfiles.find { it.name == currentProfileId }?.name
+    val currentProfileName = currentProfileId
     var showAgentPicker by remember { mutableStateOf(false) }
 
     var inputText by remember { mutableStateOf("") }

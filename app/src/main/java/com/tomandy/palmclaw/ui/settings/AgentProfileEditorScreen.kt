@@ -36,6 +36,7 @@ fun AgentProfileEditorScreen(
 
     var isLoaded by remember { mutableStateOf(profileName == null) }
     val isEditing = profileName != null
+    var isBundled by remember { mutableStateOf(false) }
 
     // Load models and existing profile
     LaunchedEffect(profileName) {
@@ -47,6 +48,7 @@ fun AgentProfileEditorScreen(
                 description = profile.description
                 systemPrompt = profile.systemPrompt
                 selectedModel = profile.model
+                isBundled = profile.source == com.tomandy.palmclaw.agent.profile.AgentProfileSource.BUNDLED
                 profile.allowedTools?.let {
                     filterTools = true
                     selectedTools = it.toSet()
@@ -85,7 +87,8 @@ fun AgentProfileEditorScreen(
                                 systemPrompt = systemPrompt.trim(),
                                 model = selectedModel,
                                 allowedTools = allowedTools,
-                                enabledSkills = enabledSkills
+                                enabledSkills = enabledSkills,
+                                originalName = profileName
                             )
                             onNavigateBack()
                         },
@@ -112,7 +115,7 @@ fun AgentProfileEditorScreen(
                     onValueChange = { name = it.lowercase().replace(Regex("[^a-z0-9-]"), "") },
                     label = { Text("Name (kebab-case)") },
                     singleLine = true,
-                    enabled = !isEditing,
+                    enabled = !isBundled,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

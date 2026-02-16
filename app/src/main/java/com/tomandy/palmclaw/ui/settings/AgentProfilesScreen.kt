@@ -48,7 +48,7 @@ fun AgentProfilesScreen(
                     AgentProfileCard(
                         profile = profile,
                         onClick = { onNavigateToEditor(profile.name) },
-                        onDelete = { showDeleteConfirm = profile }
+                        onDelete = if (profile.name != "main") {{ showDeleteConfirm = profile }} else null
                     )
                 }
             }
@@ -92,7 +92,7 @@ fun AgentProfilesScreen(
 private fun AgentProfileCard(
     profile: AgentProfileEntry,
     onClick: () -> Unit,
-    onDelete: () -> Unit,
+    onDelete: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -138,12 +138,14 @@ private fun AgentProfileCard(
                     )
                 }
             }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Delete profile",
-                    tint = MaterialTheme.colorScheme.error
-                )
+            if (onDelete != null) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete profile",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         }
     }

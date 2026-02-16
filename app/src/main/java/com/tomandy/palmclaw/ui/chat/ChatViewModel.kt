@@ -271,6 +271,11 @@ class ChatViewModel(
         _currentProfileId.value = profileId
     }
 
+    fun refreshActiveAgent() {
+        _currentProfileId.value = modelPreferences.getActiveAgent()
+        agentProfileRepository.reload()
+    }
+
     private fun handleSummarizeCommand(text: String) {
         if (_isProcessing.value) {
             _error.value = "Cannot summarize while a message is being processed."

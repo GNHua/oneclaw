@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
 import android.webkit.MimeTypeMap
+import androidx.core.content.FileProvider
 import java.io.File
 import java.util.UUID
 
@@ -58,6 +59,21 @@ object ImageStorageHelper {
         } ?: return null
 
         return file.absolutePath
+    }
+
+    /**
+     * Create a temp image file for camera capture and return (File, Uri via FileProvider).
+     */
+    fun createTempImageFile(context: Context, conversationId: String): Pair<File, Uri> {
+        val dir = File(context.filesDir, "$IMAGES_DIR/$conversationId")
+        dir.mkdirs()
+        val file = File(dir, "${UUID.randomUUID()}.jpg")
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+        return file to uri
     }
 
     /**

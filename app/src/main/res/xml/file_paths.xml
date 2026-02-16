@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <files-path name="chat_images" path="chat_images/" />
+    <files-path name="chat_video" path="chat_video/" />
+</paths>

@@ -62,6 +62,8 @@ import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import com.tomandy.palmclaw.notification.ChatScreenTracker
 import com.tomandy.palmclaw.util.ImageStorageHelper
+import com.tomandy.palmclaw.util.VideoStorageHelper
+import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -117,10 +119,70 @@ fun ChatScreen(
     var inputText by remember { mutableStateOf("") }
     val attachedImages = remember { mutableStateListOf<String>() }
     val attachedAudios = remember { mutableStateListOf<String>() }
+    val attachedVideos = remember { mutableStateListOf<String>() }
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // Camera photo capture
+    var pendingPhotoFile by remember { mutableStateOf<java.io.File?>(null) }
+    var pendingPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val takePhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            pendingPhotoFile?.absolutePath?.let { attachedImages.add(it) }
+        } else {
+            // User cancelled -- clean up empty file
+            pendingPhotoFile?.delete()
+        }
+        pendingPhotoFile = null
+        pendingPhotoUri = null
+    }
+
+    // Camera video capture
+    var pendingVideoFile by remember { mutableStateOf<java.io.File?>(null) }
+    var pendingVideoUri by remember { mutableStateOf<Uri?>(null) }
+    val takeVideoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CaptureVideo()
+    ) { success ->
+        if (success) {
+            pendingVideoFile?.absolutePath?.let { attachedVideos.add(it) }
+        } else {
+            pendingVideoFile?.delete()
+        }
+        pendingVideoFile = null
+        pendingVideoUri = null
+    }
+
+    // Camera permission launcher
+    var pendingCameraAction by remember { mutableStateOf<String?>(null) } // "photo" or "video"
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            when (pendingCameraAction) {
+                "photo" -> {
+                    val (file, uri) = ImageStorageHelper.createTempImageFile(context, currentConversationId)
+                    pendingPhotoFile = file
+                    pendingPhotoUri = uri
+                    takePhotoLauncher.launch(uri)
+                }
+                "video" -> {
+                    val (file, uri) = VideoStorageHelper.createTempVideoFile(context, currentConversationId)
+                    pendingVideoFile = file
+                    pendingVideoUri = uri
+                    takeVideoLauncher.launch(uri)
+                }
+            }
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar("Camera permission is required")
+            }
+        }
+        pendingCameraAction = null
+    }
 
     // RECORD_AUDIO permission launcher
     var pendingMicAction by remember { mutableStateOf(false) }
@@ -148,17 +210,27 @@ fun ChatScreen(
         }
     }
 
-    // Image picker launcher
+    // Media picker launcher (images + videos)
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 4)
     ) { uris ->
         scope.launch {
             uris.forEach { uri ->
-                val path = withContext(Dispatchers.IO) {
-                    ImageStorageHelper.copyImageToStorage(context, uri, currentConversationId)
-                }
-                if (path != null) {
-                    attachedImages.add(path)
+                val mimeType = context.contentResolver.getType(uri)
+                if (mimeType?.startsWith("video/") == true) {
+                    val path = withContext(Dispatchers.IO) {
+                        VideoStorageHelper.copyVideoToStorage(context, uri, currentConversationId)
+                    }
+                    if (path != null) {
+                        attachedVideos.add(path)
+                    }
+                } else {
+                    val path = withContext(Dispatchers.IO) {
+                        ImageStorageHelper.copyImageToStorage(context, uri, currentConversationId)
+                    }
+                    if (path != null) {
+                        attachedImages.add(path)
+                    }
                 }
             }
         }
@@ -262,35 +334,44 @@ fun ChatScreen(
                 value = inputText,
                 onValueChange = { inputText = it },
                 onSend = {
-                    viewModel.sendMessage(inputText, attachedImages.toList(), attachedAudios.toList())
+                    viewModel.sendMessage(inputText, attachedImages.toList(), attachedAudios.toList(), attachedVideos.toList())
                     inputText = ""
                     attachedImages.clear()
                     attachedAudios.clear()
+                    attachedVideos.clear()
                 },
                 onStop = { viewModel.cancelRequest() },
-                onAttachImage = {
-                    // Check clipboard for image first
-                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val clipUri = clipboard.primaryClip?.let { clip ->
-                        if (clip.itemCount > 0) {
-                            val mime = clipboard.primaryClipDescription?.getMimeType(0)
-                            if (mime?.startsWith("image/") == true) clip.getItemAt(0).uri else null
-                        } else null
-                    }
-
-                    if (clipUri != null) {
-                        scope.launch {
-                            val path = withContext(Dispatchers.IO) {
-                                ImageStorageHelper.copyImageToStorage(context, clipUri, currentConversationId)
-                            }
-                            if (path != null) {
-                                attachedImages.add(path)
-                            }
-                        }
+                onPickFromGallery = {
+                    imagePickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
+                    )
+                },
+                onTakePhoto = {
+                    val hasCameraPermission = ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.CAMERA
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (!hasCameraPermission) {
+                        pendingCameraAction = "photo"
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                     } else {
-                        imagePickerLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
+                        val (file, uri) = ImageStorageHelper.createTempImageFile(context, currentConversationId)
+                        pendingPhotoFile = file
+                        pendingPhotoUri = uri
+                        takePhotoLauncher.launch(uri)
+                    }
+                },
+                onTakeVideo = {
+                    val hasCameraPermission = ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.CAMERA
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (!hasCameraPermission) {
+                        pendingCameraAction = "video"
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    } else {
+                        val (file, uri) = VideoStorageHelper.createTempVideoFile(context, currentConversationId)
+                        pendingVideoFile = file
+                        pendingVideoUri = uri
+                        takeVideoLauncher.launch(uri)
                     }
                 },
                 onMicTap = {
@@ -321,11 +402,13 @@ fun ChatScreen(
                 micAvailable = audioInputController.isMicAvailable(llmClientProvider.selectedProvider.value),
                 attachedImages = attachedImages,
                 attachedAudios = attachedAudios,
+                attachedVideos = attachedVideos,
                 onRemoveImage = { index -> attachedImages.removeAt(index) },
                 onRemoveAudio = { index ->
                     attachedAudios.removeAt(index)
                     audioInputController.cancelRecording()
-                }
+                },
+                onRemoveVideo = { index -> attachedVideos.removeAt(index) }
             )
         }
     }

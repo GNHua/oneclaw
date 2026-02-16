@@ -57,12 +57,13 @@ class ChatExecutionService : Service(), KoinComponent {
                 val userMessage = intent.getStringExtra(EXTRA_USER_MESSAGE)
                 val imagePaths = intent.getStringArrayListExtra(EXTRA_IMAGE_PATHS) ?: emptyList()
                 val audioPaths = intent.getStringArrayListExtra(EXTRA_AUDIO_PATHS) ?: emptyList()
+                val videoPaths = intent.getStringArrayListExtra(EXTRA_VIDEO_PATHS) ?: emptyList()
                 if (conversationId == null || userMessage == null) {
                     stopSelfIfIdle()
                     return START_NOT_STICKY
                 }
                 startForeground(NOTIFICATION_ID, createNotification("Processing message..."))
-                executeChat(conversationId, userMessage, imagePaths, audioPaths)
+                executeChat(conversationId, userMessage, imagePaths, audioPaths, videoPaths)
             }
             ACTION_CANCEL -> {
                 val conversationId = intent.getStringExtra(EXTRA_CONVERSATION_ID)
@@ -93,7 +94,7 @@ class ChatExecutionService : Service(), KoinComponent {
         return START_NOT_STICKY
     }
 
-    private fun executeChat(conversationId: String, userMessage: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList()) {
+    private fun executeChat(conversationId: String, userMessage: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList(), videoPaths: List<String> = emptyList()) {
         ChatExecutionTracker.markActive(conversationId)
 
         val job = serviceScope.launch {
@@ -159,6 +160,12 @@ class ChatExecutionService : Service(), KoinComponent {
                                     } catch (_: Exception) { 1 }
                                     content = "$content\n[$audioCount audio file(s) were attached to this message]"
                                 }
+                                if (msg.role == "user" && !msg.videoPaths.isNullOrEmpty()) {
+                                    val videoCount = try {
+                                        NetworkConfig.json.decodeFromString<List<String>>(msg.videoPaths).size
+                                    } catch (_: Exception) { 1 }
+                                    content = "$content\n[$videoCount video(s) were attached to this message]"
+                                }
                                 add(Message(role = msg.role, content = content))
                             }
                             msg.role == "meta" && msg.toolName == "stopped" ->
@@ -185,7 +192,7 @@ class ChatExecutionService : Service(), KoinComponent {
                     baseSystemPrompt
                 }
 
-                // Load current message's media (images + audio) as base64
+                // Load current message's media (images + audio + video) as base64
                 val allMediaData = buildList {
                     imagePaths.forEach { path ->
                         ImageStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
@@ -194,6 +201,11 @@ class ChatExecutionService : Service(), KoinComponent {
                     }
                     audioPaths.forEach { path ->
                         com.tomandy.palmclaw.util.AudioStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
+                            add(MediaData(base64 = base64, mimeType = mime))
+                        }
+                    }
+                    videoPaths.forEach { path ->
+                        com.tomandy.palmclaw.util.VideoStorageHelper.readAsBase64(path)?.let { (base64, mime) ->
                             add(MediaData(base64 = base64, mimeType = mime))
                         }
                     }
@@ -405,6 +417,7 @@ class ChatExecutionService : Service(), KoinComponent {
         const val EXTRA_USER_MESSAGE = "user_message"
         const val EXTRA_IMAGE_PATHS = "image_paths"
         const val EXTRA_AUDIO_PATHS = "audio_paths"
+        const val EXTRA_VIDEO_PATHS = "video_paths"
         private const val CHANNEL_ID = "chat_processing_channel"
         private const val NOTIFICATION_ID = 1002
 
@@ -424,7 +437,7 @@ class ChatExecutionService : Service(), KoinComponent {
             job?.cancel()
         }
 
-        fun startExecution(context: Context, conversationId: String, userMessage: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList()) {
+        fun startExecution(context: Context, conversationId: String, userMessage: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList(), videoPaths: List<String> = emptyList()) {
             val intent = Intent(context, ChatExecutionService::class.java).apply {
                 action = ACTION_EXECUTE
                 putExtra(EXTRA_CONVERSATION_ID, conversationId)
@@ -434,6 +447,9 @@ class ChatExecutionService : Service(), KoinComponent {
                 }
                 if (audioPaths.isNotEmpty()) {
                     putStringArrayListExtra(EXTRA_AUDIO_PATHS, ArrayList(audioPaths))
+                }
+                if (videoPaths.isNotEmpty()) {
+                    putStringArrayListExtra(EXTRA_VIDEO_PATHS, ArrayList(videoPaths))
                 }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

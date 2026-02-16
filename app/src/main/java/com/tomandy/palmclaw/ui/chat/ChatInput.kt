@@ -1,6 +1,7 @@
 package com.tomandy.palmclaw.ui.chat
 
 import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -24,10 +25,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -64,22 +71,26 @@ fun ChatInput(
     onValueChange: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit = {},
-    onAttachImage: () -> Unit = {},
+    onPickFromGallery: () -> Unit = {},
+    onTakePhoto: () -> Unit = {},
+    onTakeVideo: () -> Unit = {},
     onMicTap: () -> Unit = {},
     isProcessing: Boolean = false,
     isRecording: Boolean = false,
     micAvailable: Boolean = true,
     attachedImages: List<String> = emptyList(),
     attachedAudios: List<String> = emptyList(),
+    attachedVideos: List<String> = emptyList(),
     onRemoveImage: (Int) -> Unit = {},
     onRemoveAudio: (Int) -> Unit = {},
+    onRemoveVideo: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val canSend = value.isNotBlank() || attachedImages.isNotEmpty() || attachedAudios.isNotEmpty()
+    val canSend = value.isNotBlank() || attachedImages.isNotEmpty() || attachedAudios.isNotEmpty() || attachedVideos.isNotEmpty()
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Attached previews (images + audio)
-        if (attachedImages.isNotEmpty() || attachedAudios.isNotEmpty()) {
+        // Attached previews (images + audio + video)
+        if (attachedImages.isNotEmpty() || attachedAudios.isNotEmpty() || attachedVideos.isNotEmpty()) {
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -96,6 +107,9 @@ fun ChatInput(
                 itemsIndexed(attachedAudios) { index, path ->
                     AttachedAudioPreview(filePath = path, onRemove = { onRemoveAudio(index) })
                 }
+                itemsIndexed(attachedVideos) { index, path ->
+                    AttachedVideoPreview(filePath = path, onRemove = { onRemoveVideo(index) })
+                }
             }
             Spacer(modifier = Modifier.height(4.dp))
         }
@@ -106,13 +120,36 @@ fun ChatInput(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Attachment button
-            IconButton(onClick = onAttachImage) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Attach image",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            // Attachment button with dropdown menu
+            var menuExpanded by remember { mutableStateOf(false) }
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Attach",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Gallery") },
+                        onClick = { menuExpanded = false; onPickFromGallery() },
+                        leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Take Photo") },
+                        onClick = { menuExpanded = false; onTakePhoto() },
+                        leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Take Video") },
+                        onClick = { menuExpanded = false; onTakeVideo() },
+                        leadingIcon = { Icon(Icons.Default.Videocam, contentDescription = null) }
+                    )
+                }
             }
 
             TextField(
@@ -262,6 +299,90 @@ private fun AttachedImagePreview(
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = "Remove image",
+                tint = MaterialTheme.colorScheme.onError,
+                modifier = Modifier
+                    .size(14.dp)
+                    .padding(2.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AttachedVideoPreview(filePath: String, onRemove: () -> Unit) {
+    var thumbnail by remember(filePath) { mutableStateOf<ImageBitmap?>(null) }
+    var durationText by remember(filePath) { mutableStateOf("") }
+
+    LaunchedEffect(filePath) {
+        withContext(Dispatchers.IO) {
+            try {
+                val retriever = MediaMetadataRetriever()
+                retriever.setDataSource(filePath)
+                val bmp = retriever.getFrameAtTime(0)
+                thumbnail = bmp?.asImageBitmap()
+                val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                    ?.toLongOrNull() ?: 0L
+                val totalSec = durationMs / 1000
+                durationText = "%d:%02d".format(totalSec / 60, totalSec % 60)
+                retriever.release()
+            } catch (_: Exception) {}
+        }
+    }
+
+    Box(modifier = Modifier.size(72.dp)) {
+        thumbnail?.let {
+            Image(
+                bitmap = it,
+                contentDescription = "Video thumbnail",
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+            )
+        } ?: Surface(
+            modifier = Modifier.size(72.dp),
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant
+        ) {}
+
+        // Play icon overlay
+        Icon(
+            imageVector = Icons.Default.PlayArrow,
+            contentDescription = null,
+            modifier = Modifier.size(28.dp).align(Alignment.Center),
+            tint = Color.White
+        )
+
+        // Duration label
+        if (durationText.isNotEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(2.dp),
+                shape = RoundedCornerShape(4.dp),
+                color = Color.Black.copy(alpha = 0.6f)
+            ) {
+                Text(
+                    text = durationText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                )
+            }
+        }
+
+        // Remove button
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(20.dp)
+                .clickable(role = Role.Button, onClick = onRemove),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.error
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Remove video",
                 tint = MaterialTheme.colorScheme.onError,
                 modifier = Modifier
                     .size(14.dp)

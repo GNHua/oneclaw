@@ -10,4 +10,5 @@ data class MediaData(
 ) {
     val isAudio: Boolean get() = mimeType.startsWith("audio/")
     val isImage: Boolean get() = mimeType.startsWith("image/")
+    val isVideo: Boolean get() = mimeType.startsWith("video/")
 }

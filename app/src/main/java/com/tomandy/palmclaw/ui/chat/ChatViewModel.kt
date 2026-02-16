@@ -96,9 +96,9 @@ class ChatViewModel(
         }
     }
 
-    fun sendMessage(text: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList()) {
-        Log.d("ChatViewModel", "sendMessage called with text: $text, images: ${imagePaths.size}, audios: ${audioPaths.size}")
-        if (text.isBlank() && imagePaths.isEmpty() && audioPaths.isEmpty()) return
+    fun sendMessage(text: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList(), videoPaths: List<String> = emptyList()) {
+        Log.d("ChatViewModel", "sendMessage called with text: $text, images: ${imagePaths.size}, audios: ${audioPaths.size}, videos: ${videoPaths.size}")
+        if (text.isBlank() && imagePaths.isEmpty() && audioPaths.isEmpty() && videoPaths.isEmpty()) return
 
         // Handle /summarize command
         if (imagePaths.isEmpty() && text.trim().equals("/summarize", ignoreCase = true)) {
@@ -129,12 +129,12 @@ class ChatViewModel(
                         append(parsedCommand.arguments)
                     }
                 }
-                sendMessageInternal(text, skillMessage, imagePaths, audioPaths)
+                sendMessageInternal(text, skillMessage, imagePaths, audioPaths, videoPaths)
                 return
             }
         }
 
-        sendMessageInternal(text, text, imagePaths, audioPaths)
+        sendMessageInternal(text, text, imagePaths, audioPaths, videoPaths)
     }
 
     /**
@@ -144,12 +144,14 @@ class ChatViewModel(
      * @param executionText Text sent to the agent (may include skill context)
      * @param imagePaths File paths of attached images
      * @param audioPaths File paths of attached audio files
+     * @param videoPaths File paths of attached video files
      */
     private fun sendMessageInternal(
         displayText: String,
         executionText: String,
         imagePaths: List<String> = emptyList(),
-        audioPaths: List<String> = emptyList()
+        audioPaths: List<String> = emptyList(),
+        videoPaths: List<String> = emptyList()
     ) {
         viewModelScope.launch {
             ChatExecutionTracker.clearError(_conversationId.value)
@@ -193,6 +195,13 @@ class ChatViewModel(
                 )
             } else null
 
+            // Serialize video paths to JSON if present
+            val videoPathsJson = if (videoPaths.isNotEmpty()) {
+                NetworkConfig.json.encodeToString(
+                    ListSerializer(String.serializer()), videoPaths
+                )
+            } else null
+
             // Persist user message (always -- so it shows in the chat immediately)
             val userMessage = MessageEntity(
                 id = UUID.randomUUID().toString(),
@@ -201,7 +210,8 @@ class ChatViewModel(
                 content = displayText,
                 timestamp = System.currentTimeMillis(),
                 imagePaths = imagePathsJson,
-                audioPaths = audioPathsJson
+                audioPaths = audioPathsJson,
+                videoPaths = videoPathsJson
             )
             messageDao.insert(userMessage)
 
@@ -210,7 +220,7 @@ class ChatViewModel(
                 Log.d("ChatViewModel", "Injecting message into active loop: $executionText")
                 ChatExecutionService.injectMessage(appContext, convId, executionText)
             } else {
-                ChatExecutionService.startExecution(appContext, convId, executionText, imagePaths, audioPaths)
+                ChatExecutionService.startExecution(appContext, convId, executionText, imagePaths, audioPaths, videoPaths)
             }
         }
     }

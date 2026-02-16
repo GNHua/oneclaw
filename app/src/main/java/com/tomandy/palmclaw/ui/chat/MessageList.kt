@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tomandy.palmclaw.ui.drawScrollbar
+import com.tomandy.palmclaw.ui.rememberLazyListHeightCache
 import com.tomandy.palmclaw.data.entity.MessageEntity
 import kotlinx.coroutines.launch
 
@@ -90,11 +91,12 @@ fun MessageList(
     }
 
     val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+    val heightCache = rememberLazyListHeightCache()
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .drawScrollbar(listState, scrollbarColor),
+            .drawScrollbar(listState, scrollbarColor, heightCache),
         state = listState,
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {

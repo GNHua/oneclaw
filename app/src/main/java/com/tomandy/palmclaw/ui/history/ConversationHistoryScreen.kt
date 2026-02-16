@@ -50,6 +50,7 @@ import com.tomandy.palmclaw.ui.chat.MessageBubble
 import com.tomandy.palmclaw.ui.chat.ToolCallGroupBubble
 import com.tomandy.palmclaw.ui.drawColumnScrollbar
 import com.tomandy.palmclaw.ui.drawScrollbar
+import com.tomandy.palmclaw.ui.rememberLazyListHeightCache
 import kotlinx.coroutines.flow.StateFlow
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -126,13 +127,14 @@ fun ConversationHistoryScreen(
     } else {
         val listState = rememberLazyListState()
         val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+        val heightCache = rememberLazyListHeightCache()
 
         LazyColumn(
             state = listState,
             modifier = modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .drawScrollbar(listState, scrollbarColor),
+                .drawScrollbar(listState, scrollbarColor, heightCache),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item { Spacer(modifier = Modifier.height(8.dp)) }

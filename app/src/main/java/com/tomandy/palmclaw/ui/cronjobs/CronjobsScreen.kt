@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tomandy.palmclaw.scheduler.data.CronjobEntity
 import com.tomandy.palmclaw.ui.drawScrollbar
+import com.tomandy.palmclaw.ui.rememberLazyListHeightCache
 import com.tomandy.palmclaw.scheduler.data.ExecutionLog
 import com.tomandy.palmclaw.scheduler.data.ExecutionStatus
 import com.tomandy.palmclaw.scheduler.data.ScheduleType
@@ -160,6 +161,7 @@ fun CronjobsScreen(
             } else {
                 val listState = rememberLazyListState()
                 val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                val heightCache = rememberLazyListHeightCache()
 
                 LazyColumn(
                     state = listState,
@@ -167,7 +169,7 @@ fun CronjobsScreen(
                         .weight(1f)
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
-                        .drawScrollbar(listState, scrollbarColor),
+                        .drawScrollbar(listState, scrollbarColor, heightCache),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item { Spacer(modifier = Modifier.height(4.dp)) }
@@ -234,6 +236,7 @@ private fun HistorySheetContent(
         } else {
             val listState = rememberLazyListState()
             val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+            val heightCache = rememberLazyListHeightCache()
 
             // Detect scroll near end to trigger loading more
             val shouldLoadMore by remember {
@@ -256,7 +259,7 @@ private fun HistorySheetContent(
                     .fillMaxWidth()
                     .weight(1f, fill = false)
                     .padding(horizontal = 16.dp)
-                    .drawScrollbar(listState, scrollbarColor),
+                    .drawScrollbar(listState, scrollbarColor, heightCache),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(historyCronjobs, key = { it.id }) { cronjob ->

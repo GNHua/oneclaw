@@ -2,6 +2,8 @@ package com.tomandy.palmclaw.ui
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
@@ -12,58 +14,88 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
+ * Persistent cache of measured item heights for a LazyList.
+ * Accumulates actual pixel heights as items become visible, producing
+ * an increasingly accurate total-content-height estimate over time.
+ */
+class LazyListHeightCache {
+    private val heights = mutableMapOf<Int, Int>()
+    private var cachedAvg: Float = 0f
+
+    fun update(visibleItems: List<androidx.compose.foundation.lazy.LazyListItemInfo>) {
+        for (item in visibleItems) {
+            heights[item.index] = item.size
+        }
+        cachedAvg = if (heights.isNotEmpty()) {
+            heights.values.sum().toFloat() / heights.size
+        } else {
+            0f
+        }
+    }
+
+    fun estimateTotalHeight(totalItems: Int): Float {
+        if (heights.isEmpty()) return 0f
+        val avg = cachedAvg.coerceAtLeast(1f)
+        var total = 0f
+        for (i in 0 until totalItems) {
+            total += heights[i]?.toFloat() ?: avg
+        }
+        return total
+    }
+
+    fun estimateOffsetToIndex(index: Int): Float {
+        if (heights.isEmpty()) return 0f
+        val avg = cachedAvg.coerceAtLeast(1f)
+        var offset = 0f
+        for (i in 0 until index) {
+            offset += heights[i]?.toFloat() ?: avg
+        }
+        return offset
+    }
+}
+
+@Composable
+fun rememberLazyListHeightCache(): LazyListHeightCache {
+    return remember { LazyListHeightCache() }
+}
+
+/**
  * Draws a smooth scrollbar for a LazyColumn/LazyRow.
  *
- * Uses pixel-level offset interpolation so the thumb moves continuously
- * instead of jumping between item indices.
+ * Uses a [LazyListHeightCache] to accumulate actual measured item heights,
+ * producing a stable scrollbar that doesn't jump as items scroll in/out.
  */
 fun Modifier.drawScrollbar(
     state: LazyListState,
     color: Color,
+    heightCache: LazyListHeightCache,
     width: Dp = 4.dp
 ): Modifier = drawWithContent {
     drawContent()
     val layoutInfo = state.layoutInfo
     val totalItems = layoutInfo.totalItemsCount
     val visibleItems = layoutInfo.visibleItemsInfo
-    if (totalItems == 0 || visibleItems.size >= totalItems) return@drawWithContent
+    if (totalItems == 0 || visibleItems.isEmpty()) return@drawWithContent
+
+    heightCache.update(visibleItems)
 
     val viewportHeight = size.height
-    val firstVisible = visibleItems.firstOrNull() ?: return@drawWithContent
-    val lastVisible = visibleItems.last()
+    val estimatedTotalHeight = heightCache.estimateTotalHeight(totalItems)
 
-    // Use median visible item height to estimate total content height.
-    // Median is more stable than mean when items have varied sizes.
-    val sortedHeights = visibleItems.map { it.size }.sorted()
-    val medianItemHeight = sortedHeights[sortedHeights.size / 2].coerceAtLeast(1)
-    val estimatedTotalHeight = medianItemHeight.toFloat() * totalItems
+    if (estimatedTotalHeight <= viewportHeight) return@drawWithContent
 
-    // Scrollbar thumb size proportional to viewport vs content
+    // Thumb size proportional to viewport vs content
     val scrollbarHeight = (viewportHeight / estimatedTotalHeight * viewportHeight)
         .coerceAtLeast(24.dp.toPx())
         .coerceAtMost(viewportHeight)
     val scrollRange = viewportHeight - scrollbarHeight
 
-    // Smooth scroll fraction using pixel offset within the first visible item
-    val scrollFraction = when {
-        lastVisible.index >= totalItems - 1 -> {
-            // At the bottom: compute exact fraction from last item's bottom edge
-            val lastItemBottom = lastVisible.offset + lastVisible.size
-            val overshoot = lastItemBottom - viewportHeight
-            if (overshoot <= 0) 1f
-            else 1f // fully scrolled if last item is visible
-        }
-        firstVisible.index == 0 && firstVisible.offset >= 0 -> 0f
-        else -> {
-            val itemFraction = if (firstVisible.size > 0) {
-                (-firstVisible.offset.toFloat() / firstVisible.size)
-            } else {
-                0f
-            }
-            val maxFirstIndex = (totalItems - visibleItems.size).coerceAtLeast(1)
-            ((firstVisible.index + itemFraction) / maxFirstIndex).coerceIn(0f, 1f)
-        }
-    }
+    // Scroll position: accumulated height to first visible + pixel offset within it
+    val firstVisible = visibleItems.first()
+    val scrolledPx = heightCache.estimateOffsetToIndex(firstVisible.index) +
+        (-firstVisible.offset.toFloat())
+    val maxScrollPx = (estimatedTotalHeight - viewportHeight).coerceAtLeast(1f)
+    val scrollFraction = (scrolledPx / maxScrollPx).coerceIn(0f, 1f)
 
     val scrollbarY = scrollFraction * scrollRange
 

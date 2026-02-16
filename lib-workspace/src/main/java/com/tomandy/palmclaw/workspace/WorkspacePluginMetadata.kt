@@ -19,7 +19,8 @@ object WorkspacePluginMetadata {
                 writeFileTool(),
                 editFileTool(),
                 listFilesTool(),
-                execTool()
+                execTool(),
+                javascriptEvalTool()
             )
         )
     }
@@ -175,6 +176,40 @@ object WorkspacePluginMetadata {
             }
             putJsonArray("required") {
                 add(JsonPrimitive("command"))
+            }
+        }
+    )
+
+    private fun javascriptEvalTool() = ToolDefinition(
+        name = "javascript_eval",
+        description = """Evaluate JavaScript code and return the result.
+            |
+            |Use for math, string manipulation, data transformations, JSON
+            |processing, or any computation that needs a real programming language.
+            |The script runs in a sandboxed QuickJS engine with no filesystem,
+            |network, or system access.
+            |
+            |The last expression value is returned. For objects/arrays, they are
+            |automatically JSON-stringified. Multi-statement scripts are supported.
+            |
+            |Examples:
+            |  "1847 * 293 + 17" -> "541388"
+            |  "Math.sqrt(144)" -> "12"
+            |  "JSON.stringify([1,2,3].map(x => x * 2))" -> "[2,4,6]"
+            |  "'hello'.split('').reverse().join('')" -> "olleh"
+        """.trimMargin(),
+        parameters = buildJsonObject {
+            put("type", JsonPrimitive("object"))
+            putJsonObject("properties") {
+                putJsonObject("code") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive(
+                        "JavaScript code to evaluate. The last expression value is returned."
+                    ))
+                }
+            }
+            putJsonArray("required") {
+                add(JsonPrimitive("code"))
             }
         }
     )

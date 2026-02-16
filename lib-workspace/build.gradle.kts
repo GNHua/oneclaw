@@ -34,6 +34,9 @@ dependencies {
     // Plugin Runtime (for Plugin interface)
     implementation(project(":plugin-runtime"))
 
+    // QuickJS (for javascript_eval tool)
+    implementation(libs.quickjs.android)
+
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
 

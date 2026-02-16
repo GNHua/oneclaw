@@ -1,8 +1,11 @@
 package com.tomandy.palmclaw.workspace
 
+import com.dokar.quickjs.QuickJs
+import com.dokar.quickjs.evaluate
 import com.tomandy.palmclaw.engine.Plugin
 import com.tomandy.palmclaw.engine.PluginContext
 import com.tomandy.palmclaw.engine.ToolResult
+import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.*
 import java.io.File
 
@@ -25,6 +28,7 @@ class WorkspacePlugin : Plugin {
             "edit_file" -> editFile(arguments)
             "list_files" -> listFiles(arguments)
             "exec" -> execCommand(arguments)
+            "javascript_eval" -> evalJavascript(arguments)
             else -> ToolResult.Failure("Unknown tool: $toolName")
         }
     }
@@ -159,6 +163,41 @@ class WorkspacePlugin : Plugin {
         } catch (e: Exception) {
             ToolResult.Failure("Failed to execute command: ${e.message}", e)
         }
+    }
+
+    private suspend fun evalJavascript(arguments: JsonObject): ToolResult {
+        val code = arguments["code"]?.jsonPrimitive?.content
+            ?: return ToolResult.Failure("Missing required field: code")
+
+        return try {
+            val js = QuickJs.create(Dispatchers.Default)
+            try {
+                // eval() returns the completion value of the last statement,
+                // so both expressions ("2+2") and multi-statement scripts
+                // ("var x = 5; x * 3") work naturally.
+                val wrapped = "Promise.resolve(eval(${jsStringLiteral(code)}))" +
+                    ".then(function(r) { " +
+                    "globalThis.__evalResult = (typeof r === 'object' && r !== null) " +
+                    "? JSON.stringify(r) : String(r); })"
+                js.evaluate<Any?>(wrapped)
+                val result = js.evaluate<String>("globalThis.__evalResult")
+                ToolResult.Success(output = result)
+            } finally {
+                js.close()
+            }
+        } catch (e: Exception) {
+            ToolResult.Failure("JS evaluation error: ${e.message}", e)
+        }
+    }
+
+    private fun jsStringLiteral(s: String): String {
+        val escaped = s
+            .replace("\\", "\\\\")
+            .replace("'", "\\'")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t")
+        return "'$escaped'"
     }
 
     private fun listFiles(arguments: JsonObject): ToolResult {

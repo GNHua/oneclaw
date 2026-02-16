@@ -35,6 +35,12 @@ class SkillRepository(
     }
 
     /**
+     * Reload all skills from disk. Call before each agent execution
+     * to pick up skills created or edited via workspace file tools.
+     */
+    fun reload() = loadAll()
+
+    /**
      * Find a skill by its /skill:name command.
      */
     fun findByCommand(command: String): SkillEntry? {

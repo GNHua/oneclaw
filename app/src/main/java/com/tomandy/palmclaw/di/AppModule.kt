@@ -18,8 +18,11 @@ import com.tomandy.palmclaw.pluginmanager.UserPluginManager
 import com.tomandy.palmclaw.scheduler.AgentExecutor
 import com.tomandy.palmclaw.scheduler.CronjobManager
 import com.tomandy.palmclaw.security.CredentialVaultImpl
+import com.tomandy.palmclaw.skill.SkillLoader
+import com.tomandy.palmclaw.skill.SkillPreferences
+import com.tomandy.palmclaw.skill.SkillRepository
+import com.tomandy.palmclaw.skill.SlashCommandRouter
 import org.koin.android.ext.koin.androidContext
-import org.koin.dsl.bind
 import org.koin.dsl.module
 import com.tomandy.palmclaw.security.CredentialVault as AppCredentialVault
 import com.tomandy.palmclaw.engine.CredentialVault as EngineCredentialVault
@@ -38,6 +41,12 @@ val appModule = module {
     single { ModelPreferences(androidContext()) }
     single { ConversationPreferences(androidContext()) }
     single { PluginPreferences(androidContext()) }
+
+    // Skills
+    single { SkillPreferences(androidContext()) }
+    single { SkillLoader(androidContext()) }
+    single { SkillRepository(loader = get(), preferences = get()) }
+    single { SlashCommandRouter(repository = get()) }
 
     // Plugin Engine
     single { PluginEngine(androidContext()) }
@@ -88,7 +97,8 @@ val appModule = module {
             builtInPluginManager = get(),
             userPluginManager = get(),
             llmClientProvider = get(),
-            modelPreferences = get()
+            modelPreferences = get(),
+            skillRepository = get()
         )
     }
 

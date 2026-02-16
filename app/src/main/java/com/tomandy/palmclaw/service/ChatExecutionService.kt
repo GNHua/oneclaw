@@ -20,6 +20,8 @@ import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.llm.LlmProvider
 import com.tomandy.palmclaw.llm.Message
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
+import com.tomandy.palmclaw.skill.SkillRepository
+import com.tomandy.palmclaw.skill.SystemPromptBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -41,6 +43,7 @@ class ChatExecutionService : Service(), KoinComponent {
     private val messageStore: MessageStore by inject()
     private val modelPreferences: ModelPreferences by inject()
     private val database: AppDatabase by inject()
+    private val skillRepository: SkillRepository by inject()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -146,9 +149,17 @@ class ChatExecutionService : Service(), KoinComponent {
                 coordinator.seedHistory(history, summaryContent)
                 val maxIterations = modelPreferences.getMaxIterations()
 
+                // Reload skills from disk (picks up workspace-created skills)
+                // and augment system prompt with enabled skills
+                skillRepository.reload()
+                val systemPrompt = SystemPromptBuilder.augmentSystemPrompt(
+                    AgentCoordinator.DEFAULT_SYSTEM_PROMPT,
+                    skillRepository.getEnabledSkills()
+                )
+
                 val result = coordinator.execute(
                     userMessage = userMessage,
-                    systemPrompt = AgentCoordinator.DEFAULT_SYSTEM_PROMPT,
+                    systemPrompt = systemPrompt,
                     model = selectedModel,
                     maxIterations = maxIterations
                 )

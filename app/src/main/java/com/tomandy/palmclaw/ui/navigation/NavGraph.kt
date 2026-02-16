@@ -31,6 +31,9 @@ import com.tomandy.palmclaw.ui.settings.PluginsScreen
 import com.tomandy.palmclaw.ui.settings.ProvidersScreen
 import com.tomandy.palmclaw.ui.settings.SettingsScreen
 import com.tomandy.palmclaw.ui.settings.SettingsViewModel
+import com.tomandy.palmclaw.ui.settings.SkillsScreen
+import com.tomandy.palmclaw.skill.SkillPreferences
+import com.tomandy.palmclaw.skill.SkillRepository
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -43,6 +46,7 @@ enum class Screen(val route: String) {
     Settings("settings"),
     Providers("settings/providers"),
     Plugins("settings/plugins"),
+    Skills("settings/skills"),
     Cronjobs("cronjobs"),
     History("history")
 }
@@ -128,6 +132,9 @@ fun PalmClawNavGraph(
                     onNavigateToPlugins = {
                         navController.navigate(Screen.Plugins.route)
                     },
+                    onNavigateToSkills = {
+                        navController.navigate(Screen.Skills.route)
+                    },
                     modelPreferences = modelPreferences,
                     availableModels = availableModels,
                     selectedModel = selectedModel,
@@ -175,6 +182,33 @@ fun PalmClawNavGraph(
             ) { paddingValues ->
                 PluginsScreen(
                     viewModel = settingsViewModel,
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
+        }
+
+        composable(Screen.Skills.route) {
+            val skillRepository: SkillRepository = koinInject()
+            val skillPreferences: SkillPreferences = koinInject()
+
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Skills") },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            }
+                        }
+                    )
+                }
+            ) { paddingValues ->
+                SkillsScreen(
+                    skillRepository = skillRepository,
+                    skillPreferences = skillPreferences,
+                    onSkillToggled = { name, enabled ->
+                        skillPreferences.setSkillEnabled(name, enabled)
+                    },
                     modifier = Modifier.padding(paddingValues)
                 )
             }

@@ -12,6 +12,8 @@ import com.tomandy.palmclaw.data.entity.ConversationEntity
 import com.tomandy.palmclaw.data.entity.MessageEntity
 import com.tomandy.palmclaw.service.ChatExecutionService
 import com.tomandy.palmclaw.service.ChatExecutionTracker
+import com.tomandy.palmclaw.skill.SkillRepository
+import com.tomandy.palmclaw.skill.SlashCommandRouter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +27,8 @@ class ChatViewModel(
     private val conversationDao: ConversationDao,
     private val conversationPreferences: ConversationPreferences,
     private val appContext: Context,
+    private val slashCommandRouter: SlashCommandRouter,
+    private val skillRepository: SkillRepository,
     conversationId: String? = null
 ) : ViewModel() {
 
@@ -99,6 +103,35 @@ class ChatViewModel(
             return
         }
 
+        // Handle skill slash commands
+        val parsedCommand = slashCommandRouter.parse(text)
+        if (parsedCommand != null) {
+            val skill = slashCommandRouter.resolve(parsedCommand)
+            if (skill != null) {
+                val skillMessage = buildString {
+                    appendLine("<skill-context name=\"${skill.metadata.name}\">")
+                    appendLine(skill.body)
+                    appendLine("</skill-context>")
+                    if (parsedCommand.arguments.isNotBlank()) {
+                        appendLine()
+                        append(parsedCommand.arguments)
+                    }
+                }
+                sendMessageInternal(text, skillMessage)
+                return
+            }
+        }
+
+        sendMessageInternal(text, text)
+    }
+
+    /**
+     * Send a message to the agent.
+     *
+     * @param displayText Text shown in the chat UI (what the user typed)
+     * @param executionText Text sent to the agent (may include skill context)
+     */
+    private fun sendMessageInternal(displayText: String, executionText: String) {
         viewModelScope.launch {
             ChatExecutionTracker.clearError(_conversationId.value)
 
@@ -107,8 +140,8 @@ class ChatViewModel(
             // Ensure conversation exists in DB (foreign key for messages)
             var conv = conversationDao.getConversationOnce(convId)
             if (conv == null) {
-                val title = text.take(50).let {
-                    if (text.length > 50) "$it..." else it
+                val title = displayText.take(50).let {
+                    if (displayText.length > 50) "$it..." else it
                 }
                 conv = ConversationEntity(
                     id = convId,
@@ -116,14 +149,14 @@ class ChatViewModel(
                     createdAt = System.currentTimeMillis(),
                     updatedAt = System.currentTimeMillis(),
                     messageCount = 1,
-                    lastMessagePreview = text.take(100)
+                    lastMessagePreview = displayText.take(100)
                 )
                 conversationDao.insert(conv)
             } else {
                 conversationDao.update(conv.copy(
                     updatedAt = System.currentTimeMillis(),
                     messageCount = conv.messageCount + 1,
-                    lastMessagePreview = text.take(100)
+                    lastMessagePreview = displayText.take(100)
                 ))
             }
 
@@ -132,17 +165,17 @@ class ChatViewModel(
                 id = UUID.randomUUID().toString(),
                 conversationId = convId,
                 role = "user",
-                content = text,
+                content = displayText,
                 timestamp = System.currentTimeMillis()
             )
             messageDao.insert(userMessage)
 
             // If already processing, inject into the running loop; otherwise start new execution
             if (_isProcessing.value) {
-                Log.d("ChatViewModel", "Injecting message into active loop: $text")
-                ChatExecutionService.injectMessage(appContext, convId, text)
+                Log.d("ChatViewModel", "Injecting message into active loop: $executionText")
+                ChatExecutionService.injectMessage(appContext, convId, executionText)
             } else {
-                ChatExecutionService.startExecution(appContext, convId, text)
+                ChatExecutionService.startExecution(appContext, convId, executionText)
             }
         }
     }

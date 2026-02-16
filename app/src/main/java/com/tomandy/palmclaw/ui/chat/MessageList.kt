@@ -54,13 +54,31 @@ fun MessageList(
             .associateBy { it.toolCallId!! }
     }
 
-    // Filter out tool-role messages — they're shown inline within the assistant's ToolCallsSection
-    val displayedMessages = remember(messages) {
-        messages.filter { it.role != "tool" }
+    // Filter out tool-role messages and group consecutive tool-call-only assistant messages
+    val displayItems = remember(messages) {
+        val filtered = messages.filter { it.role != "tool" }
+        buildList<DisplayItem> {
+            var i = 0
+            while (i < filtered.size) {
+                val msg = filtered[i]
+                if (msg.isToolCallOnly()) {
+                    // Collect consecutive tool-call-only assistant messages
+                    val group = mutableListOf(msg)
+                    while (i + 1 < filtered.size && filtered[i + 1].isToolCallOnly()) {
+                        i++
+                        group.add(filtered[i])
+                    }
+                    add(DisplayItem.ToolGroup(group))
+                } else {
+                    add(DisplayItem.Single(msg))
+                }
+                i++
+            }
+        }
     }
 
     // Total item count including typing indicator
-    val totalItems = displayedMessages.size + if (isProcessing) 1 else 0
+    val totalItems = displayItems.size + if (isProcessing) 1 else 0
 
     // Auto-scroll to bottom when new messages arrive or typing starts
     LaunchedEffect(totalItems) {
@@ -81,31 +99,44 @@ fun MessageList(
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
         items(
-            items = displayedMessages,
-            key = { it.id }
-        ) { message ->
-            if (message.role == "meta" && message.toolName == "stopped") {
-                Text(
-                    text = "[stopped]",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-            } else if (message.role == "meta" && message.toolName == "summary") {
-                SummaryDivider()
-                if (message.content.isNotBlank()) {
-                    MessageBubble(
-                        message = message.copy(role = "assistant"),
+            items = displayItems,
+            key = { it.key }
+        ) { item ->
+            when (item) {
+                is DisplayItem.ToolGroup -> {
+                    ToolCallGroupBubble(
+                        messages = item.messages,
                         toolResults = toolResultsMap
                     )
                 }
-            } else {
-                MessageBubble(
-                    message = message,
-                    toolResults = toolResultsMap
-                )
+                is DisplayItem.Single -> {
+                    val message = item.message
+                    if (message.role == "meta" && message.toolName == "stopped") {
+                        Text(
+                            text = "[stopped]",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                alpha = 0.6f
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                        )
+                    } else if (message.role == "meta" && message.toolName == "summary") {
+                        SummaryDivider()
+                        if (message.content.isNotBlank()) {
+                            MessageBubble(
+                                message = message.copy(role = "assistant"),
+                                toolResults = toolResultsMap
+                            )
+                        }
+                    } else {
+                        MessageBubble(
+                            message = message,
+                            toolResults = toolResultsMap
+                        )
+                    }
+                }
             }
         }
 
@@ -140,5 +171,20 @@ private fun SummaryDivider() {
             modifier = Modifier.weight(1f),
             color = MaterialTheme.colorScheme.outlineVariant
         )
+    }
+}
+
+private fun MessageEntity.isToolCallOnly(): Boolean =
+    role == "assistant" && !toolCalls.isNullOrEmpty() && content.isBlank()
+
+private sealed class DisplayItem {
+    abstract val key: String
+
+    data class Single(val message: MessageEntity) : DisplayItem() {
+        override val key: String get() = message.id
+    }
+
+    data class ToolGroup(val messages: List<MessageEntity>) : DisplayItem() {
+        override val key: String get() = "group_${messages.first().id}"
     }
 }

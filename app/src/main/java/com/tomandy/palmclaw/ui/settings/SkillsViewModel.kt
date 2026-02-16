@@ -131,18 +131,12 @@ class SkillsViewModel(
     }
 
     fun startAgentEditFlow(skill: SkillEntry) {
-        val content = loadRawContent(skill) ?: return
+        val path = "skills/${skill.metadata.name}/SKILL.md"
         val seedPrompt = buildString {
-            appendLine("Help me edit the skill '${skill.metadata.name}'.")
-            appendLine("Here is the current content:")
-            appendLine()
-            appendLine("```")
-            appendLine(content)
-            appendLine("```")
-            appendLine()
-            append("The file is at workspace/skills/${skill.metadata.name}/SKILL.md. ")
-            append("Use the write_file tool to save changes. ")
-            append("What changes would you like to make?")
+            append("Help me edit the skill '${skill.metadata.name}'. ")
+            append("First, read the current content with read_file at path=\"$path\", ")
+            append("then ask me what changes I'd like to make. ")
+            append("Use write_file to save changes when done.")
         }
         navigationState.pendingSkillSeed.value = seedPrompt
     }

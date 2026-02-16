@@ -6,8 +6,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class SkillRepository(
     private val loader: SkillLoader,
-    private val preferences: SkillPreferences,
-    private val eligibilityChecker: SkillEligibilityChecker
+    private val preferences: SkillPreferences
 ) {
     private val _skills = MutableStateFlow<List<SkillEntry>>(emptyList())
     val skills: StateFlow<List<SkillEntry>> = _skills.asStateFlow()
@@ -27,12 +26,11 @@ class SkillRepository(
     }
 
     /**
-     * Get all eligible skills (enabled + requirements met).
+     * Get all enabled skills.
      */
-    fun getEligibleSkills(): List<SkillEntry> {
+    fun getEnabledSkills(): List<SkillEntry> {
         return _skills.value.filter { skill ->
-            preferences.isSkillEnabled(skill.metadata.name, skill.metadata.defaultEnabled) &&
-                eligibilityChecker.isEligible(skill)
+            preferences.isSkillEnabled(skill.metadata.name)
         }
     }
 
@@ -43,12 +41,12 @@ class SkillRepository(
     fun reload() = loadAll()
 
     /**
-     * Find a skill by its slash command.
+     * Find a skill by its /skill:name command.
      */
     fun findByCommand(command: String): SkillEntry? {
-        val eligible = getEligibleSkills()
-        return eligible.find {
-            it.metadata.command.equals(command, ignoreCase = true)
+        val enabled = getEnabledSkills()
+        return enabled.find { skill ->
+            skill.metadata.command.equals(command, ignoreCase = true)
         }
     }
 }

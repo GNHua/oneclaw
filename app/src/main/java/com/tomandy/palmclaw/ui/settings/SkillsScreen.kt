@@ -43,9 +43,7 @@ fun SkillsScreen(
             items(skills, key = { it.metadata.name }) { skill ->
                 SkillCard(
                     skill = skill,
-                    enabled = skillPreferences.isSkillEnabled(
-                        skill.metadata.name, skill.metadata.defaultEnabled
-                    ),
+                    enabled = skillPreferences.isSkillEnabled(skill.metadata.name),
                     onToggle = { enabled ->
                         onSkillToggled(skill.metadata.name, enabled)
                     }

@@ -1,34 +1,36 @@
 package com.tomandy.palmclaw.skill
 
+import android.util.Log
+
 /**
- * Parses SKILL.md files with YAML frontmatter.
+ * Parses SKILL.md files with YAML frontmatter per the Agent Skills standard.
  *
  * Expected format:
  * ```
  * ---
  * name: skill-name
  * description: A short description
- * command: /cmd
- * enabled: true
- * requirements:
- *   - credential: Anthropic
- * tags:
- *   - development
- *   - code
- * tool: null
+ * disable-model-invocation: false
  * ---
  *
  * Markdown body content here...
  * ```
+ *
+ * Standard fields: name, description, disable-model-invocation.
+ * Unknown fields are silently ignored per the Agent Skills standard.
  */
 object SkillFrontmatterParser {
+
+    private const val TAG = "SkillFrontmatterParser"
+    private const val MAX_NAME_LENGTH = 64
+    private val NAME_PATTERN = Regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?\$")
 
     data class ParseResult(
         val metadata: SkillMetadata,
         val body: String
     )
 
-    fun parse(content: String): ParseResult {
+    fun parse(content: String, dirName: String? = null): ParseResult {
         val trimmed = content.trimStart()
         require(trimmed.startsWith("---")) { "SKILL.md must start with ---" }
 
@@ -39,97 +41,71 @@ object SkillFrontmatterParser {
         val frontmatter = afterFirst.substring(0, endIndex)
         val body = afterFirst.substring(endIndex + 4).trimStart('\n', '\r')
 
-        val metadata = parseFrontmatter(frontmatter)
+        val metadata = parseFrontmatter(frontmatter, dirName)
         return ParseResult(metadata, body)
     }
 
-    private fun parseFrontmatter(raw: String): SkillMetadata {
+    private fun parseFrontmatter(raw: String, dirName: String?): SkillMetadata {
         val lines = raw.lines()
 
         var name = ""
         var description = ""
-        var command = ""
-        var enabled = true
-        var tool: String? = null
-        val tags = mutableListOf<String>()
-        val requirements = mutableListOf<SkillRequirement>()
-
-        var currentListKey: String? = null
+        var disableModelInvocation = false
 
         for (line in lines) {
-            // Blank line resets list context
-            if (line.isBlank()) {
-                currentListKey = null
-                continue
-            }
+            if (line.isBlank()) continue
 
-            // Indented line = list item under currentListKey
-            if (line.startsWith("  ") && currentListKey != null) {
-                val item = line.trim()
-                if (item.startsWith("- ")) {
-                    val value = item.removePrefix("- ").trim()
-                    when (currentListKey) {
-                        "tags" -> tags.add(value)
-                        "requirements" -> {
-                            // Format: credential: ProviderName
-                            if (value.startsWith("credential:")) {
-                                val provider = value.removePrefix("credential:").trim()
-                                if (provider.isNotEmpty()) {
-                                    requirements.add(SkillRequirement.Credential(provider))
-                                }
-                            }
-                        }
-                    }
-                }
-                continue
-            }
-
-            // Top-level key: value
             val colonIndex = line.indexOf(':')
-            if (colonIndex < 0) {
-                currentListKey = null
-                continue
-            }
+            if (colonIndex < 0) continue
 
             val key = line.substring(0, colonIndex).trim()
             val value = line.substring(colonIndex + 1).trim()
-
-            // If value is empty, this starts a list
-            if (value.isEmpty()) {
-                currentListKey = key
-                continue
-            }
-
-            currentListKey = null
+            if (value.isEmpty()) continue
 
             when (key) {
                 "name" -> name = unquote(value)
                 "description" -> description = unquote(value)
-                "command" -> command = unquote(value)
-                "enabled" -> enabled = value.toBooleanStrictOrNull() ?: true
-                "tool" -> tool = if (value == "null" || value.isEmpty()) null else unquote(value)
+                "disable-model-invocation" ->
+                    disableModelInvocation = value.toBooleanStrictOrNull() ?: false
             }
         }
 
         require(name.isNotBlank()) { "Skill name is required" }
         require(description.isNotBlank()) { "Skill description is required" }
-        require(command.isNotBlank()) { "Skill command is required" }
+
+        validateName(name, dirName)
 
         return SkillMetadata(
             name = name,
             description = description,
-            command = if (command.startsWith("/")) command else "/$command",
-            defaultEnabled = enabled,
-            requirements = requirements,
-            tags = tags,
-            tool = tool
+            disableModelInvocation = disableModelInvocation
         )
+    }
+
+    private fun validateName(name: String, dirName: String?) {
+        if (name.length > MAX_NAME_LENGTH) {
+            Log.w(TAG, "Skill name '$name' exceeds $MAX_NAME_LENGTH characters (${name.length})")
+        }
+        if (!NAME_PATTERN.matches(name)) {
+            Log.w(
+                TAG,
+                "Skill name '$name' does not match standard pattern " +
+                    "(lowercase a-z, 0-9, hyphens; no leading/trailing/consecutive hyphens)"
+            )
+        }
+        if (name.contains("--")) {
+            Log.w(TAG, "Skill name '$name' contains consecutive hyphens")
+        }
+        if (dirName != null && name != dirName) {
+            Log.w(TAG, "Skill name '$name' does not match parent directory '$dirName'")
+        }
     }
 
     private fun unquote(value: String): String {
         if (value.length >= 2) {
             if ((value.startsWith("\"") && value.endsWith("\"")) ||
-                (value.startsWith("'") && value.endsWith("'"))) {
+                (value.startsWith("'") && value.endsWith("'"))
+            ) {
                 return value.substring(1, value.length - 1)
             }
         }

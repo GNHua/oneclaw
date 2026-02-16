@@ -22,13 +22,16 @@ class SkillLoader(
 
         return skillDirs.mapNotNull { dirName ->
             try {
-                val content = context.assets.open("skills/$dirName/SKILL.md")
+                val assetPath = "skills/$dirName/SKILL.md"
+                val content = context.assets.open(assetPath)
                     .bufferedReader().use { it.readText() }
-                val result = SkillFrontmatterParser.parse(content)
+                val result = SkillFrontmatterParser.parse(content, dirName)
                 SkillEntry(
                     metadata = result.metadata,
                     body = result.body,
-                    source = SkillSource.BUNDLED
+                    source = SkillSource.BUNDLED,
+                    filePath = assetPath,
+                    baseDir = dirName
                 )
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to load bundled skill '$dirName': ${e.message}")
@@ -50,11 +53,13 @@ class SkillLoader(
                 if (!skillFile.exists()) return@mapNotNull null
                 try {
                     val content = skillFile.readText()
-                    val result = SkillFrontmatterParser.parse(content)
+                    val result = SkillFrontmatterParser.parse(content, dir.name)
                     SkillEntry(
                         metadata = result.metadata,
                         body = result.body,
-                        source = SkillSource.USER
+                        source = SkillSource.USER,
+                        filePath = skillFile.absolutePath,
+                        baseDir = dir.name
                     )
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to load user skill '${dir.name}': ${e.message}")

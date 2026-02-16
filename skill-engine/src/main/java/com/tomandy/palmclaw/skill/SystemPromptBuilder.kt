@@ -6,7 +6,8 @@ object SystemPromptBuilder {
      * Build the <available_skills> XML block from eligible skills.
      */
     fun buildSkillsBlock(skills: List<SkillEntry>): String {
-        if (skills.isEmpty()) return ""
+        val visibleSkills = skills.filter { !it.metadata.disableModelInvocation }
+        if (visibleSkills.isEmpty()) return ""
 
         val sb = StringBuilder()
         sb.appendLine()
@@ -14,10 +15,13 @@ object SystemPromptBuilder {
         sb.appendLine("When a skill is invoked, you will receive its instructions as context.")
         sb.appendLine()
         sb.appendLine("<available_skills>")
-        for (skill in skills) {
-            sb.append("  <skill name=\"${escapeXml(skill.metadata.name)}\"")
-            sb.appendLine(" command=\"${escapeXml(skill.metadata.command)}\">")
+        for (skill in visibleSkills) {
+            sb.appendLine("  <skill>")
+            sb.appendLine("    <name>${escapeXml(skill.metadata.name)}</name>")
             sb.appendLine("    <description>${escapeXml(skill.metadata.description)}</description>")
+            if (skill.filePath != null) {
+                sb.appendLine("    <location>${escapeXml(skill.filePath)}</location>")
+            }
             sb.appendLine("  </skill>")
         }
         sb.appendLine("</available_skills>")

@@ -14,7 +14,7 @@ class WorkspaceOperationsTest {
     @Before
     fun setUp() {
         workspaceRoot = createTempDir("workspace-test")
-        ops = WorkspaceOperations(workspaceRoot)
+        ops = WorkspaceOperations(workspaceRoot, shellPath = "/bin/sh")
     }
 
     @After
@@ -282,5 +282,90 @@ class WorkspaceOperationsTest {
         val result = ops.listFiles(workspaceRoot)
 
         assertEquals("mydir/", result.entries[0])
+    }
+
+    // --- execCommand ---
+
+    @Test
+    fun `execCommand runs basic command`() {
+        val result = ops.execCommand("echo hello", workspaceRoot, 30)
+
+        assertEquals(0, result.exitCode)
+        assertFalse(result.timedOut)
+        assertTrue(result.output.trim() == "hello")
+    }
+
+    @Test
+    fun `execCommand captures non-zero exit code`() {
+        val result = ops.execCommand("exit 42", workspaceRoot, 30)
+
+        assertEquals(42, result.exitCode)
+        assertFalse(result.timedOut)
+    }
+
+    @Test
+    fun `execCommand times out long-running command`() {
+        val result = ops.execCommand("sleep 30", workspaceRoot, 1)
+
+        assertTrue(result.timedOut)
+        assertEquals(-1, result.exitCode)
+    }
+
+    @Test
+    fun `execCommand respects cwd`() {
+        val subdir = File(workspaceRoot, "mydir")
+        subdir.mkdir()
+        File(subdir, "test.txt").writeText("content")
+
+        val result = ops.execCommand("ls", subdir, 30)
+
+        assertEquals(0, result.exitCode)
+        assertTrue(result.output.contains("test.txt"))
+    }
+
+    @Test
+    fun `execCommand captures stderr`() {
+        val result = ops.execCommand("echo error >&2", workspaceRoot, 30)
+
+        assertEquals(0, result.exitCode)
+        assertTrue(result.output.trim() == "error")
+    }
+
+    @Test
+    fun `execCommand tail-truncates large output`() {
+        // Generate output larger than 16KB
+        val result = ops.execCommand(
+            "yes 'abcdefghijklmnopqrstuvwxyz' | head -n 2000",
+            workspaceRoot, 30
+        )
+
+        assertEquals(0, result.exitCode)
+        assertTrue(result.output.contains("[Truncated:"))
+        // The tail-truncated output should end with the repeated line
+        assertTrue(result.output.contains("abcdefghijklmnopqrstuvwxyz"))
+    }
+
+    @Test
+    fun `execCommand supports pipe chaining`() {
+        val result = ops.execCommand(
+            "printf 'banana\\napple\\ncherry\\n' | sort",
+            workspaceRoot, 30
+        )
+
+        assertEquals(0, result.exitCode)
+        val lines = result.output.trim().lines()
+        assertEquals("apple", lines[0])
+        assertEquals("banana", lines[1])
+        assertEquals("cherry", lines[2])
+    }
+
+    @Test
+    fun `execCommand can access workspace files`() {
+        File(workspaceRoot, "data.txt").writeText("line1\nline2\nline3\n")
+
+        val result = ops.execCommand("wc -l data.txt", workspaceRoot, 30)
+
+        assertEquals(0, result.exitCode)
+        assertTrue(result.output.contains("3"))
     }
 }

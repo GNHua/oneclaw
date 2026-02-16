@@ -45,7 +45,7 @@ class ToolExecutor(
     private val messageStore: MessageStore
 ) {
     companion object {
-        private const val TOOL_EXECUTION_TIMEOUT_MS = 30_000L
+        private const val TOOL_EXECUTION_TIMEOUT_MS = 120_000L
         private const val MAX_STORED_RESULT_LENGTH = 16_384
     }
 

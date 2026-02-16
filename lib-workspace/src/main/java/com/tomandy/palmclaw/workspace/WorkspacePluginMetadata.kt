@@ -18,7 +18,8 @@ object WorkspacePluginMetadata {
                 readFileTool(),
                 writeFileTool(),
                 editFileTool(),
-                listFilesTool()
+                listFilesTool(),
+                execTool()
             )
         )
     }
@@ -130,6 +131,50 @@ object WorkspacePluginMetadata {
                 add(JsonPrimitive("path"))
                 add(JsonPrimitive("old_text"))
                 add(JsonPrimitive("new_text"))
+            }
+        }
+    )
+
+    private fun execTool() = ToolDefinition(
+        name = "exec",
+        description = """Execute a shell command in the workspace directory.
+            |
+            |Runs the command via /system/bin/sh with stdout and stderr merged.
+            |The working directory defaults to the workspace root.
+            |
+            |Available utilities include: ls, cat, cp, mv, rm, mkdir, chmod,
+            |grep, sed, awk, sort, uniq, wc, head, tail, cut, tr, diff, find,
+            |xargs, tee, date, env, sleep, tar, gzip, and pipe chaining.
+            |
+            |Output is tail-truncated to 16KB (most recent output kept).
+            |Default timeout is 30s, max 120s. Process is killed on timeout.
+        """.trimMargin(),
+        parameters = buildJsonObject {
+            put("type", JsonPrimitive("object"))
+            putJsonObject("properties") {
+                putJsonObject("command") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive(
+                        "Shell command to execute (passed to sh -c)"
+                    ))
+                }
+                putJsonObject("timeout") {
+                    put("type", JsonPrimitive("integer"))
+                    put("description", JsonPrimitive(
+                        "Timeout in seconds (default: 30, max: 120)"
+                    ))
+                    put("minimum", JsonPrimitive(1))
+                    put("maximum", JsonPrimitive(120))
+                }
+                putJsonObject("cwd") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive(
+                        "Working directory relative to workspace root (default: workspace root)"
+                    ))
+                }
+            }
+            putJsonArray("required") {
+                add(JsonPrimitive("command"))
             }
         }
     )

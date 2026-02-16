@@ -24,6 +24,7 @@ class WorkspacePlugin : Plugin {
             "write_file" -> writeFile(arguments)
             "edit_file" -> editFile(arguments)
             "list_files" -> listFiles(arguments)
+            "exec" -> execCommand(arguments)
             else -> ToolResult.Failure("Unknown tool: $toolName")
         }
     }
@@ -116,6 +117,47 @@ class WorkspacePlugin : Plugin {
             ToolResult.Failure("Security error: ${e.message}")
         } catch (e: Exception) {
             ToolResult.Failure("Failed to edit file: ${e.message}", e)
+        }
+    }
+
+    private fun execCommand(arguments: JsonObject): ToolResult {
+        return try {
+            val command = arguments["command"]?.jsonPrimitive?.content
+                ?: return ToolResult.Failure("Missing required field: command")
+            val timeout = (arguments["timeout"]?.jsonPrimitive?.intOrNull
+                ?: WorkspaceOperations.DEFAULT_EXEC_TIMEOUT)
+                .coerceIn(1, WorkspaceOperations.MAX_EXEC_TIMEOUT)
+            val cwdPath = arguments["cwd"]?.jsonPrimitive?.content
+
+            val cwdFile = if (cwdPath != null) {
+                val dir = ops.resolveSafePath(cwdPath)
+                if (!dir.isDirectory) {
+                    return ToolResult.Failure("Not a directory: $cwdPath")
+                }
+                dir
+            } else {
+                workspaceRoot
+            }
+
+            val result = ops.execCommand(command, cwdFile, timeout)
+
+            val header = if (result.timedOut) {
+                "Command timed out after ${timeout}s (killed)\n\n"
+            } else {
+                "Exit code: ${result.exitCode}\n\n"
+            }
+
+            ToolResult.Success(
+                output = header + result.output,
+                metadata = mapOf(
+                    "exit_code" to result.exitCode.toString(),
+                    "timed_out" to result.timedOut.toString()
+                )
+            )
+        } catch (e: SecurityException) {
+            ToolResult.Failure("Security error: ${e.message}")
+        } catch (e: Exception) {
+            ToolResult.Failure("Failed to execute command: ${e.message}", e)
         }
     }
 

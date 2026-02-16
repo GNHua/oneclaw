@@ -1,13 +1,21 @@
 package com.tomandy.palmclaw.workspace
 
 import java.io.File
+import java.util.concurrent.TimeUnit
 
-class WorkspaceOperations(private val workspaceRoot: File) {
+class WorkspaceOperations(
+    private val workspaceRoot: File,
+    private val shellPath: String = DEFAULT_SHELL_PATH
+) {
 
     companion object {
         const val MAX_READ_LINES = 500
         const val MAX_READ_BYTES = 20 * 1024 // 20KB
         const val MAX_LIST_ENTRIES = 500
+        const val MAX_EXEC_OUTPUT = 16 * 1024 // 16KB tail truncation
+        const val DEFAULT_EXEC_TIMEOUT = 30 // seconds
+        const val MAX_EXEC_TIMEOUT = 120 // seconds
+        const val DEFAULT_SHELL_PATH = "/system/bin/sh"
     }
 
     /**
@@ -168,6 +176,57 @@ class WorkspaceOperations(private val workspaceRoot: File) {
         )
     }
 
+    /**
+     * Execute a shell command with the given working directory and timeout.
+     * Output is tail-truncated to [MAX_EXEC_OUTPUT] bytes.
+     */
+    fun execCommand(command: String, cwd: File, timeoutSeconds: Int): ExecResult {
+        val process = ProcessBuilder(shellPath, "-c", command)
+            .directory(cwd)
+            .redirectErrorStream(true)
+            .start()
+
+        // Read output in a separate thread to prevent deadlock
+        // (process can block if output buffer fills while we wait)
+        val outputBuilder = StringBuilder()
+        val readerThread = Thread {
+            try {
+                process.inputStream.bufferedReader().use { reader ->
+                    val buffer = CharArray(4096)
+                    var read: Int
+                    while (reader.read(buffer).also { read = it } != -1) {
+                        outputBuilder.append(buffer, 0, read)
+                    }
+                }
+            } catch (_: Exception) {
+                // Process was destroyed, stream closed -- expected on timeout
+            }
+        }
+        readerThread.start()
+
+        val completed = process.waitFor(timeoutSeconds.toLong(), TimeUnit.SECONDS)
+        if (!completed) {
+            process.destroyForcibly()
+            readerThread.join(2000) // Give reader thread a moment to flush
+            val output = tailTruncate(outputBuilder.toString())
+            return ExecResult(output = output, exitCode = -1, timedOut = true)
+        }
+
+        readerThread.join(5000)
+        val output = tailTruncate(outputBuilder.toString())
+        return ExecResult(
+            output = output,
+            exitCode = process.exitValue(),
+            timedOut = false
+        )
+    }
+
+    private fun tailTruncate(text: String): String {
+        if (text.length <= MAX_EXEC_OUTPUT) return text
+        val truncated = text.takeLast(MAX_EXEC_OUTPUT)
+        return "[Truncated: ${text.length} chars total, showing last $MAX_EXEC_OUTPUT]\n$truncated"
+    }
+
     private fun countOccurrences(content: String, text: String): Int {
         var count = 0
         var index = 0
@@ -197,4 +256,10 @@ data class ListResult(
     val entries: List<String>,
     val totalCount: Int,
     val truncated: Boolean
+)
+
+data class ExecResult(
+    val output: String,
+    val exitCode: Int,
+    val timedOut: Boolean
 )

@@ -25,7 +25,6 @@ import com.tomandy.palmclaw.skill.SkillRepository
 import com.tomandy.palmclaw.skill.SlashCommandRouter
 import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.koin.androidContext
-import org.koin.dsl.bind
 import org.koin.dsl.module
 import java.io.File
 import com.tomandy.palmclaw.security.CredentialVault as AppCredentialVault

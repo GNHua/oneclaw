@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import android.util.Log
 import androidx.core.content.FileProvider
@@ -176,8 +177,7 @@ fun MessageBubble(
                         modifier = Modifier.fillMaxWidth()
                     )
                 } else if (message.content.isNotBlank()) {
-                    // Regular text bubble
-                    ChatMarkdown(
+                    CollapsibleMarkdown(
                         text = message.content,
                         textColor = if (isUser) {
                             MaterialTheme.colorScheme.onPrimaryContainer
@@ -310,6 +310,48 @@ private fun MessageVideoThumbnail(filePath: String) {
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
+        }
+    }
+}
+
+private const val COLLAPSE_THRESHOLD = 500
+
+@Composable
+private fun CollapsibleMarkdown(
+    text: String,
+    textColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val isLong = text.length > COLLAPSE_THRESHOLD
+    var expanded by remember(text) { mutableStateOf(!isLong) }
+
+    val displayText = if (expanded) {
+        text
+    } else {
+        text.take(COLLAPSE_THRESHOLD).let {
+            // Trim to last newline or space to avoid cutting mid-word
+            val cutoff = it.lastIndexOf('\n').coerceAtLeast(it.lastIndexOf(' '))
+            if (cutoff > COLLAPSE_THRESHOLD / 2) it.take(cutoff) else it
+        } + "..."
+    }
+
+    Column(modifier = modifier) {
+        ChatMarkdown(
+            text = displayText,
+            textColor = textColor
+        )
+
+        if (isLong) {
+            Text(
+                text = if (expanded) "Show less" else "Show more",
+                style = MaterialTheme.typography.labelSmall,
+                color = textColor.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(top = 4.dp)
+            )
         }
     }
 }

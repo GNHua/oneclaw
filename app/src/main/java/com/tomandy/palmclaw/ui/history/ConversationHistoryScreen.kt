@@ -47,6 +47,7 @@ import com.tomandy.palmclaw.data.entity.ConversationEntity
 import com.tomandy.palmclaw.data.entity.MessageEntity
 import com.tomandy.palmclaw.ui.HandleDismissBottomSheet
 import com.tomandy.palmclaw.ui.chat.MessageBubble
+import com.tomandy.palmclaw.ui.chat.ToolCallGroupBubble
 import com.tomandy.palmclaw.ui.drawColumnScrollbar
 import com.tomandy.palmclaw.ui.drawScrollbar
 import kotlinx.coroutines.flow.StateFlow
@@ -265,8 +266,28 @@ private fun ConversationPreviewSheet(
             .filter { it.role == "tool" && it.toolCallId != null }
             .associateBy { it.toolCallId!! }
     }
-    val displayedMessages = remember(messages) {
-        messages.filter { it.role != "tool" }
+    val displayItems = remember(messages) {
+        val filtered = messages.filter { it.role != "tool" }
+        buildList<Pair<List<MessageEntity>, Boolean>> {
+            var i = 0
+            while (i < filtered.size) {
+                val msg = filtered[i]
+                if (msg.role == "assistant" && !msg.toolCalls.isNullOrEmpty() && msg.content.isBlank()) {
+                    val group = mutableListOf(msg)
+                    while (i + 1 < filtered.size) {
+                        val next = filtered[i + 1]
+                        if (next.role == "assistant" && !next.toolCalls.isNullOrEmpty() && next.content.isBlank()) {
+                            i++
+                            group.add(next)
+                        } else break
+                    }
+                    add(group to true)
+                } else {
+                    add(listOf(msg) to false)
+                }
+                i++
+            }
+        }
     }
 
     Column(
@@ -276,7 +297,7 @@ private fun ConversationPreviewSheet(
             .padding(bottom = 32.dp)
     ) {
         // Message preview -- use Column + verticalScroll to avoid nested LazyColumn conflict
-        if (displayedMessages.isEmpty()) {
+        if (displayItems.isEmpty()) {
             Text(
                 text = "No messages",
                 style = MaterialTheme.typography.bodyMedium,
@@ -294,44 +315,52 @@ private fun ConversationPreviewSheet(
                     .drawColumnScrollbar(scrollState, scrollbarColor)
                     .verticalScroll(scrollState)
             ) {
-                displayedMessages.forEach { message ->
-                    if (message.role == "meta" && message.toolName == "stopped") {
-                        Text(
-                            text = "[stopped]",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
-                    } else if (message.role == "meta" && message.toolName == "summary") {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            HorizontalDivider(
-                                modifier = Modifier.weight(1f),
-                                color = MaterialTheme.colorScheme.outlineVariant
-                            )
-                            Text(
-                                text = "Earlier messages summarized",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                            HorizontalDivider(
-                                modifier = Modifier.weight(1f),
-                                color = MaterialTheme.colorScheme.outlineVariant
-                            )
-                        }
-                    } else {
-                        MessageBubble(
-                            message = message,
+                displayItems.forEach { (msgs, isToolGroup) ->
+                    if (isToolGroup) {
+                        ToolCallGroupBubble(
+                            messages = msgs,
                             toolResults = toolResultsMap
                         )
+                    } else {
+                        val message = msgs.first()
+                        if (message.role == "meta" && message.toolName == "stopped") {
+                            Text(
+                                text = "[stopped]",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                        } else if (message.role == "meta" && message.toolName == "summary") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                HorizontalDivider(
+                                    modifier = Modifier.weight(1f),
+                                    color = MaterialTheme.colorScheme.outlineVariant
+                                )
+                                Text(
+                                    text = "Earlier messages summarized",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                )
+                                HorizontalDivider(
+                                    modifier = Modifier.weight(1f),
+                                    color = MaterialTheme.colorScheme.outlineVariant
+                                )
+                            }
+                        } else {
+                            MessageBubble(
+                                message = message,
+                                toolResults = toolResultsMap
+                            )
+                        }
                     }
                 }
             }

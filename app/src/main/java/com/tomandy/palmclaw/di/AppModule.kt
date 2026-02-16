@@ -103,7 +103,9 @@ val appModule = module {
             userPluginManager = get(),
             llmClientProvider = get(),
             modelPreferences = get(),
-            skillRepository = get()
+            skillRepository = get(),
+            messageDao = get(),
+            conversationDao = get()
         )
     }
 

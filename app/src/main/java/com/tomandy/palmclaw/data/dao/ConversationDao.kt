@@ -35,4 +35,21 @@ interface ConversationDao {
 
     @Query("SELECT * FROM conversations WHERE id = :id")
     suspend fun getConversationOnce(id: String): ConversationEntity?
+
+    @Query(
+        """
+        SELECT * FROM conversations
+        WHERE title LIKE '%' || :query || '%'
+          AND (:timeFrom IS NULL OR updatedAt >= :timeFrom)
+          AND (:timeTo IS NULL OR updatedAt <= :timeTo)
+        ORDER BY updatedAt DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun searchConversations(
+        query: String,
+        timeFrom: Long?,
+        timeTo: Long?,
+        limit: Int
+    ): List<ConversationEntity>
 }

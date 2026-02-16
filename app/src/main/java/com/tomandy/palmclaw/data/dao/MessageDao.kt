@@ -33,4 +33,22 @@ interface MessageDao {
 
     @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY timestamp ASC")
     suspend fun getMessagesOnce(conversationId: String): List<MessageEntity>
+
+    @Query(
+        """
+        SELECT * FROM messages
+        WHERE (role = 'user' OR role = 'assistant')
+          AND content LIKE '%' || :query || '%'
+          AND (:timeFrom IS NULL OR timestamp >= :timeFrom)
+          AND (:timeTo IS NULL OR timestamp <= :timeTo)
+        ORDER BY timestamp DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun searchMessages(
+        query: String,
+        timeFrom: Long?,
+        timeTo: Long?,
+        limit: Int
+    ): List<MessageEntity>
 }

@@ -14,6 +14,8 @@ import com.tomandy.palmclaw.pluginmanager.PluginPreferences
 import com.tomandy.palmclaw.pluginmanager.UserPluginManager
 import com.tomandy.palmclaw.scheduler.plugin.SchedulerPlugin
 import com.tomandy.palmclaw.scheduler.plugin.SchedulerPluginMetadata
+import com.tomandy.palmclaw.data.dao.ConversationDao
+import com.tomandy.palmclaw.data.dao.MessageDao
 import com.tomandy.palmclaw.security.CredentialVault
 import com.tomandy.palmclaw.skill.SkillRepository
 import com.tomandy.palmclaw.workspace.WorkspacePlugin
@@ -29,7 +31,9 @@ class PluginCoordinator(
     private val userPluginManager: UserPluginManager,
     private val llmClientProvider: LlmClientProvider,
     private val modelPreferences: ModelPreferences,
-    private val skillRepository: SkillRepository
+    private val skillRepository: SkillRepository,
+    private val messageDao: MessageDao,
+    private val conversationDao: ConversationDao
 ) {
     suspend fun initializePlugins() {
         registerBuiltInPlugins()
@@ -97,6 +101,15 @@ class PluginCoordinator(
             LoadedPlugin(
                 metadata = ConfigPluginMetadata.get(),
                 instance = configPlugin
+            )
+        )
+
+        // Register search plugin
+        val searchPlugin = SearchPlugin(messageDao, conversationDao)
+        toolRegistry.registerPlugin(
+            LoadedPlugin(
+                metadata = SearchPluginMetadata.get(),
+                instance = searchPlugin
             )
         )
     }

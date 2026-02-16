@@ -7,6 +7,7 @@ import com.tomandy.palmclaw.plugin.PluginCoordinator
 import com.tomandy.palmclaw.ui.chat.ChatViewModel
 import com.tomandy.palmclaw.ui.cronjobs.CronjobsViewModel
 import com.tomandy.palmclaw.ui.history.ConversationHistoryViewModel
+import com.tomandy.palmclaw.ui.settings.AgentProfilesViewModel
 import com.tomandy.palmclaw.ui.settings.MemoryViewModel
 import com.tomandy.palmclaw.ui.settings.SettingsViewModel
 import com.tomandy.palmclaw.ui.settings.SkillsViewModel
@@ -20,9 +21,11 @@ val viewModelModule = module {
             messageDao = get(),
             conversationDao = get(),
             conversationPreferences = get(),
+            modelPreferences = get(),
             appContext = androidContext(),
             slashCommandRouter = get(),
             skillRepository = get(),
+            agentProfileRepository = get(),
             conversationId = params.getOrNull()
         )
     }
@@ -66,4 +69,15 @@ val viewModelModule = module {
     }
 
     viewModel { BackupViewModel(backupManager = get()) }
+
+    viewModel {
+        AgentProfilesViewModel(
+            agentProfileRepository = get(),
+            modelPreferences = get(),
+            toolRegistry = get(),
+            skillRepository = get(),
+            llmClientProvider = get(),
+            userAgentsDir = java.io.File(androidContext().filesDir, "workspace/agents")
+        )
+    }
 }

@@ -1,12 +1,11 @@
 package com.tomandy.palmclaw.ui.chat
 
 import android.Manifest
-import android.content.ClipboardManager
-import android.content.Context
 import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +23,8 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +34,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -55,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.ArrowDropDown
 import com.tomandy.palmclaw.audio.AudioInputController
 import com.tomandy.palmclaw.audio.AudioState
 import com.tomandy.palmclaw.audio.AndroidSttProvider
@@ -116,6 +119,12 @@ fun ChatScreen(
             ChatScreenTracker.activeConversationId = null
         }
     }
+
+    // Agent profile selection
+    val agentProfiles by viewModel.agentProfiles.collectAsState()
+    val currentProfileId by viewModel.currentProfileId.collectAsState()
+    val currentProfileName = agentProfiles.find { it.name == currentProfileId }?.name
+    var showAgentPicker by remember { mutableStateOf(false) }
 
     var inputText by remember { mutableStateOf("") }
     val attachedImages = remember { mutableStateListOf<String>() }
@@ -284,7 +293,52 @@ fun ChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("PalmClaw") },
+                title = {
+                    Column {
+                        Text("PalmClaw")
+                        if (agentProfiles.isNotEmpty()) {
+                            Box {
+                                TextButton(
+                                    onClick = { showAgentPicker = true },
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                                    modifier = Modifier.height(24.dp)
+                                ) {
+                                    Text(
+                                        text = currentProfileName ?: "main",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Icon(
+                                        Icons.Default.ArrowDropDown,
+                                        contentDescription = "Select agent",
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = showAgentPicker,
+                                    onDismissRequest = { showAgentPicker = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("main") },
+                                        onClick = {
+                                            viewModel.setAgentProfile(null)
+                                            showAgentPicker = false
+                                        }
+                                    )
+                                    agentProfiles.filter { it.name != "main" }.forEach { profile ->
+                                        DropdownMenuItem(
+                                            text = { Text(profile.name) },
+                                            onClick = {
+                                                viewModel.setAgentProfile(profile.name)
+                                                showAgentPicker = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateToHistory) {
                         Icon(Icons.Default.Menu, contentDescription = "Conversation history")

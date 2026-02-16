@@ -41,6 +41,14 @@ val appModule = module {
     single { AppDatabase.getInstance(androidContext()) }
     single { get<AppDatabase>().messageDao() }
     single { get<AppDatabase>().conversationDao() }
+    // Agent Profiles
+    single {
+        com.tomandy.palmclaw.agent.profile.AgentProfileLoader(
+            context = androidContext(),
+            userAgentsDir = java.io.File(androidContext().filesDir, "workspace/agents")
+        )
+    }
+    single { com.tomandy.palmclaw.agent.profile.AgentProfileRepository(loader = get()) }
 
     // Security -- bind both interface types to the same instance
     single<AppCredentialVault> { CredentialVaultImpl(androidContext()) }

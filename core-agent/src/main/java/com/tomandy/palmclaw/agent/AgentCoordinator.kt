@@ -39,6 +39,7 @@ class AgentCoordinator(
     private val conversationId: String,
     private val contextWindow: Int = 200_000,
     private val summarizationThreshold: Float = 0.8f,
+    private val toolFilter: Set<String>? = null,
     private val onBeforeSummarize: (suspend () -> Unit)? = null,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 ) {
@@ -185,9 +186,12 @@ class AgentCoordinator(
                 (reg.plugin as? ActivateToolsPlugin)?.activeCategories = activeCategories
             }
 
-            // Build tool provider with category filtering
+            // Build tool provider with category filtering, plus optional toolFilter
             Log.d("AgentCoordinator", "Setting up tools provider with active categories: $activeCategories")
-            val toolsProvider = { toolRegistry.getToolDefinitions(activeCategories) }
+            val toolsProvider = {
+                val defs = toolRegistry.getToolDefinitions(activeCategories)
+                if (toolFilter != null) defs.filter { it.name in toolFilter } else defs
+            }
 
             // Execute ReAct loop with tools
             Log.d("AgentCoordinator", "Calling reActLoop.step")

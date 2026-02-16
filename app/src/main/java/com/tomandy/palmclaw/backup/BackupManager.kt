@@ -1,9 +1,7 @@
 package com.tomandy.palmclaw.backup
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.net.Uri
-import android.util.Log
 import androidx.room.withTransaction
 import com.tomandy.palmclaw.data.AppDatabase
 import com.tomandy.palmclaw.data.ModelPreferences

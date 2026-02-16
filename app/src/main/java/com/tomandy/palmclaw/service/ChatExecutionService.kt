@@ -23,6 +23,8 @@ import kotlinx.serialization.json.jsonArray
 import com.tomandy.palmclaw.llm.LlmProvider
 import com.tomandy.palmclaw.llm.Message
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
+import com.tomandy.palmclaw.agent.profile.AgentProfileEntry
+import com.tomandy.palmclaw.agent.profile.AgentProfileRepository
 import com.tomandy.palmclaw.skill.SkillRepository
 import com.tomandy.palmclaw.skill.SystemPromptBuilder
 import com.tomandy.palmclaw.util.DocumentStorageHelper
@@ -50,6 +52,7 @@ class ChatExecutionService : Service(), KoinComponent {
     private val modelPreferences: ModelPreferences by inject()
     private val database: AppDatabase by inject()
     private val skillRepository: SkillRepository by inject()
+    private val agentProfileRepository: AgentProfileRepository by inject()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -114,9 +117,18 @@ class ChatExecutionService : Service(), KoinComponent {
 
         val job = serviceScope.launch {
             try {
-                val selectedModel = modelPreferences.getSelectedModel()
+                // Resolve global active agent profile
+                agentProfileRepository.reload()
+                val activeAgentName = modelPreferences.getActiveAgent()
+                val profile: AgentProfileEntry? = activeAgentName?.let {
+                    agentProfileRepository.findByName(it)
+                } ?: agentProfileRepository.findByName("main")
+
+                val selectedModel = profile?.model
+                    ?: modelPreferences.getSelectedModel()
                     ?: modelPreferences.getModel(llmClientProvider.selectedProvider.value)
                 val contextWindow = LlmProvider.getContextWindow(selectedModel)
+                val toolFilter = profile?.allowedTools?.toSet()
 
                 lateinit var coordinator: AgentCoordinator
                 coordinator = AgentCoordinator(
@@ -126,6 +138,7 @@ class ChatExecutionService : Service(), KoinComponent {
                     messageStore = messageStore,
                     conversationId = conversationId,
                     contextWindow = contextWindow,
+                    toolFilter = toolFilter,
                     onBeforeSummarize = {
                         memoryFlush(
                             clientProvider = { llmClientProvider.getCurrentLlmClient() },
@@ -210,12 +223,18 @@ class ChatExecutionService : Service(), KoinComponent {
                 coordinator.seedHistory(history, summaryContent)
                 val maxIterations = modelPreferences.getMaxIterations()
                 val temperature = modelPreferences.getTemperature()
-                val baseSystemPrompt = modelPreferences.getSystemPrompt()
+                val baseSystemPrompt = profile?.systemPrompt
+                    ?: modelPreferences.getSystemPrompt()
 
                 // Reload skills and augment system prompt (only when
                 // read_file is available so the model can load skill files)
                 skillRepository.reload()
-                val enabledSkills = skillRepository.getEnabledSkills()
+                val enabledSkills = if (profile?.enabledSkills != null) {
+                    val allowed = profile.enabledSkills.toSet()
+                    skillRepository.getEnabledSkills().filter { it.metadata.name in allowed }
+                } else {
+                    skillRepository.getEnabledSkills()
+                }
                 val systemPrompt = if (
                     toolRegistry.hasTool("read_file") && enabledSkills.isNotEmpty()
                 ) {

@@ -6,6 +6,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomandy.palmclaw.agent.AgentState
 import com.tomandy.palmclaw.data.ConversationPreferences
+import com.tomandy.palmclaw.agent.profile.AgentProfileEntry
+import com.tomandy.palmclaw.agent.profile.AgentProfileRepository
+import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.dao.ConversationDao
 import com.tomandy.palmclaw.data.dao.MessageDao
 import com.tomandy.palmclaw.data.entity.ConversationEntity
@@ -29,9 +32,11 @@ class ChatViewModel(
     private val messageDao: MessageDao,
     private val conversationDao: ConversationDao,
     private val conversationPreferences: ConversationPreferences,
+    private val modelPreferences: ModelPreferences,
     private val appContext: Context,
     private val slashCommandRouter: SlashCommandRouter,
     private val skillRepository: SkillRepository,
+    private val agentProfileRepository: AgentProfileRepository,
     conversationId: String? = null
 ) : ViewModel() {
 
@@ -52,7 +57,14 @@ class ChatViewModel(
     private val _agentState = MutableStateFlow<AgentState>(AgentState.Idle)
     val agentState: StateFlow<AgentState> = _agentState.asStateFlow()
 
+    val agentProfiles: StateFlow<List<AgentProfileEntry>> = agentProfileRepository.profiles
+
+    private val _currentProfileId = MutableStateFlow<String?>(null)
+    val currentProfileId: StateFlow<String?> = _currentProfileId.asStateFlow()
+
     init {
+        agentProfileRepository.reload()
+
         // Observe messages from DB (reactive -- updates when service writes new rows)
         viewModelScope.launch {
             @Suppress("OPT_IN_USAGE")
@@ -94,6 +106,9 @@ class ChatViewModel(
         viewModelScope.launch {
             conversationPreferences.setActiveConversationId(_conversationId.value)
         }
+
+        // Load the global active agent profile
+        _currentProfileId.value = modelPreferences.getActiveAgent()
     }
 
     fun sendMessage(text: String, imagePaths: List<String> = emptyList(), audioPaths: List<String> = emptyList(), videoPaths: List<String> = emptyList(), documentMetas: List<Triple<String, String, String>> = emptyList()) {
@@ -237,13 +252,23 @@ class ChatViewModel(
                 ChatExecutionService.injectMessage(appContext, convId, executionText)
             } else {
                 ChatExecutionService.startExecution(
-                    appContext, convId, executionText, imagePaths, audioPaths, videoPaths,
-                    documentMetas.map { it.first },
-                    documentMetas.map { it.second },
-                    documentMetas.map { it.third }
+                    context = appContext,
+                    conversationId = convId,
+                    userMessage = executionText,
+                    imagePaths = imagePaths,
+                    audioPaths = audioPaths,
+                    videoPaths = videoPaths,
+                    documentPaths = documentMetas.map { it.first },
+                    documentNames = documentMetas.map { it.second },
+                    documentMimeTypes = documentMetas.map { it.third }
                 )
             }
         }
+    }
+
+    fun setAgentProfile(profileId: String?) {
+        modelPreferences.saveActiveAgent(profileId)
+        _currentProfileId.value = profileId
     }
 
     private fun handleSummarizeCommand(text: String) {

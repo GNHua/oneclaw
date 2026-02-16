@@ -94,6 +94,16 @@ class ModelPreferences(context: Context) {
             .apply()
     }
 
+    fun getActiveAgent(): String? {
+        return prefs.getString("active_agent", null)
+    }
+
+    fun saveActiveAgent(name: String?) {
+        prefs.edit()
+            .putString("active_agent", name)
+            .apply()
+    }
+
     companion object {
         const val DEFAULT_MAX_ITERATIONS = 200
         const val DEFAULT_TEMPERATURE = 0.7f

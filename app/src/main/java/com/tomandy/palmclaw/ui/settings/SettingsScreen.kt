@@ -23,6 +23,7 @@ fun SettingsScreen(
     onNavigateToSkills: () -> Unit,
     onNavigateToMemory: () -> Unit,
     onNavigateToBackup: () -> Unit,
+    onNavigateToAgentProfiles: () -> Unit,
     modelPreferences: ModelPreferences,
     availableModels: List<Pair<String, LlmProvider>>,
     selectedModel: String,
@@ -126,6 +127,11 @@ fun SettingsScreen(
             title = "Backup & Restore",
             subtitle = "Export or import app data",
             onClick = onNavigateToBackup
+        )
+        SettingsMenuItem(
+            title = "Agent Profiles",
+            subtitle = "Create and manage agent personas",
+            onClick = onNavigateToAgentProfiles
         )
 
         Spacer(modifier = Modifier.height(8.dp))

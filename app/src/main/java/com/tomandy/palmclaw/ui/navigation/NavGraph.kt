@@ -37,6 +37,9 @@ import com.tomandy.palmclaw.ui.settings.ProvidersScreen
 import com.tomandy.palmclaw.ui.settings.SettingsScreen
 import com.tomandy.palmclaw.ui.settings.SettingsViewModel
 import com.tomandy.palmclaw.ui.settings.SkillEditorScreen
+import com.tomandy.palmclaw.ui.settings.AgentProfileEditorScreen
+import com.tomandy.palmclaw.ui.settings.AgentProfilesScreen
+import com.tomandy.palmclaw.ui.settings.AgentProfilesViewModel
 import com.tomandy.palmclaw.ui.settings.SkillsScreen
 import com.tomandy.palmclaw.ui.settings.SkillsViewModel
 import androidx.navigation.NavHostController
@@ -58,6 +61,8 @@ enum class Screen(val route: String) {
     Memory("settings/memory"),
     MemoryDetail("settings/memory/detail"),
     Backup("settings/backup"),
+    AgentProfiles("settings/agents"),
+    AgentProfileEditor("settings/agents/editor"),
     Cronjobs("cronjobs"),
     History("history")
 }
@@ -163,6 +168,9 @@ fun PalmClawNavGraph(
                     },
                     onNavigateToBackup = {
                         navController.navigate(Screen.Backup.route)
+                    },
+                    onNavigateToAgentProfiles = {
+                        navController.navigate(Screen.AgentProfiles.route)
                     },
                     modelPreferences = modelPreferences,
                     availableModels = availableModels,
@@ -357,6 +365,56 @@ fun PalmClawNavGraph(
                     modifier = Modifier.padding(paddingValues)
                 )
             }
+        }
+
+        composable(Screen.AgentProfiles.route) {
+            val agentProfilesViewModel: AgentProfilesViewModel = koinViewModel()
+
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Agent Profiles") },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            }
+                        }
+                    )
+                }
+            ) { paddingValues ->
+                AgentProfilesScreen(
+                    viewModel = agentProfilesViewModel,
+                    onNavigateToEditor = { profileName ->
+                        val route = if (profileName != null) {
+                            "${Screen.AgentProfileEditor.route}?profileName=$profileName"
+                        } else {
+                            Screen.AgentProfileEditor.route
+                        }
+                        navController.navigate(route)
+                    },
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
+        }
+
+        composable(
+            route = "${Screen.AgentProfileEditor.route}?profileName={profileName}",
+            arguments = listOf(
+                navArgument("profileName") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val profileName = backStackEntry.arguments?.getString("profileName")
+            val agentProfilesViewModel: AgentProfilesViewModel = koinViewModel()
+
+            AgentProfileEditorScreen(
+                viewModel = agentProfilesViewModel,
+                profileName = profileName,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         composable(Screen.Cronjobs.route) {

@@ -93,8 +93,8 @@ fun ChatInput(
                         onRemove = { onRemoveImage(index) }
                     )
                 }
-                itemsIndexed(attachedAudios) { index, _ ->
-                    AttachedAudioPreview(onRemove = { onRemoveAudio(index) })
+                itemsIndexed(attachedAudios) { index, path ->
+                    AttachedAudioPreview(filePath = path, onRemove = { onRemoveAudio(index) })
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
@@ -184,30 +184,19 @@ fun ChatInput(
 }
 
 @Composable
-private fun AttachedAudioPreview(onRemove: () -> Unit) {
+private fun AttachedAudioPreview(filePath: String, onRemove: () -> Unit) {
     Surface(
-        modifier = Modifier.height(72.dp),
+        modifier = Modifier.height(56.dp).width(220.dp),
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.secondaryContainer
     ) {
         Box {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Mic,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Audio",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            }
+            AudioPlayerBar(
+                filePath = filePath,
+                accentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                textColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.padding(start = 4.dp, end = 8.dp)
+            )
 
             // Remove button
             Surface(

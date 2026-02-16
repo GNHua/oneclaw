@@ -73,6 +73,17 @@ fun MessageBubble(
         } ?: emptyList()
     }
 
+    val audioPaths: List<String> = remember(message.audioPaths) {
+        message.audioPaths?.let {
+            try {
+                NetworkConfig.json.decodeFromString<List<String>>(it)
+            } catch (e: Exception) {
+                Log.w("MessageBubble", "Failed to parse audioPaths: ${e.message}")
+                emptyList()
+            }
+        } ?: emptyList()
+    }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -102,6 +113,26 @@ fun MessageBubble(
                 if (imagePaths.isNotEmpty()) {
                     imagePaths.forEach { path ->
                         MessageImageThumbnail(filePath = path)
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                }
+
+                // Show attached audio
+                if (audioPaths.isNotEmpty()) {
+                    audioPaths.forEach { path ->
+                        AudioPlayerBar(
+                            filePath = path,
+                            accentColor = if (isUser) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            textColor = if (isUser) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
                         Spacer(modifier = Modifier.height(4.dp))
                     }
                 }

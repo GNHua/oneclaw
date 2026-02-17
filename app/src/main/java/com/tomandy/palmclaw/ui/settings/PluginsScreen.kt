@@ -24,6 +24,7 @@ fun PluginsScreen(
     val plugins by viewModel.plugins.collectAsState()
     val importStatus by viewModel.importStatus.collectAsState()
 
+    var selectedPlugin by remember { mutableStateOf<PluginUiState?>(null) }
     var showImportSheet by remember { mutableStateOf(false) }
     var showUrlDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf<String?>(null) }
@@ -56,6 +57,7 @@ fun PluginsScreen(
                 items(plugins, key = { it.metadata.id }) { pluginState ->
                     PluginCard(
                         pluginState = pluginState,
+                        onClick = { selectedPlugin = pluginState },
                         onToggle = { enabled ->
                             viewModel.togglePlugin(pluginState.metadata.id, enabled)
                         },
@@ -110,6 +112,14 @@ fun PluginsScreen(
         ) {
             Icon(Icons.Default.Add, contentDescription = "Add plugin")
         }
+    }
+
+    // Plugin detail sheet
+    selectedPlugin?.let { plugin ->
+        PluginDetailSheet(
+            pluginState = plugin,
+            onDismiss = { selectedPlugin = null }
+        )
     }
 
     // Import bottom sheet
@@ -215,12 +225,14 @@ fun PluginsScreen(
 @Composable
 private fun PluginCard(
     pluginState: PluginUiState,
+    onClick: () -> Unit,
     onToggle: (Boolean) -> Unit,
     onDelete: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     val metadata = pluginState.metadata
     Card(
+        onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface

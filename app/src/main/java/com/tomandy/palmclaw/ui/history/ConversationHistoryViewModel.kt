@@ -23,8 +23,8 @@ class ConversationHistoryViewModel(
 
     val conversations: Flow<PagingData<ConversationEntity>> = Pager(
         config = PagingConfig(
-            pageSize = 20,
-            prefetchDistance = 10,
+            pageSize = 10,
+            prefetchDistance = 5,
             enablePlaceholders = false
         ),
         pagingSourceFactory = { conversationDao.getAllConversationsPaged() }

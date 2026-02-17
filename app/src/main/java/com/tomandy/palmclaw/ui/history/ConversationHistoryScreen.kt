@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,12 +33,15 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,6 +72,29 @@ fun ConversationHistoryScreen(
     val activeId by currentConversationId.collectAsState()
     val previewConversation by viewModel.previewConversation.collectAsState()
     val previewMessages by viewModel.previewMessages.collectAsState()
+    var pendingDeleteId by remember { mutableStateOf<String?>(null) }
+
+    // Delete confirmation dialog
+    if (pendingDeleteId != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = { Text("Delete conversation?") },
+            text = { Text("This conversation and all its messages will be permanently deleted.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteConversation(pendingDeleteId!!)
+                    pendingDeleteId = null
+                }) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteId = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     // Preview bottom sheet
     if (previewConversation != null) {
@@ -148,7 +175,8 @@ fun ConversationHistoryScreen(
 
                 LaunchedEffect(dismissState.currentValue) {
                     if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart && !isActive) {
-                        viewModel.deleteConversation(conv.id)
+                        pendingDeleteId = conv.id
+                        dismissState.snapTo(SwipeToDismissBoxValue.Settled)
                     } else if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
                         dismissState.snapTo(SwipeToDismissBoxValue.Settled)
                     }

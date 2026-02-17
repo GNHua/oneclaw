@@ -234,10 +234,18 @@ async function execute(toolName, args) {
             }
 
             case "calendar_quick_add": {
-                var calId = encodeURIComponent(args.calendar_id || "primary");
+                var rawCalId = args.calendar_id || "primary";
+                var calId = encodeURIComponent(rawCalId);
+                // Fetch calendar timezone so quickAdd interprets times correctly
+                var calMeta = await calFetch("GET", "/calendars/" + calId);
+                var tz = calMeta.timeZone || "";
+                var text = args.text;
+                if (tz) {
+                    text = text + " (" + tz + ")";
+                }
                 var data = await calFetch("POST",
                     "/calendars/" + calId + "/events/quickAdd?text=" +
-                    encodeURIComponent(args.text));
+                    encodeURIComponent(text));
                 return {
                     output: "Event created: " + (data.summary || args.text) +
                         "\nID: " + data.id +

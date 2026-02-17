@@ -88,6 +88,9 @@ dependencies {
     // Security
     implementation(libs.androidx.security.crypto)
 
+    // Google Sign-In
+    implementation(libs.play.services.auth)
+
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

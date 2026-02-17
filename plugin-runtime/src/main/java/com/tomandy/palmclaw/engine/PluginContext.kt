@@ -36,7 +36,8 @@ import java.util.concurrent.TimeUnit
 class PluginContext(
     private val androidContext: Context,
     private val pluginId: String,
-    private val credentialVault: CredentialVault
+    private val credentialVault: CredentialVault,
+    val googleAuthProvider: GoogleAuthProvider? = null
 ) {
     companion object {
         /**
@@ -47,14 +48,16 @@ class PluginContext(
          * @param androidContext The Android application context
          * @param pluginId Unique plugin identifier
          * @param credentialVault The credential vault for secure storage
+         * @param googleAuthProvider Optional Google OAuth provider for Google Workspace plugins
          * @return A new PluginContext instance
          */
         fun create(
             androidContext: Context,
             pluginId: String,
-            credentialVault: CredentialVault
+            credentialVault: CredentialVault,
+            googleAuthProvider: GoogleAuthProvider? = null
         ): PluginContext {
-            return PluginContext(androidContext, pluginId, credentialVault)
+            return PluginContext(androidContext, pluginId, credentialVault, googleAuthProvider)
         }
     }
     /**

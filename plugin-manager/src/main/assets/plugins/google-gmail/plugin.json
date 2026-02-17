@@ -1,0 +1,102 @@
+{
+  "id": "google-gmail",
+  "name": "Google Gmail",
+  "version": "1.0.0",
+  "description": "Search, read, send, and manage Gmail messages via Google API",
+  "author": "PalmClaw Team",
+  "entryPoint": "GoogleGmailPlugin",
+  "category": "gmail",
+  "tools": [
+    {
+      "name": "gmail_search",
+      "description": "Search Gmail messages using Gmail query syntax. Returns a list of matching emails with id, threadId, subject, from, date, and snippet. Example queries: 'from:user@example.com', 'subject:meeting', 'is:unread', 'newer_than:1d'.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Gmail search query (same syntax as Gmail search bar)"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of results to return (default: 10, max: 50)"
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "gmail_get_message",
+      "description": "Get the full content of a specific Gmail message by its ID. Returns subject, from, to, cc, date, body (plain text), and attachments list.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "The Gmail message ID"
+          }
+        },
+        "required": ["message_id"]
+      }
+    },
+    {
+      "name": "gmail_send",
+      "description": "Send a new email via Gmail. Supports plain text body. For HTML, set content_type to 'text/html'.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "Recipient email address(es), comma-separated for multiple"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Email subject line"
+          },
+          "body": {
+            "type": "string",
+            "description": "Email body content"
+          },
+          "cc": {
+            "type": "string",
+            "description": "CC recipients (optional)"
+          },
+          "content_type": {
+            "type": "string",
+            "description": "Body content type: 'text/plain' (default) or 'text/html'"
+          }
+        },
+        "required": ["to", "subject", "body"]
+      }
+    },
+    {
+      "name": "gmail_reply",
+      "description": "Reply to an existing email thread. The reply is sent in the same thread.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "The message ID to reply to"
+          },
+          "body": {
+            "type": "string",
+            "description": "Reply body content"
+          }
+        },
+        "required": ["message_id", "body"]
+      }
+    },
+    {
+      "name": "gmail_list_labels",
+      "description": "List all Gmail labels (folders) for the authenticated account.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    }
+  ],
+  "permissions": ["INTERNET"],
+  "dependencies": []
+}

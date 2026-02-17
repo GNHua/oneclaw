@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.engine.CredentialVault
+import com.tomandy.palmclaw.engine.GoogleAuthProvider
 import com.tomandy.palmclaw.engine.PluginContext
 import com.tomandy.palmclaw.engine.PluginEngine
 
@@ -15,7 +16,8 @@ class BuiltInPluginManager(
     private val pluginEngine: PluginEngine,
     private val toolRegistry: ToolRegistry,
     private val pluginPreferences: PluginPreferences,
-    private val credentialVault: CredentialVault
+    private val credentialVault: CredentialVault,
+    private val googleAuthProvider: GoogleAuthProvider? = null
 ) {
     companion object {
         private const val TAG = "BuiltInPluginManager"
@@ -26,7 +28,9 @@ class BuiltInPluginManager(
             "plugins/notes",
             "plugins/echo",
             "plugins/workspace-notes",
-            "plugins/web-fetch"
+            "plugins/web-fetch",
+            "plugins/google-gmail",
+            "plugins/google-calendar"
         )
     }
 
@@ -38,7 +42,7 @@ class BuiltInPluginManager(
     suspend fun loadBuiltInPlugins() {
         BUILT_IN_PLUGIN_PATHS.forEach { path ->
             val pluginId = path.substringAfterLast("/")
-            val pluginContext = PluginContext(context, pluginId, credentialVault)
+            val pluginContext = PluginContext(context, pluginId, credentialVault, googleAuthProvider)
             pluginEngine.loadFromAssets(path, pluginContext)
                 .onSuccess { loadedPlugin ->
                     if (pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {

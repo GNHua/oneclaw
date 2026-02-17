@@ -24,6 +24,7 @@ fun SettingsScreen(
     onNavigateToMemory: () -> Unit,
     onNavigateToBackup: () -> Unit,
     onNavigateToAgentProfiles: () -> Unit,
+    onNavigateToGoogleAccount: () -> Unit,
     modelPreferences: ModelPreferences,
     availableModels: List<Pair<String, LlmProvider>>,
     selectedModel: String,
@@ -127,6 +128,11 @@ fun SettingsScreen(
             title = "Backup & Restore",
             subtitle = "Export or import app data",
             onClick = onNavigateToBackup
+        )
+        SettingsMenuItem(
+            title = "Google Account",
+            subtitle = "Connect Gmail and Calendar",
+            onClick = onNavigateToGoogleAccount
         )
         SettingsMenuItem(
             title = "Agent Profiles",

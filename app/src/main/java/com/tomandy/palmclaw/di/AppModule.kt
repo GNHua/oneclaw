@@ -25,6 +25,7 @@ import com.tomandy.palmclaw.pluginmanager.UserPluginManager
 import com.tomandy.palmclaw.scheduler.AgentExecutor
 import com.tomandy.palmclaw.scheduler.CronjobManager
 import com.tomandy.palmclaw.scheduler.data.CronjobDatabase
+import com.tomandy.palmclaw.google.GoogleAuthManager
 import com.tomandy.palmclaw.security.CredentialVaultImpl
 import com.tomandy.palmclaw.skill.SkillLoader
 import com.tomandy.palmclaw.skill.SkillPreferences
@@ -35,6 +36,7 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 import com.tomandy.palmclaw.security.CredentialVault as AppCredentialVault
 import com.tomandy.palmclaw.engine.CredentialVault as EngineCredentialVault
+import com.tomandy.palmclaw.engine.GoogleAuthProvider
 
 val appModule = module {
     // Database
@@ -53,6 +55,10 @@ val appModule = module {
     // Security -- bind both interface types to the same instance
     single<AppCredentialVault> { CredentialVaultImpl(androidContext()) }
     single<EngineCredentialVault> { get<AppCredentialVault>() }
+
+    // Google OAuth
+    single { GoogleAuthManager(androidContext()) }
+    single<GoogleAuthProvider> { get<GoogleAuthManager>() }
 
     // Preferences
     single { ModelPreferences(androidContext()) }
@@ -96,7 +102,8 @@ val appModule = module {
             pluginEngine = get(),
             toolRegistry = get(),
             pluginPreferences = get(),
-            credentialVault = get<EngineCredentialVault>()
+            credentialVault = get<EngineCredentialVault>(),
+            googleAuthProvider = get<GoogleAuthProvider>()
         )
     }
     single {
@@ -105,7 +112,8 @@ val appModule = module {
             pluginEngine = get(),
             toolRegistry = get(),
             pluginPreferences = get(),
-            credentialVault = get<EngineCredentialVault>()
+            credentialVault = get<EngineCredentialVault>(),
+            googleAuthProvider = get<GoogleAuthProvider>()
         )
     }
 

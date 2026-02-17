@@ -40,8 +40,10 @@ import com.tomandy.palmclaw.ui.settings.SkillEditorScreen
 import com.tomandy.palmclaw.ui.settings.AgentProfileEditorScreen
 import com.tomandy.palmclaw.ui.settings.AgentProfilesScreen
 import com.tomandy.palmclaw.ui.settings.AgentProfilesViewModel
+import com.tomandy.palmclaw.ui.settings.GoogleAccountScreen
 import com.tomandy.palmclaw.ui.settings.SkillsScreen
 import com.tomandy.palmclaw.ui.settings.SkillsViewModel
+import com.tomandy.palmclaw.google.GoogleAuthManager
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -63,6 +65,7 @@ enum class Screen(val route: String) {
     Backup("settings/backup"),
     AgentProfiles("settings/agents"),
     AgentProfileEditor("settings/agents/editor"),
+    GoogleAccount("settings/google-account"),
     Cronjobs("cronjobs"),
     History("history")
 }
@@ -171,6 +174,9 @@ fun PalmClawNavGraph(
                     },
                     onNavigateToAgentProfiles = {
                         navController.navigate(Screen.AgentProfiles.route)
+                    },
+                    onNavigateToGoogleAccount = {
+                        navController.navigate(Screen.GoogleAccount.route)
                     },
                     modelPreferences = modelPreferences,
                     availableModels = availableModels,
@@ -415,6 +421,28 @@ fun PalmClawNavGraph(
                 profileName = profileName,
                 onNavigateBack = { navController.popBackStack() }
             )
+        }
+
+        composable(Screen.GoogleAccount.route) {
+            val googleAuthManager: GoogleAuthManager = koinInject()
+
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Google Account") },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            }
+                        }
+                    )
+                }
+            ) { paddingValues ->
+                GoogleAccountScreen(
+                    googleAuthManager = googleAuthManager,
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
         }
 
         composable(Screen.Cronjobs.route) {

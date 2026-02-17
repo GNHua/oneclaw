@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Log
 import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.engine.CredentialVault
+import com.tomandy.palmclaw.engine.GoogleAuthProvider
 import com.tomandy.palmclaw.engine.LoadedPlugin
 import com.tomandy.palmclaw.engine.PluginContext
 import com.tomandy.palmclaw.engine.PluginEngine
@@ -22,7 +23,8 @@ class UserPluginManager(
     private val pluginEngine: PluginEngine,
     private val toolRegistry: ToolRegistry,
     private val pluginPreferences: PluginPreferences,
-    private val credentialVault: CredentialVault
+    private val credentialVault: CredentialVault,
+    private val googleAuthProvider: GoogleAuthProvider? = null
 ) {
     companion object {
         private const val TAG = "UserPluginManager"
@@ -285,7 +287,7 @@ class UserPluginManager(
         val metadataJson = File(directory, "plugin.json").readText()
         val metadata = Json.decodeFromString<PluginMetadata>(metadataJson)
 
-        val pluginContext = PluginContext(context, metadata.id, credentialVault)
+        val pluginContext = PluginContext(context, metadata.id, credentialVault, googleAuthProvider)
         return pluginEngine.loadFromDirectory(directory, pluginContext)
     }
 }

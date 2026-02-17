@@ -319,6 +319,24 @@ class JsPlugin(
                 property<String>("pluginVersion") { getter { metadata.version } }
             }
 
+            // -- Google OAuth (optional, only if provider available) --
+            val googleAuth = context.googleAuthProvider
+            if (googleAuth != null) {
+                define("google") {
+                    asyncFunction<String?>("getAccessToken") {
+                        googleAuth.getAccessToken()
+                    }
+
+                    asyncFunction<Boolean>("isSignedIn") {
+                        googleAuth.isSignedIn()
+                    }
+
+                    asyncFunction<String?>("getAccountEmail") {
+                        googleAuth.getAccountEmail()
+                    }
+                }
+            }
+
             // -- Logging --
             define("log") {
                 function("info") { args ->

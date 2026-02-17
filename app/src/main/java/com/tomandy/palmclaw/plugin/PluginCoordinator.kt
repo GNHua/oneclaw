@@ -26,10 +26,12 @@ import com.tomandy.palmclaw.workspace.MemoryPluginMetadata
 import com.tomandy.palmclaw.workspace.WorkspacePlugin
 import com.tomandy.palmclaw.workspace.WorkspacePluginMetadata
 import com.tomandy.palmclaw.devicecontrol.AbortCallback
+import com.tomandy.palmclaw.devicecontrol.AccessibilityPromptCallback
 import com.tomandy.palmclaw.devicecontrol.DeviceControlManager
 import com.tomandy.palmclaw.devicecontrol.DeviceControlPlugin
 import com.tomandy.palmclaw.devicecontrol.DeviceControlPluginMetadata
 import com.tomandy.palmclaw.service.ChatExecutionService
+import com.tomandy.palmclaw.service.ChatExecutionTracker
 
 class PluginCoordinator(
     private val context: Context,
@@ -200,6 +202,13 @@ class PluginCoordinator(
                     ChatExecutionService.activeCoordinators.keys.toList()
                 }
                 ids.forEach { ChatExecutionService.cancelExecutionDirect(it) }
+            }
+        })
+
+        // Wire accessibility prompt callback
+        DeviceControlManager.setAccessibilityPromptCallback(object : AccessibilityPromptCallback {
+            override fun onAccessibilityServiceNeeded() {
+                ChatExecutionTracker.emitEvent(ChatExecutionTracker.UiEvent.AccessibilityServiceNeeded)
             }
         })
     }

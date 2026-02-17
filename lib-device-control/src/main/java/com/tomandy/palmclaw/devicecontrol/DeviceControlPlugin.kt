@@ -17,6 +17,7 @@ class DeviceControlPlugin : Plugin {
 
     override suspend fun execute(toolName: String, arguments: JsonObject): ToolResult {
         if (!DeviceControlManager.isServiceConnected()) {
+            DeviceControlManager.promptEnableService()
             return ToolResult.Failure(
                 "Accessibility service is not enabled. " +
                     "The user must enable PalmClaw Device Control in Settings > Accessibility before device control tools can be used."

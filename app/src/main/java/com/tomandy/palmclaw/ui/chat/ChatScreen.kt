@@ -33,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -61,9 +62,11 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import com.tomandy.palmclaw.audio.AudioInputController
 import com.tomandy.palmclaw.audio.AudioState
 import com.tomandy.palmclaw.audio.AndroidSttProvider
+import com.tomandy.palmclaw.devicecontrol.DeviceControlManager
 import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import com.tomandy.palmclaw.notification.ChatScreenTracker
+import com.tomandy.palmclaw.service.ChatExecutionTracker
 import com.tomandy.palmclaw.util.DocumentStorageHelper
 import com.tomandy.palmclaw.util.ImageStorageHelper
 import com.tomandy.palmclaw.util.VideoStorageHelper
@@ -288,6 +291,24 @@ fun ChatScreen(
                 duration = SnackbarDuration.Long
             )
             viewModel.clearError()
+        }
+    }
+
+    // Show accessibility service prompt
+    LaunchedEffect(Unit) {
+        viewModel.uiEvents.collect { event ->
+            when (event) {
+                is ChatExecutionTracker.UiEvent.AccessibilityServiceNeeded -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = "Accessibility service required for device control",
+                        actionLabel = "Open Settings",
+                        duration = SnackbarDuration.Long
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        DeviceControlManager.openAccessibilitySettings(context)
+                    }
+                }
+            }
         }
     }
 

@@ -12,6 +12,7 @@ object DeviceControlManager {
 
     private var serviceRef: WeakReference<DeviceControlService>? = null
     private var abortCallback: AbortCallback? = null
+    private var accessibilityPromptCallback: AccessibilityPromptCallback? = null
 
     fun registerService(service: DeviceControlService) {
         serviceRef = WeakReference(service)
@@ -27,6 +28,14 @@ object DeviceControlManager {
 
     fun setAbortCallback(callback: AbortCallback) {
         abortCallback = callback
+    }
+
+    fun setAccessibilityPromptCallback(callback: AccessibilityPromptCallback) {
+        accessibilityPromptCallback = callback
+    }
+
+    fun promptEnableService() {
+        accessibilityPromptCallback?.onAccessibilityServiceNeeded()
     }
 
     fun abortAllExecutions() {

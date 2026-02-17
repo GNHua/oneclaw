@@ -19,6 +19,7 @@ import com.tomandy.palmclaw.service.ChatExecutionTracker
 import com.tomandy.palmclaw.skill.SkillRepository
 import com.tomandy.palmclaw.skill.SlashCommandRouter
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.coroutines.flow.StateFlow
@@ -56,6 +57,8 @@ class ChatViewModel(
 
     private val _agentState = MutableStateFlow<AgentState>(AgentState.Idle)
     val agentState: StateFlow<AgentState> = _agentState.asStateFlow()
+
+    val uiEvents: SharedFlow<ChatExecutionTracker.UiEvent> = ChatExecutionTracker.uiEvents
 
     val agentProfiles: StateFlow<List<AgentProfileEntry>> = agentProfileRepository.profiles
 

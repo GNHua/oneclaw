@@ -1,8 +1,12 @@
 package com.tomandy.palmclaw.service
 
 import com.tomandy.palmclaw.agent.AgentState
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
@@ -10,6 +14,21 @@ import kotlinx.coroutines.flow.asStateFlow
  * (e.g. ChatViewModel). The service writes state here; the ViewModel reads it.
  */
 object ChatExecutionTracker {
+
+    sealed interface UiEvent {
+        object AccessibilityServiceNeeded : UiEvent
+    }
+
+    private val _uiEvents = MutableSharedFlow<UiEvent>(
+        replay = 0,
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val uiEvents: SharedFlow<UiEvent> = _uiEvents.asSharedFlow()
+
+    fun emitEvent(event: UiEvent) {
+        _uiEvents.tryEmit(event)
+    }
 
     private val _activeConversations = MutableStateFlow<Set<String>>(emptySet())
     val activeConversations: StateFlow<Set<String>> = _activeConversations.asStateFlow()

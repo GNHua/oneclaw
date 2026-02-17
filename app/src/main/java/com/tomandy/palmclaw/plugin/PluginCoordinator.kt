@@ -25,6 +25,11 @@ import com.tomandy.palmclaw.workspace.MemoryPlugin
 import com.tomandy.palmclaw.workspace.MemoryPluginMetadata
 import com.tomandy.palmclaw.workspace.WorkspacePlugin
 import com.tomandy.palmclaw.workspace.WorkspacePluginMetadata
+import com.tomandy.palmclaw.devicecontrol.AbortCallback
+import com.tomandy.palmclaw.devicecontrol.DeviceControlManager
+import com.tomandy.palmclaw.devicecontrol.DeviceControlPlugin
+import com.tomandy.palmclaw.devicecontrol.DeviceControlPluginMetadata
+import com.tomandy.palmclaw.service.ChatExecutionService
 
 class PluginCoordinator(
     private val context: Context,
@@ -168,6 +173,35 @@ class PluginCoordinator(
         } catch (e: Exception) {
             e.printStackTrace()
         }
+
+        // Register DeviceControlPlugin
+        try {
+            val deviceControlPlugin = DeviceControlPlugin()
+            val deviceControlContext = PluginContext.create(
+                androidContext = context,
+                pluginId = "device_control",
+                credentialVault = credentialVault
+            )
+            deviceControlPlugin.onLoad(deviceControlContext)
+            toolRegistry.registerPlugin(
+                LoadedPlugin(
+                    metadata = DeviceControlPluginMetadata.get(),
+                    instance = deviceControlPlugin
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Wire abort callback for hardware button abort
+        DeviceControlManager.setAbortCallback(object : AbortCallback {
+            override fun abortAllExecutions() {
+                val ids = synchronized(ChatExecutionService.activeCoordinators) {
+                    ChatExecutionService.activeCoordinators.keys.toList()
+                }
+                ids.forEach { ChatExecutionService.cancelExecutionDirect(it) }
+            }
+        })
     }
 
     /**

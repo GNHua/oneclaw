@@ -65,6 +65,9 @@ dependencies {
     // Skill engine
     implementation(project(":skill-engine"))
 
+    // Device control (accessibility service)
+    implementation(project(":lib-device-control"))
+
     // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

@@ -1,0 +1,125 @@
+{
+  "id": "google-docs",
+  "name": "Google Docs",
+  "version": "1.0.0",
+  "description": "Create and edit Google Docs documents - read text, insert content, find and replace",
+  "author": "PalmClaw Team",
+  "entryPoint": "GoogleDocsPlugin",
+  "category": "drive",
+  "tools": [
+    {
+      "name": "docs_get",
+      "description": "Get the full document structure of a Google Doc by its ID. Returns the complete document JSON including body, headers, footers, and metadata.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "The Google Docs document ID"
+          }
+        },
+        "required": ["document_id"]
+      }
+    },
+    {
+      "name": "docs_create",
+      "description": "Create a new empty Google Docs document with the given title. Returns the new document's ID and URL.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Title for the new document"
+          }
+        },
+        "required": ["title"]
+      }
+    },
+    {
+      "name": "docs_get_text",
+      "description": "Get the plain text content of a Google Doc. Extracts all text from paragraphs, stripping formatting. Useful for reading document content without structural metadata.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "The Google Docs document ID"
+          }
+        },
+        "required": ["document_id"]
+      }
+    },
+    {
+      "name": "docs_insert",
+      "description": "Insert text into a Google Doc at a specific index position. Index 1 inserts at the very beginning of the document body.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "The Google Docs document ID"
+          },
+          "text": {
+            "type": "string",
+            "description": "The text to insert"
+          },
+          "index": {
+            "type": "integer",
+            "description": "The zero-based UTF-16 code unit index to insert at (default: 1, start of document body)"
+          }
+        },
+        "required": ["document_id", "text"]
+      }
+    },
+    {
+      "name": "docs_delete_range",
+      "description": "Delete a range of content from a Google Doc by specifying start and end indices.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "The Google Docs document ID"
+          },
+          "start_index": {
+            "type": "integer",
+            "description": "Start index of the range to delete (inclusive)"
+          },
+          "end_index": {
+            "type": "integer",
+            "description": "End index of the range to delete (exclusive)"
+          }
+        },
+        "required": ["document_id", "start_index", "end_index"]
+      }
+    },
+    {
+      "name": "docs_find_replace",
+      "description": "Find and replace all occurrences of a text string in a Google Doc.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "The Google Docs document ID"
+          },
+          "find": {
+            "type": "string",
+            "description": "The text to search for"
+          },
+          "replace": {
+            "type": "string",
+            "description": "The replacement text"
+          },
+          "match_case": {
+            "type": "boolean",
+            "description": "Whether the search should be case-sensitive (default: false)"
+          }
+        },
+        "required": ["document_id", "find", "replace"]
+      }
+    }
+  ],
+  "permissions": ["INTERNET"],
+  "dependencies": []
+}

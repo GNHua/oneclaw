@@ -1,0 +1,267 @@
+{
+  "id": "google-drive",
+  "name": "Google Drive",
+  "version": "1.0.0",
+  "description": "List, search, upload, download, and manage files in Google Drive",
+  "author": "PalmClaw Team",
+  "entryPoint": "GoogleDrivePlugin",
+  "category": "drive",
+  "tools": [
+    {
+      "name": "drive_list",
+      "description": "List files in Google Drive. Supports Drive query syntax for filtering (e.g., \"mimeType='application/pdf'\", \"'folder_id' in parents\"). Returns file id, name, mimeType, size, modifiedTime, and parents.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Drive query syntax filter (e.g., \"mimeType='application/pdf'\", \"name contains 'report'\"). Optional."
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of files to return (default: 20, max: 100)"
+          },
+          "page_token": {
+            "type": "string",
+            "description": "Token for fetching the next page of results (from a previous response)"
+          },
+          "order_by": {
+            "type": "string",
+            "description": "Sort order (e.g., 'modifiedTime desc', 'name', 'createdTime desc'). Default: 'modifiedTime desc'."
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "drive_search",
+      "description": "Full-text search across file contents in Google Drive. Searches inside documents, spreadsheets, PDFs, etc. Returns matching files with id, name, mimeType, size, modifiedTime, and parents.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to search for across file contents"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of results to return (default: 20, max: 100)"
+          }
+        },
+        "required": ["text"]
+      }
+    },
+    {
+      "name": "drive_get",
+      "description": "Get detailed metadata for a specific file by its ID. Returns id, name, mimeType, size, modifiedTime, createdTime, parents, webViewLink, and description.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "The Drive file ID"
+          }
+        },
+        "required": ["file_id"]
+      }
+    },
+    {
+      "name": "drive_mkdir",
+      "description": "Create a new folder in Google Drive. Optionally specify a parent folder ID to create a nested folder.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Folder name"
+          },
+          "parent_id": {
+            "type": "string",
+            "description": "Parent folder ID to create the folder in (optional, defaults to root)"
+          }
+        },
+        "required": ["name"]
+      }
+    },
+    {
+      "name": "drive_copy",
+      "description": "Create a copy of a file in Google Drive. Optionally specify a new name for the copy.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "The ID of the file to copy"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name for the copy (optional, defaults to 'Copy of <original>')"
+          }
+        },
+        "required": ["file_id"]
+      }
+    },
+    {
+      "name": "drive_rename",
+      "description": "Rename a file or folder in Google Drive.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "The ID of the file or folder to rename"
+          },
+          "name": {
+            "type": "string",
+            "description": "The new name"
+          }
+        },
+        "required": ["file_id", "name"]
+      }
+    },
+    {
+      "name": "drive_move",
+      "description": "Move a file or folder to a different parent folder in Google Drive.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "The ID of the file or folder to move"
+          },
+          "new_parent_id": {
+            "type": "string",
+            "description": "The ID of the destination parent folder"
+          },
+          "old_parent_id": {
+            "type": "string",
+            "description": "The ID of the current parent folder (optional; if omitted, the file's current parents will be looked up automatically)"
+          }
+        },
+        "required": ["file_id", "new_parent_id"]
+      }
+    },
+    {
+      "name": "drive_delete",
+      "description": "Move a file or folder to Trash in Google Drive. The file is not permanently deleted and can be recovered from Trash within 30 days.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "The ID of the file or folder to trash"
+          }
+        },
+        "required": ["file_id"]
+      }
+    },
+    {
+      "name": "drive_share",
+      "description": "Share a file or folder with a user, group, or domain by creating a permission. Supports reader, writer, and commenter roles.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "The ID of the file or folder to share"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address to share with"
+          },
+          "role": {
+            "type": "string",
+            "description": "Permission role: 'reader', 'writer', or 'commenter'"
+          },
+          "type": {
+            "type": "string",
+            "description": "Permission type: 'user', 'group', or 'domain' (default: 'user')"
+          }
+        },
+        "required": ["file_id", "email", "role"]
+      }
+    },
+    {
+      "name": "drive_permissions",
+      "description": "List all permissions (sharing settings) for a file or folder. Returns each permission's id, emailAddress, role, type, and displayName.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "The ID of the file or folder"
+          }
+        },
+        "required": ["file_id"]
+      }
+    },
+    {
+      "name": "drive_download",
+      "description": "Download a file from Google Drive to the local workspace. For Google Docs/Sheets/Slides, use drive_export instead.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "The ID of the file to download"
+          },
+          "save_path": {
+            "type": "string",
+            "description": "Workspace path to save the file to (e.g., 'downloads/report.pdf')"
+          }
+        },
+        "required": ["file_id", "save_path"]
+      }
+    },
+    {
+      "name": "drive_upload",
+      "description": "Upload a file from the local workspace to Google Drive using multipart upload.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Workspace path of the file to upload (e.g., 'documents/report.pdf')"
+          },
+          "name": {
+            "type": "string",
+            "description": "Filename to use in Google Drive"
+          },
+          "mime_type": {
+            "type": "string",
+            "description": "MIME type of the file (e.g., 'application/pdf', 'image/png', 'text/plain')"
+          },
+          "parent_id": {
+            "type": "string",
+            "description": "Parent folder ID to upload into (optional, defaults to root)"
+          }
+        },
+        "required": ["file_path", "name", "mime_type"]
+      }
+    },
+    {
+      "name": "drive_export",
+      "description": "Export a Google Docs/Sheets/Slides file to a downloadable format (e.g., PDF, CSV, DOCX). Saves to the local workspace.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "The ID of the Google Docs/Sheets/Slides file to export"
+          },
+          "mime_type": {
+            "type": "string",
+            "description": "Target export MIME type (e.g., 'application/pdf', 'text/csv', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')"
+          },
+          "save_path": {
+            "type": "string",
+            "description": "Workspace path to save the exported file (e.g., 'exports/doc.pdf')"
+          }
+        },
+        "required": ["file_id", "mime_type", "save_path"]
+      }
+    }
+  ],
+  "permissions": ["INTERNET"],
+  "dependencies": []
+}

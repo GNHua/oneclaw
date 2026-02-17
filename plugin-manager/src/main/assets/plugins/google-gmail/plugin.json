@@ -1,8 +1,8 @@
 {
   "id": "google-gmail",
   "name": "Google Gmail",
-  "version": "1.0.0",
-  "description": "Search, read, send, and manage Gmail messages via Google API",
+  "version": "2.0.0",
+  "description": "Search, read, send, and manage Gmail messages, threads, drafts, labels, and attachments via Google API",
   "author": "PalmClaw Team",
   "entryPoint": "GoogleGmailPlugin",
   "category": "gmail",
@@ -96,7 +96,7 @@
           "message_ids": {
             "type": "array",
             "items": { "type": "string" },
-            "description": "List of message IDs to permanently delete (max 1000)"
+            "description": "List of message IDs to move to Trash (max 1000)"
           }
         },
         "required": ["message_ids"]
@@ -109,6 +109,235 @@
         "type": "object",
         "properties": {},
         "required": []
+      }
+    },
+    {
+      "name": "gmail_get_thread",
+      "description": "Get all messages in a Gmail thread by thread ID. Returns metadata for each message in the thread.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "thread_id": {
+            "type": "string",
+            "description": "The Gmail thread ID"
+          }
+        },
+        "required": ["thread_id"]
+      }
+    },
+    {
+      "name": "gmail_modify_labels",
+      "description": "Add or remove labels from a message or thread. Use label IDs (e.g., 'INBOX', 'UNREAD', or custom label IDs from gmail_list_labels).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The message ID or thread ID"
+          },
+          "type": {
+            "type": "string",
+            "description": "'message' or 'thread' (default: 'message')"
+          },
+          "add_labels": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Label IDs to add"
+          },
+          "remove_labels": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Label IDs to remove"
+          }
+        },
+        "required": ["id"]
+      }
+    },
+    {
+      "name": "gmail_create_label",
+      "description": "Create a new Gmail label.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Label name (supports nesting with '/', e.g., 'Projects/Work')"
+          },
+          "label_list_visibility": {
+            "type": "string",
+            "description": "Visibility in label list: 'labelShow', 'labelShowIfUnread', 'labelHide' (default: 'labelShow')"
+          },
+          "message_list_visibility": {
+            "type": "string",
+            "description": "Visibility in message list: 'show' or 'hide' (default: 'show')"
+          }
+        },
+        "required": ["name"]
+      }
+    },
+    {
+      "name": "gmail_delete_label",
+      "description": "Delete a Gmail label by its ID. Built-in labels cannot be deleted.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "label_id": {
+            "type": "string",
+            "description": "The label ID to delete"
+          }
+        },
+        "required": ["label_id"]
+      }
+    },
+    {
+      "name": "gmail_list_drafts",
+      "description": "List Gmail drafts.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of drafts to return (default: 10, max: 50)"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "gmail_get_draft",
+      "description": "Get a specific Gmail draft by ID with its full content.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "draft_id": {
+            "type": "string",
+            "description": "The draft ID"
+          }
+        },
+        "required": ["draft_id"]
+      }
+    },
+    {
+      "name": "gmail_create_draft",
+      "description": "Create a new Gmail draft.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "Recipient email address(es)"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Email subject"
+          },
+          "body": {
+            "type": "string",
+            "description": "Email body content"
+          },
+          "cc": {
+            "type": "string",
+            "description": "CC recipients (optional)"
+          },
+          "content_type": {
+            "type": "string",
+            "description": "Body content type: 'text/plain' (default) or 'text/html'"
+          }
+        },
+        "required": ["to", "subject", "body"]
+      }
+    },
+    {
+      "name": "gmail_send_draft",
+      "description": "Send an existing Gmail draft by its ID.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "draft_id": {
+            "type": "string",
+            "description": "The draft ID to send"
+          }
+        },
+        "required": ["draft_id"]
+      }
+    },
+    {
+      "name": "gmail_delete_draft",
+      "description": "Delete a Gmail draft by its ID.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "draft_id": {
+            "type": "string",
+            "description": "The draft ID to delete"
+          }
+        },
+        "required": ["draft_id"]
+      }
+    },
+    {
+      "name": "gmail_get_attachment",
+      "description": "Download a Gmail attachment and save it to the workspace. Returns the file path.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "The message ID containing the attachment"
+          },
+          "attachment_id": {
+            "type": "string",
+            "description": "The attachment ID"
+          },
+          "filename": {
+            "type": "string",
+            "description": "Filename to save as in the workspace (default: 'attachment')"
+          }
+        },
+        "required": ["message_id", "attachment_id"]
+      }
+    },
+    {
+      "name": "gmail_history",
+      "description": "Get Gmail history (changes) since a given history ID. Useful for detecting new messages or label changes.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "start_history_id": {
+            "type": "string",
+            "description": "The history ID to start from (get from a message's historyId field)"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of history records (default: 20)"
+          }
+        },
+        "required": ["start_history_id"]
+      }
+    },
+    {
+      "name": "gmail_batch_modify",
+      "description": "Add or remove labels from multiple messages at once (max 1000).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message_ids": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of message IDs to modify"
+          },
+          "add_labels": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Label IDs to add"
+          },
+          "remove_labels": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Label IDs to remove"
+          }
+        },
+        "required": ["message_ids"]
       }
     }
   ],

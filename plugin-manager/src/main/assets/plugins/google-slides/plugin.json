@@ -1,0 +1,113 @@
+{
+  "id": "google-slides",
+  "name": "Google Slides",
+  "version": "1.0.0",
+  "description": "Create and manage Google Slides presentations - view slides, extract text, add and remove slides",
+  "author": "PalmClaw Team",
+  "entryPoint": "GoogleSlidesPlugin",
+  "category": "drive",
+  "tools": [
+    {
+      "name": "slides_get",
+      "description": "Get full presentation details of a Google Slides presentation by its ID. Returns the title, number of slides, and the object ID of each slide.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "The Google Slides presentation ID"
+          }
+        },
+        "required": ["presentation_id"]
+      }
+    },
+    {
+      "name": "slides_create",
+      "description": "Create a new Google Slides presentation with the given title. Returns the new presentation's ID and URL.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Title for the new presentation"
+          }
+        },
+        "required": ["title"]
+      }
+    },
+    {
+      "name": "slides_list_slides",
+      "description": "List all slides in a Google Slides presentation. Returns an array of slide summaries with objectId and pageType for each slide.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "The Google Slides presentation ID"
+          }
+        },
+        "required": ["presentation_id"]
+      }
+    },
+    {
+      "name": "slides_get_slide_text",
+      "description": "Extract all text content from a specific slide by its 0-based index. Walks all page elements and collects text from shapes and text boxes.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "The Google Slides presentation ID"
+          },
+          "slide_index": {
+            "type": "integer",
+            "description": "0-based index of the slide to extract text from"
+          }
+        },
+        "required": ["presentation_id", "slide_index"]
+      }
+    },
+    {
+      "name": "slides_add_slide",
+      "description": "Add a new slide to a Google Slides presentation. Supports specifying a layout (BLANK, TITLE, TITLE_AND_BODY, etc.) and optional insertion index.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "The Google Slides presentation ID"
+          },
+          "layout": {
+            "type": "string",
+            "description": "Predefined layout for the new slide: BLANK, TITLE, TITLE_AND_BODY, TITLE_AND_TWO_COLUMNS, TITLE_ONLY, SECTION_HEADER, etc. (default: BLANK)"
+          },
+          "insert_at": {
+            "type": "integer",
+            "description": "0-based index at which to insert the new slide (optional, appends at end if omitted)"
+          }
+        },
+        "required": ["presentation_id"]
+      }
+    },
+    {
+      "name": "slides_delete_slide",
+      "description": "Delete a slide from a Google Slides presentation by its object ID. Use slides_list_slides to find slide object IDs.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "The Google Slides presentation ID"
+          },
+          "slide_id": {
+            "type": "string",
+            "description": "The objectId of the slide to delete (use slides_list_slides to find IDs)"
+          }
+        },
+        "required": ["presentation_id", "slide_id"]
+      }
+    }
+  ],
+  "permissions": ["INTERNET"],
+  "dependencies": []
+}

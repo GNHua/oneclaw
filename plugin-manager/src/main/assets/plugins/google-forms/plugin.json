@@ -1,0 +1,63 @@
+{
+  "id": "google-forms",
+  "name": "Google Forms",
+  "version": "1.0.0",
+  "description": "Read Google Forms structure and responses",
+  "author": "PalmClaw Team",
+  "entryPoint": "GoogleFormsPlugin",
+  "category": "drive",
+  "tools": [
+    {
+      "name": "forms_get",
+      "description": "Get the structure of a Google Form by its ID. Returns the form title, description, and all items with their question types, options, and settings.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string",
+            "description": "The Google Forms form ID"
+          }
+        },
+        "required": ["form_id"]
+      }
+    },
+    {
+      "name": "forms_list_responses",
+      "description": "List all responses submitted to a Google Form. Returns a summary of each response including response ID, timestamps, and answer count.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string",
+            "description": "The Google Forms form ID"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of responses to return (default: 25)"
+          }
+        },
+        "required": ["form_id"]
+      }
+    },
+    {
+      "name": "forms_get_response",
+      "description": "Get a specific response submitted to a Google Form by its response ID. Returns the full response data including all answers.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string",
+            "description": "The Google Forms form ID"
+          },
+          "response_id": {
+            "type": "string",
+            "description": "The response ID to retrieve"
+          }
+        },
+        "required": ["form_id", "response_id"]
+      }
+    }
+  ],
+  "permissions": ["INTERNET"],
+  "dependencies": []
+}

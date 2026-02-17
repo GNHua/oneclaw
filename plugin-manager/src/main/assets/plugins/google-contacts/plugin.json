@@ -1,0 +1,147 @@
+{
+  "id": "google-contacts",
+  "name": "Google Contacts",
+  "version": "1.0.0",
+  "description": "Search, view, create, update, and delete Google Contacts via People API",
+  "author": "PalmClaw Team",
+  "entryPoint": "GoogleContactsPlugin",
+  "category": "contacts",
+  "tools": [
+    {
+      "name": "contacts_search",
+      "description": "Search Google Contacts by name, email, or phone number. Returns matching contacts with name, email, phone, and organization.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query (name, email, phone, etc.)"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of results to return (default: 10, max: 30)"
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "contacts_list",
+      "description": "List contacts from Google Contacts. Returns contacts with name, email, phone, and organization. Supports pagination via page_token.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of contacts to return (default: 25, max: 100)"
+          },
+          "page_token": {
+            "type": "string",
+            "description": "Page token from a previous response for pagination"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "contacts_get",
+      "description": "Get full details of a specific contact including name, emails, phones, addresses, organization, biography, birthday, and URLs.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "resource_name": {
+            "type": "string",
+            "description": "The contact resource name (e.g., 'people/c123456789')"
+          }
+        },
+        "required": ["resource_name"]
+      }
+    },
+    {
+      "name": "contacts_create",
+      "description": "Create a new Google Contact with name, email, and phone number.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "given_name": {
+            "type": "string",
+            "description": "First name (required)"
+          },
+          "family_name": {
+            "type": "string",
+            "description": "Last name (optional)"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address (optional)"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number (optional)"
+          }
+        },
+        "required": ["given_name"]
+      }
+    },
+    {
+      "name": "contacts_update",
+      "description": "Update an existing Google Contact. Automatically fetches the current etag before updating. Only specified fields will be changed.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "resource_name": {
+            "type": "string",
+            "description": "The contact resource name (e.g., 'people/c123456789')"
+          },
+          "given_name": {
+            "type": "string",
+            "description": "New first name"
+          },
+          "family_name": {
+            "type": "string",
+            "description": "New last name"
+          },
+          "email": {
+            "type": "string",
+            "description": "New email address"
+          },
+          "phone": {
+            "type": "string",
+            "description": "New phone number"
+          }
+        },
+        "required": ["resource_name"]
+      }
+    },
+    {
+      "name": "contacts_delete",
+      "description": "Delete a Google Contact permanently.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "resource_name": {
+            "type": "string",
+            "description": "The contact resource name to delete (e.g., 'people/c123456789')"
+          }
+        },
+        "required": ["resource_name"]
+      }
+    },
+    {
+      "name": "contacts_directory",
+      "description": "List directory contacts from a Google Workspace domain. Only available for Google Workspace accounts; consumer accounts will receive an appropriate error message.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of directory contacts to return (default: 25, max: 100)"
+          }
+        },
+        "required": []
+      }
+    }
+  ],
+  "permissions": ["INTERNET"],
+  "dependencies": []
+}

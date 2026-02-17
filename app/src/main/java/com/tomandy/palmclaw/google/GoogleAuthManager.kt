@@ -39,7 +39,16 @@ class GoogleAuthManager(
 
         private val SCOPES = listOf(
             "https://www.googleapis.com/auth/gmail.modify",
-            "https://www.googleapis.com/auth/calendar"
+            "https://www.googleapis.com/auth/gmail.settings.basic",
+            "https://www.googleapis.com/auth/calendar",
+            "https://www.googleapis.com/auth/tasks",
+            "https://www.googleapis.com/auth/contacts",
+            "https://www.googleapis.com/auth/drive.file",
+            "https://www.googleapis.com/auth/documents",
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/presentations",
+            "https://www.googleapis.com/auth/forms.body.readonly",
+            "https://www.googleapis.com/auth/forms.responses.readonly"
         )
 
         private val SCOPE_STRING = "oauth2:" + SCOPES.joinToString(" ")

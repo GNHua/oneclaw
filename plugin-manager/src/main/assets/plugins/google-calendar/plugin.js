@@ -108,6 +108,7 @@ async function execute(toolName, args) {
 
                 if (args.description) event.description = args.description;
                 if (args.location) event.location = args.location;
+                if (args.event_type) event.eventType = args.event_type;
                 if (args.attendees) {
                     event.attendees = args.attendees.split(",").map(function(email) {
                         return { email: email.trim() };
@@ -175,6 +176,87 @@ async function execute(toolName, args) {
                     };
                 });
                 return { output: JSON.stringify(calendars, null, 2) };
+            }
+
+            case "calendar_freebusy": {
+                var items = (args.calendar_ids || ["primary"]).map(function(id) {
+                    return { id: id };
+                });
+                var data = await calFetch("POST", "/freeBusy",
+                    JSON.stringify({
+                        timeMin: args.time_min,
+                        timeMax: args.time_max,
+                        items: items
+                    }));
+                var result = {};
+                var calendars = data.calendars || {};
+                for (var calId in calendars) {
+                    result[calId] = {
+                        busy: (calendars[calId].busy || []).map(function(b) {
+                            return { start: b.start, end: b.end };
+                        }),
+                        errors: calendars[calId].errors || []
+                    };
+                }
+                return { output: JSON.stringify(result, null, 2) };
+            }
+
+            case "calendar_respond": {
+                var calId = encodeURIComponent(args.calendar_id || "primary");
+                var eventId = encodeURIComponent(args.event_id);
+                var event = await calFetch("GET",
+                    "/calendars/" + calId + "/events/" + eventId);
+
+                var email = await palmclaw.google.getAccountEmail();
+                var attendees = event.attendees || [];
+                var found = false;
+                for (var i = 0; i < attendees.length; i++) {
+                    if (attendees[i].email === email || attendees[i].self) {
+                        attendees[i].responseStatus = args.response;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    attendees.push({ email: email, responseStatus: args.response });
+                }
+                event.attendees = attendees;
+
+                var data = await calFetch("PUT",
+                    "/calendars/" + calId + "/events/" + eventId,
+                    JSON.stringify(event));
+                return { output: "Responded '" + args.response + "' to event: " + data.summary };
+            }
+
+            case "calendar_list_colors": {
+                var data = await calFetch("GET", "/colors");
+                return { output: JSON.stringify(data, null, 2) };
+            }
+
+            case "calendar_quick_add": {
+                var calId = encodeURIComponent(args.calendar_id || "primary");
+                var data = await calFetch("POST",
+                    "/calendars/" + calId + "/events/quickAdd?text=" +
+                    encodeURIComponent(args.text));
+                return {
+                    output: "Event created: " + (data.summary || args.text) +
+                        "\nID: " + data.id +
+                        "\nStart: " + (data.start ? (data.start.dateTime || data.start.date) : "") +
+                        "\nLink: " + (data.htmlLink || "")
+                };
+            }
+
+            case "calendar_instances": {
+                var calId = encodeURIComponent(args.calendar_id || "primary");
+                var eventId = encodeURIComponent(args.event_id);
+                var maxResults = Math.min(args.max_results || 25, 100);
+                var path = "/calendars/" + calId + "/events/" + eventId + "/instances?" +
+                    "maxResults=" + maxResults;
+                if (args.time_min) path += "&timeMin=" + encodeURIComponent(args.time_min);
+                if (args.time_max) path += "&timeMax=" + encodeURIComponent(args.time_max);
+                var data = await calFetch("GET", path);
+                var instances = (data.items || []).map(formatEvent);
+                return { output: JSON.stringify(instances, null, 2) };
             }
 
             default:

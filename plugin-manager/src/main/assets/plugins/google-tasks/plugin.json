@@ -1,0 +1,166 @@
+{
+  "id": "google-tasks",
+  "name": "Google Tasks",
+  "version": "1.0.0",
+  "description": "Manage Google Tasks - task lists, tasks, completion status",
+  "author": "PalmClaw Team",
+  "entryPoint": "GoogleTasksPlugin",
+  "category": "tasks",
+  "tools": [
+    {
+      "name": "tasks_list_tasklists",
+      "description": "List all Google Task lists for the authenticated user. Returns each list's id, title, and updated timestamp.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "tasks_list_tasks",
+      "description": "List tasks in a specific task list. Returns id, title, status, due, notes, parent, and position for each task.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tasklist_id": {
+            "type": "string",
+            "description": "The task list ID (use tasks_list_tasklists to find IDs)"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of tasks to return (default: 20, max: 100)"
+          },
+          "show_completed": {
+            "type": "boolean",
+            "description": "Whether to include completed tasks (default: true)"
+          },
+          "show_hidden": {
+            "type": "boolean",
+            "description": "Whether to include hidden/deleted tasks (default: false)"
+          }
+        },
+        "required": ["tasklist_id"]
+      }
+    },
+    {
+      "name": "tasks_get_task",
+      "description": "Get full details of a specific task by its ID, including title, notes, status, due date, and links.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tasklist_id": {
+            "type": "string",
+            "description": "The task list ID containing the task"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "The task ID"
+          }
+        },
+        "required": ["tasklist_id", "task_id"]
+      }
+    },
+    {
+      "name": "tasks_create",
+      "description": "Create a new task in a task list. Supports setting title, notes, due date, and parent (for subtasks).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tasklist_id": {
+            "type": "string",
+            "description": "The task list ID to create the task in"
+          },
+          "title": {
+            "type": "string",
+            "description": "Task title"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Task notes/description (optional)"
+          },
+          "due": {
+            "type": "string",
+            "description": "Due date in RFC 3339 format, e.g. '2026-02-20T00:00:00.000Z' (optional)"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent task ID to create this as a subtask (optional)"
+          }
+        },
+        "required": ["tasklist_id", "title"]
+      }
+    },
+    {
+      "name": "tasks_update",
+      "description": "Update an existing task. Only specified fields will be changed. Use status 'completed' to mark done or 'needsAction' to reopen.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tasklist_id": {
+            "type": "string",
+            "description": "The task list ID containing the task"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "The task ID to update"
+          },
+          "title": {
+            "type": "string",
+            "description": "New task title (optional)"
+          },
+          "notes": {
+            "type": "string",
+            "description": "New task notes (optional)"
+          },
+          "due": {
+            "type": "string",
+            "description": "New due date in RFC 3339 format (optional)"
+          },
+          "status": {
+            "type": "string",
+            "description": "New status: 'needsAction' or 'completed' (optional)"
+          }
+        },
+        "required": ["tasklist_id", "task_id"]
+      }
+    },
+    {
+      "name": "tasks_complete",
+      "description": "Mark a task as completed.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tasklist_id": {
+            "type": "string",
+            "description": "The task list ID containing the task"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "The task ID to mark as completed"
+          }
+        },
+        "required": ["tasklist_id", "task_id"]
+      }
+    },
+    {
+      "name": "tasks_delete",
+      "description": "Delete a task from a task list.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tasklist_id": {
+            "type": "string",
+            "description": "The task list ID containing the task"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "The task ID to delete"
+          }
+        },
+        "required": ["tasklist_id", "task_id"]
+      }
+    }
+  ],
+  "permissions": ["INTERNET"],
+  "dependencies": []
+}

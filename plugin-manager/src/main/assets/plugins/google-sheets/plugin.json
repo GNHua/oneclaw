@@ -1,0 +1,139 @@
+{
+  "id": "google-sheets",
+  "name": "Google Sheets",
+  "version": "1.0.0",
+  "description": "Read and write Google Sheets spreadsheet data - get values, update cells, append rows",
+  "author": "PalmClaw Team",
+  "entryPoint": "GoogleSheetsPlugin",
+  "category": "drive",
+  "tools": [
+    {
+      "name": "sheets_get_values",
+      "description": "Read cell values from a Google Sheets spreadsheet. Returns a 2D array of cell values for the specified range.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "spreadsheet_id": {
+            "type": "string",
+            "description": "The spreadsheet ID (from the URL: docs.google.com/spreadsheets/d/{id}/)"
+          },
+          "range": {
+            "type": "string",
+            "description": "The A1 notation range to read, e.g. 'Sheet1!A1:D10' or 'Sheet1!A:A'"
+          }
+        },
+        "required": ["spreadsheet_id", "range"]
+      }
+    },
+    {
+      "name": "sheets_update_values",
+      "description": "Update cell values in a Google Sheets spreadsheet. Overwrites existing values in the specified range.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "spreadsheet_id": {
+            "type": "string",
+            "description": "The spreadsheet ID"
+          },
+          "range": {
+            "type": "string",
+            "description": "The A1 notation range to update, e.g. 'Sheet1!A1:B2'"
+          },
+          "values": {
+            "type": "string",
+            "description": "2D array of values as a JSON string, e.g. '[[\"Name\",\"Age\"],[\"Alice\",30]]'"
+          }
+        },
+        "required": ["spreadsheet_id", "range", "values"]
+      }
+    },
+    {
+      "name": "sheets_append",
+      "description": "Append rows after the last row with data in a sheet. Values are added below existing content in the specified range.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "spreadsheet_id": {
+            "type": "string",
+            "description": "The spreadsheet ID"
+          },
+          "range": {
+            "type": "string",
+            "description": "The A1 notation range indicating the table to append to, e.g. 'Sheet1!A1:D1'"
+          },
+          "values": {
+            "type": "string",
+            "description": "2D array of rows to append as a JSON string, e.g. '[[\"Alice\",30],[\"Bob\",25]]'"
+          }
+        },
+        "required": ["spreadsheet_id", "range", "values"]
+      }
+    },
+    {
+      "name": "sheets_clear",
+      "description": "Clear all values from the specified range in a spreadsheet. Cell formatting is preserved, only values are removed.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "spreadsheet_id": {
+            "type": "string",
+            "description": "The spreadsheet ID"
+          },
+          "range": {
+            "type": "string",
+            "description": "The A1 notation range to clear, e.g. 'Sheet1!A1:D10'"
+          }
+        },
+        "required": ["spreadsheet_id", "range"]
+      }
+    },
+    {
+      "name": "sheets_metadata",
+      "description": "Get spreadsheet metadata including title and sheet names/properties. Useful to discover sheet names and IDs before reading data.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "spreadsheet_id": {
+            "type": "string",
+            "description": "The spreadsheet ID"
+          }
+        },
+        "required": ["spreadsheet_id"]
+      }
+    },
+    {
+      "name": "sheets_create",
+      "description": "Create a new empty Google Sheets spreadsheet with the given title. Returns the new spreadsheet ID and URL.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Title for the new spreadsheet"
+          }
+        },
+        "required": ["title"]
+      }
+    },
+    {
+      "name": "sheets_batch_update",
+      "description": "Execute a batch update on a spreadsheet. Supports adding/deleting sheets, formatting cells, merging cells, sorting, and other structural changes. See Google Sheets API batchUpdate documentation for request types.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "spreadsheet_id": {
+            "type": "string",
+            "description": "The spreadsheet ID"
+          },
+          "requests": {
+            "type": "string",
+            "description": "JSON string of the requests array, e.g. '[{\"addSheet\":{\"properties\":{\"title\":\"NewSheet\"}}}]'"
+          }
+        },
+        "required": ["spreadsheet_id", "requests"]
+      }
+    }
+  ],
+  "permissions": ["INTERNET"],
+  "dependencies": []
+}

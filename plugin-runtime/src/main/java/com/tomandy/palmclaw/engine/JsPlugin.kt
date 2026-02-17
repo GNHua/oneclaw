@@ -12,9 +12,12 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import java.util.Base64
 
 /**
  * JavaScript plugin implementation using QuickJS.
@@ -156,6 +159,13 @@ class JsPlugin(
                     file.delete()
                 }
 
+                function<String, String>("readFileBase64") { path ->
+                    val file = resolveSafePath(workspaceRoot, path)
+                    if (!file.exists()) error("File not found: $path")
+                    if (!file.isFile) error("Not a file: $path")
+                    Base64.getEncoder().encodeToString(file.readBytes())
+                }
+
                 function<String, String>("readDir") { path ->
                     val dir = if (path.isEmpty()) workspaceRoot
                     else resolveSafePath(workspaceRoot, path)
@@ -280,6 +290,101 @@ class JsPlugin(
                             "{\"status\":${resp.code}," +
                                 "\"headers\":{$headersJson}," +
                                 "\"body\":\"$escapedBody\"}"
+                        }
+                    }
+                }
+
+                asyncFunction("downloadToFile") { args ->
+                    val url = args[0] as String
+                    val destPath = args[1] as String
+                    val headers = args.getOrNull(2)
+                    withContext(Dispatchers.IO) {
+                        val builder = Request.Builder().url(url)
+                        @Suppress("UNCHECKED_CAST")
+                        if (headers is Map<*, *>) {
+                            (headers as Map<String, Any?>).forEach { (k, v) ->
+                                builder.addHeader(k, v.toString())
+                            }
+                        }
+                        context.httpClient.newCall(builder.build()).execute().use { resp ->
+                            if (!resp.isSuccessful) {
+                                error("Download failed (HTTP ${resp.code})")
+                            }
+                            val file = resolveSafePath(workspaceRoot, destPath)
+                            file.parentFile?.mkdirs()
+                            val bytes = resp.body?.bytes() ?: ByteArray(0)
+                            file.writeBytes(bytes)
+                            val ct = resp.header("Content-Type") ?: "application/octet-stream"
+                            "{\"size\":${bytes.size},\"path\":\"$destPath\",\"contentType\":\"$ct\"}"
+                        }
+                    }
+                }
+
+                asyncFunction("uploadFile") { args ->
+                    val url = args[0] as String
+                    val filePath = args[1] as String
+                    val contentType = (args.getOrNull(2) as? String) ?: "application/octet-stream"
+                    val headers = args.getOrNull(3)
+                    withContext(Dispatchers.IO) {
+                        val file = resolveSafePath(workspaceRoot, filePath)
+                        if (!file.exists()) error("File not found: $filePath")
+                        val builder = Request.Builder().url(url)
+                            .post(file.asRequestBody(contentType.toMediaType()))
+                        @Suppress("UNCHECKED_CAST")
+                        if (headers is Map<*, *>) {
+                            (headers as Map<String, Any?>).forEach { (k, v) ->
+                                builder.addHeader(k, v.toString())
+                            }
+                        }
+                        context.httpClient.newCall(builder.build()).execute().use { resp ->
+                            resp.body?.string() ?: ""
+                        }
+                    }
+                }
+
+                asyncFunction("uploadMultipart") { args ->
+                    val url = args[0] as String
+                    val parts = args[1]
+                    val headers = args.getOrNull(2)
+                    withContext(Dispatchers.IO) {
+                        val multipartBuilder = MultipartBody.Builder()
+                            .setType(MultipartBody.FORM)
+                        @Suppress("UNCHECKED_CAST")
+                        if (parts is List<*>) {
+                            parts.forEach { partRaw ->
+                                val part = partRaw as Map<String, Any?>
+                                val name = part["name"] as String
+                                val partContentType = (part["contentType"] as? String) ?: "application/octet-stream"
+                                val filePath = part["filePath"] as? String
+                                val filename = part["filename"] as? String
+                                val body = part["body"] as? String
+                                if (filePath != null) {
+                                    val file = resolveSafePath(workspaceRoot, filePath)
+                                    if (!file.exists()) error("File not found: $filePath")
+                                    multipartBuilder.addFormDataPart(
+                                        name,
+                                        filename ?: file.name,
+                                        file.asRequestBody(partContentType.toMediaType())
+                                    )
+                                } else if (body != null) {
+                                    multipartBuilder.addFormDataPart(
+                                        name,
+                                        filename,
+                                        body.toRequestBody(partContentType.toMediaType())
+                                    )
+                                }
+                            }
+                        }
+                        val reqBuilder = Request.Builder().url(url)
+                            .post(multipartBuilder.build())
+                        @Suppress("UNCHECKED_CAST")
+                        if (headers is Map<*, *>) {
+                            (headers as Map<String, Any?>).forEach { (k, v) ->
+                                reqBuilder.addHeader(k, v.toString())
+                            }
+                        }
+                        context.httpClient.newCall(reqBuilder.build()).execute().use { resp ->
+                            resp.body?.string() ?: ""
                         }
                     }
                 }

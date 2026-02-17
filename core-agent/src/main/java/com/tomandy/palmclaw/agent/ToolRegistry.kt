@@ -32,7 +32,7 @@ import com.tomandy.palmclaw.engine.ToolDefinition
  */
 class ToolRegistry {
     private val tools = mutableMapOf<String, RegisteredTool>()
-    private val categoryDescriptions = mutableMapOf<String, String>()
+    private val categoryDescriptions = mutableMapOf<String, MutableList<String>>()
 
     /**
      * Register all tools from a loaded plugin.
@@ -52,9 +52,10 @@ class ToolRegistry {
                 category = category
             )
         }
-        // Track category descriptions for activate_tools
+        // Track category descriptions for activate_tools (aggregate across plugins sharing a category)
         if (category != "core") {
-            categoryDescriptions[category] = loadedPlugin.metadata.description
+            categoryDescriptions.getOrPut(category) { mutableListOf() }
+                .add(loadedPlugin.metadata.description)
         }
     }
 
@@ -113,10 +114,11 @@ class ToolRegistry {
     }
 
     /**
-     * Get the description for a category (from the plugin that registered it).
+     * Get the description for a category (aggregated from all plugins in that category).
      */
     fun getCategoryDescription(category: String): String {
-        return categoryDescriptions[category] ?: category
+        val descriptions = categoryDescriptions[category] ?: return category
+        return descriptions.joinToString("; ")
     }
 
     /**
@@ -168,7 +170,7 @@ class ToolRegistry {
         tools.values.filter(filter).forEach { tool ->
             copy.tools[tool.definition.name] = tool
         }
-        categoryDescriptions.forEach { (k, v) -> copy.categoryDescriptions[k] = v }
+        categoryDescriptions.forEach { (k, v) -> copy.categoryDescriptions[k] = v.toMutableList() }
         return copy
     }
 }

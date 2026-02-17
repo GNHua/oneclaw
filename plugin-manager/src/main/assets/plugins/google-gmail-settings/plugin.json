@@ -1,0 +1,199 @@
+{
+  "id": "google-gmail-settings",
+  "name": "Google Gmail Settings",
+  "version": "1.0.0",
+  "description": "Manage Gmail settings including filters, vacation responder, forwarding, and delegates",
+  "author": "PalmClaw Team",
+  "entryPoint": "GoogleGmailSettingsPlugin",
+  "category": "gmail",
+  "tools": [
+    {
+      "name": "gmail_list_filters",
+      "description": "List all Gmail filters. Returns each filter's id, criteria (from, to, subject, query, etc.), and action (addLabelIds, removeLabelIds, forward, etc.).",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "gmail_create_filter",
+      "description": "Create a Gmail filter with matching criteria and an action. Criteria fields are ANDed together. At least one criteria field and one action field is required.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Match sender address (e.g., 'user@example.com')"
+          },
+          "to": {
+            "type": "string",
+            "description": "Match recipient address"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Match subject text"
+          },
+          "query": {
+            "type": "string",
+            "description": "Gmail search query to match (same syntax as Gmail search bar)"
+          },
+          "has_attachment": {
+            "type": "boolean",
+            "description": "If true, only match messages with attachments"
+          },
+          "add_labels": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Label IDs to add to matching messages"
+          },
+          "remove_labels": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Label IDs to remove from matching messages (e.g., 'INBOX' to archive)"
+          },
+          "forward_to": {
+            "type": "string",
+            "description": "Email address to forward matching messages to (must be a verified forwarding address)"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "gmail_delete_filter",
+      "description": "Delete a Gmail filter by its ID.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "filter_id": {
+            "type": "string",
+            "description": "The filter ID to delete"
+          }
+        },
+        "required": ["filter_id"]
+      }
+    },
+    {
+      "name": "gmail_get_vacation",
+      "description": "Get the current vacation responder (out-of-office auto-reply) settings. Returns whether it is enabled, subject, body, start/end times, and restriction settings.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "gmail_set_vacation",
+      "description": "Set or update the vacation responder (out-of-office auto-reply). Set enable to false to turn it off.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "enable": {
+            "type": "boolean",
+            "description": "Enable (true) or disable (false) the vacation responder"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Subject line for the auto-reply"
+          },
+          "body": {
+            "type": "string",
+            "description": "Plain text body of the auto-reply message"
+          },
+          "start_time": {
+            "type": "string",
+            "description": "Start time in epoch milliseconds (as string). If omitted, starts immediately."
+          },
+          "end_time": {
+            "type": "string",
+            "description": "End time in epoch milliseconds (as string). If omitted, no end date."
+          },
+          "restrict_to_contacts": {
+            "type": "boolean",
+            "description": "If true, only send auto-reply to people in Contacts"
+          },
+          "restrict_to_domain": {
+            "type": "boolean",
+            "description": "If true, only send auto-reply to people in the same domain (Google Workspace only)"
+          }
+        },
+        "required": ["enable"]
+      }
+    },
+    {
+      "name": "gmail_list_forwarding",
+      "description": "List all forwarding addresses configured for the Gmail account. Each entry shows the email address and verification status.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "gmail_add_forwarding",
+      "description": "Add a new forwarding address. A verification email will be sent to the address and it must be confirmed before it can be used in filters or auto-forwarding.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "The email address to add as a forwarding address"
+          }
+        },
+        "required": ["email"]
+      }
+    },
+    {
+      "name": "gmail_get_auto_forward",
+      "description": "Get the current auto-forwarding settings. Returns whether auto-forwarding is enabled, the target email address, and the disposition (what happens to the original message).",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "gmail_set_auto_forward",
+      "description": "Enable or disable auto-forwarding. The forwarding address must be verified first via gmail_add_forwarding.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Enable (true) or disable (false) auto-forwarding"
+          },
+          "email": {
+            "type": "string",
+            "description": "The verified forwarding email address (required when enabling)"
+          },
+          "disposition": {
+            "type": "string",
+            "description": "What to do with original: 'leaveInInbox', 'archive', 'trash', or 'markRead'"
+          }
+        },
+        "required": ["enabled"]
+      }
+    },
+    {
+      "name": "gmail_list_send_as",
+      "description": "List all send-as aliases for the Gmail account. Shows email addresses you can send mail as, including display name, reply-to, signature, and whether it is the default.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "gmail_list_delegates",
+      "description": "List all delegates for the Gmail account. Delegates are other users who have been granted access to read, send, and delete messages on your behalf.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    }
+  ],
+  "permissions": ["INTERNET"],
+  "dependencies": []
+}

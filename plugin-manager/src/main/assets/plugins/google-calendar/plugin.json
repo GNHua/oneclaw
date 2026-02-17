@@ -1,8 +1,8 @@
 {
   "id": "google-calendar",
   "name": "Google Calendar",
-  "version": "1.0.0",
-  "description": "View, create, update, and delete Google Calendar events",
+  "version": "2.0.0",
+  "description": "View, create, update, and delete Google Calendar events, check availability, and manage recurring events",
   "author": "PalmClaw Team",
   "entryPoint": "GoogleCalendarPlugin",
   "category": "calendar",
@@ -57,7 +57,7 @@
     },
     {
       "name": "calendar_create_event",
-      "description": "Create a new event on Google Calendar. Times must be in ISO 8601 format with timezone offset (e.g., '2026-02-20T14:00:00-08:00'). For all-day events, use date format 'YYYY-MM-DD' instead.",
+      "description": "Create a new event on Google Calendar. Times must be in ISO 8601 format with timezone offset (e.g., '2026-02-20T14:00:00-08:00'). For all-day events, use date format 'YYYY-MM-DD' instead. Supports eventType for focus-time, out-of-office, or working-location.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -88,6 +88,10 @@
           "calendar_id": {
             "type": "string",
             "description": "Calendar ID (default: 'primary')"
+          },
+          "event_type": {
+            "type": "string",
+            "description": "Event type: 'default', 'focusTime', 'outOfOffice', 'workingLocation' (optional)"
           }
         },
         "required": ["summary", "start", "end"]
@@ -156,6 +160,108 @@
         "type": "object",
         "properties": {},
         "required": []
+      }
+    },
+    {
+      "name": "calendar_freebusy",
+      "description": "Check free/busy status for one or more calendars in a time range. Useful for finding available meeting slots.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "time_min": {
+            "type": "string",
+            "description": "Start of time range (ISO 8601)"
+          },
+          "time_max": {
+            "type": "string",
+            "description": "End of time range (ISO 8601)"
+          },
+          "calendar_ids": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Calendar IDs to check (default: ['primary'])"
+          }
+        },
+        "required": ["time_min", "time_max"]
+      }
+    },
+    {
+      "name": "calendar_respond",
+      "description": "Respond to a calendar event invitation (accept, decline, or tentative).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "description": "The event ID to respond to"
+          },
+          "response": {
+            "type": "string",
+            "description": "Response status: 'accepted', 'declined', or 'tentative'"
+          },
+          "calendar_id": {
+            "type": "string",
+            "description": "Calendar ID (default: 'primary')"
+          }
+        },
+        "required": ["event_id", "response"]
+      }
+    },
+    {
+      "name": "calendar_list_colors",
+      "description": "List available calendar and event colors.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "calendar_quick_add",
+      "description": "Quickly create an event using natural language text (e.g., 'Lunch with Bob tomorrow at noon').",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Natural language event description"
+          },
+          "calendar_id": {
+            "type": "string",
+            "description": "Calendar ID (default: 'primary')"
+          }
+        },
+        "required": ["text"]
+      }
+    },
+    {
+      "name": "calendar_instances",
+      "description": "List instances of a recurring event.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "description": "The recurring event ID"
+          },
+          "calendar_id": {
+            "type": "string",
+            "description": "Calendar ID (default: 'primary')"
+          },
+          "time_min": {
+            "type": "string",
+            "description": "Start of time range (ISO 8601, optional)"
+          },
+          "time_max": {
+            "type": "string",
+            "description": "End of time range (ISO 8601, optional)"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum instances to return (default: 25)"
+          }
+        },
+        "required": ["event_id"]
       }
     }
   ],

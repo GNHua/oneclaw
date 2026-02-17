@@ -30,7 +30,15 @@ class BuiltInPluginManager(
             "plugins/workspace-notes",
             "plugins/web-fetch",
             "plugins/google-gmail",
-            "plugins/google-calendar"
+            "plugins/google-gmail-settings",
+            "plugins/google-calendar",
+            "plugins/google-tasks",
+            "plugins/google-contacts",
+            "plugins/google-drive",
+            "plugins/google-docs",
+            "plugins/google-sheets",
+            "plugins/google-slides",
+            "plugins/google-forms"
         )
     }
 

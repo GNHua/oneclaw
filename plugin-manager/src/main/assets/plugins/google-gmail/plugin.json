@@ -88,6 +88,21 @@
       }
     },
     {
+      "name": "gmail_delete",
+      "description": "Move one or more Gmail messages to Trash. Messages are auto-deleted after 30 days.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message_ids": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of message IDs to permanently delete (max 1000)"
+          }
+        },
+        "required": ["message_ids"]
+      }
+    },
+    {
       "name": "gmail_list_labels",
       "description": "List all Gmail labels (folders) for the authenticated account.",
       "parameters": {

@@ -38,7 +38,7 @@ class GoogleAuthManager(
         private const val TAG = "GoogleAuthManager"
 
         private val SCOPES = listOf(
-            "https://mail.google.com/",
+            "https://www.googleapis.com/auth/gmail.modify",
             "https://www.googleapis.com/auth/calendar"
         )
 

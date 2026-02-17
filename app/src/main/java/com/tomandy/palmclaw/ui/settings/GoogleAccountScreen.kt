@@ -170,7 +170,7 @@ fun GoogleAccountScreen(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "- Full access to Gmail (read, send, delete)",
+                    "- Read, send, and manage Gmail messages",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

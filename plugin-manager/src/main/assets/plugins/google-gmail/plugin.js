@@ -182,6 +182,20 @@ async function execute(toolName, args) {
                 return { output: "Reply sent. Message ID: " + data.id };
             }
 
+            case "gmail_delete": {
+                var ids = args.message_ids;
+                if (!ids || ids.length === 0) {
+                    return { error: "No message IDs provided" };
+                }
+                if (ids.length === 1) {
+                    await gmailFetch("POST", "/messages/" + ids[0] + "/trash");
+                } else {
+                    await gmailFetch("POST", "/messages/batchModify",
+                        JSON.stringify({ ids: ids, addLabelIds: ["TRASH"] }));
+                }
+                return { output: "Moved " + ids.length + " message(s) to Trash." };
+            }
+
             case "gmail_list_labels": {
                 var data = await gmailFetch("GET", "/labels");
                 var labels = (data.labels || []).map(function(l) {

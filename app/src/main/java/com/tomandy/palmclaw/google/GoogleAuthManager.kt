@@ -108,12 +108,24 @@ class GoogleAuthManager(
 
     /**
      * Sign out and disconnect the Google account.
+     * Uses signOut() for reliable local state cleanup, then attempts
+     * revokeAccess() as best-effort server-side token revocation.
      */
     suspend fun signOut() {
-        suspendCoroutine { cont ->
-            signInClient.revokeAccess()
+        suspendCoroutine<Unit> { cont ->
+            signInClient.signOut()
                 .addOnSuccessListener { cont.resume(Unit) }
                 .addOnFailureListener { cont.resumeWithException(it) }
+        }
+        // Best-effort: revoke server-side token (don't fail if this errors)
+        try {
+            suspendCoroutine<Unit> { cont ->
+                signInClient.revokeAccess()
+                    .addOnSuccessListener { cont.resume(Unit) }
+                    .addOnFailureListener { cont.resume(Unit) }
+            }
+        } catch (_: Exception) {
+            // Ignored -- local sign-out already succeeded
         }
     }
 }

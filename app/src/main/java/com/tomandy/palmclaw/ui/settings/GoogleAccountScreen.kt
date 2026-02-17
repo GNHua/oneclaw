@@ -88,7 +88,7 @@ fun GoogleAccountScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Gmail and Calendar tools are available",
+                        text = "Google Workspace plugins are available",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -99,7 +99,7 @@ fun GoogleAccountScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Sign in to enable Gmail and Calendar tools",
+                        text = "Optional. Only needed for Google Workspace plugins (Gmail, Calendar, Drive, Tasks, Contacts, Docs, Sheets, Slides, Forms).",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -169,16 +169,24 @@ fun GoogleAccountScreen(
                     style = MaterialTheme.typography.titleSmall
                 )
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    "- Read, send, and manage Gmail messages",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                val permissions = listOf(
+                    "Gmail -- read, send, and manage messages, labels, drafts, filters, and settings",
+                    "Calendar -- view and manage events, free/busy, and calendars",
+                    "Tasks -- view and manage task lists and tasks",
+                    "Contacts -- view and manage contacts",
+                    "Drive -- view and manage files and folders",
+                    "Docs -- view and edit documents",
+                    "Sheets -- view and edit spreadsheets",
+                    "Slides -- view and edit presentations",
+                    "Forms -- view form structure and responses (read-only)"
                 )
-                Text(
-                    "- Full access to Google Calendar",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                permissions.forEach { perm ->
+                    Text(
+                        "- $perm",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

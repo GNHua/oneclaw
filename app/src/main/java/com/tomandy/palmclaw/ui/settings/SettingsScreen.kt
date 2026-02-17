@@ -131,7 +131,7 @@ fun SettingsScreen(
         )
         SettingsMenuItem(
             title = "Google Account",
-            subtitle = "Connect Gmail and Calendar",
+            subtitle = "Connect Google Workspace plugins",
             onClick = onNavigateToGoogleAccount
         )
         SettingsMenuItem(

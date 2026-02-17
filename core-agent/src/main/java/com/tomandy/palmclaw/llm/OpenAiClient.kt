@@ -1,3 +1,8 @@
+// TODO: Explore migrating to the official OpenAI Java SDK (com.openai:openai-java)
+//  - Would eliminate manual Retrofit setup, DTOs, media JSON building, and error parsing
+//  - Anthropic and Gemini clients already use official SDKs; this would unify the pattern
+//  - Official SDK supports custom base URLs for OpenAI-compatible APIs
+//  - See: https://github.com/openai/openai-java
 package com.tomandy.palmclaw.llm
 
 import retrofit2.converter.kotlinx.serialization.asConverterFactory

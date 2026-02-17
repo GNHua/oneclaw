@@ -1,5 +1,8 @@
 package com.tomandy.palmclaw.ui.navigation
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -92,6 +95,10 @@ fun PalmClawNavGraph(
     var availableModels by remember { mutableStateOf<List<Pair<String, LlmProvider>>>(emptyList()) }
     var selectedModel by remember { mutableStateOf(modelPreferences.getSelectedModel() ?: "gpt-4o-mini") }
 
+    // History screen is shown as an overlay instead of a NavHost destination,
+    // so the Chat composable never leaves composition during Chat<->History cycles.
+    var showHistory by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         llmClientProvider.reloadApiKeys()
         availableModels = llmClientProvider.getAvailableModels()
@@ -106,6 +113,7 @@ fun PalmClawNavGraph(
     LaunchedEffect(pendingConvId) {
         pendingConvId?.let { convId ->
             chatViewModel.loadConversation(convId)
+            showHistory = false
             navController.popBackStack(Screen.Chat.route, inclusive = false)
             navigationState.pendingConversationId.value = null
         }
@@ -118,376 +126,384 @@ fun PalmClawNavGraph(
             chatViewModel.newConversation()
             kotlinx.coroutines.delay(100)
             chatViewModel.sendMessage(seed)
+            showHistory = false
             navController.popBackStack(Screen.Chat.route, inclusive = false)
             navigationState.pendingSkillSeed.value = null
         }
     }
 
-    NavHost(
-        navController = navController,
-        startDestination = Screen.Chat.route,
-        modifier = modifier
-    ) {
-        composable(Screen.Chat.route) {
-            ChatScreen(
-                viewModel = chatViewModel,
-                onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.route)
-                },
-                onNavigateToCronjobs = {
-                    navController.navigate(Screen.Cronjobs.route)
-                },
-                onNavigateToHistory = {
-                    navController.navigate(Screen.History.route)
-                }
-            )
-        }
-
-        composable(Screen.Settings.route) {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Settings") },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                            }
-                        }
-                    )
-                }
-            ) { paddingValues ->
-                SettingsScreen(
-                    onNavigateToProviders = {
-                        navController.navigate(Screen.Providers.route)
+    Box(modifier = modifier.fillMaxSize()) {
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Chat.route,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            composable(Screen.Chat.route) {
+                ChatScreen(
+                    viewModel = chatViewModel,
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route) { launchSingleTop = true }
                     },
-                    onNavigateToPlugins = {
-                        navController.navigate(Screen.Plugins.route)
+                    onNavigateToCronjobs = {
+                        navController.navigate(Screen.Cronjobs.route) { launchSingleTop = true }
                     },
-                    onNavigateToSkills = {
-                        navController.navigate(Screen.Skills.route)
-                    },
-                    onNavigateToMemory = {
-                        navController.navigate(Screen.Memory.route)
-                    },
-                    onNavigateToBackup = {
-                        navController.navigate(Screen.Backup.route)
-                    },
-                    onNavigateToAgentProfiles = {
-                        navController.navigate(Screen.AgentProfiles.route)
-                    },
-                    onNavigateToGoogleAccount = {
-                        navController.navigate(Screen.GoogleAccount.route)
-                    },
-                    modelPreferences = modelPreferences,
-                    availableModels = availableModels,
-                    selectedModel = selectedModel,
-                    onModelSelected = { model ->
-                        selectedModel = model
-                        llmClientProvider.setModelAndProvider(model)
-                    },
-                    modifier = Modifier.padding(paddingValues)
+                    onNavigateToHistory = {
+                        showHistory = true
+                    }
                 )
             }
-        }
 
-        composable(Screen.Providers.route) {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Providers") },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+            composable(Screen.Settings.route) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Settings") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
                             }
-                        }
+                        )
+                    }
+                ) { paddingValues ->
+                    SettingsScreen(
+                        onNavigateToProviders = {
+                            navController.navigate(Screen.Providers.route) { launchSingleTop = true }
+                        },
+                        onNavigateToPlugins = {
+                            navController.navigate(Screen.Plugins.route) { launchSingleTop = true }
+                        },
+                        onNavigateToSkills = {
+                            navController.navigate(Screen.Skills.route) { launchSingleTop = true }
+                        },
+                        onNavigateToMemory = {
+                            navController.navigate(Screen.Memory.route) { launchSingleTop = true }
+                        },
+                        onNavigateToBackup = {
+                            navController.navigate(Screen.Backup.route) { launchSingleTop = true }
+                        },
+                        onNavigateToAgentProfiles = {
+                            navController.navigate(Screen.AgentProfiles.route) { launchSingleTop = true }
+                        },
+                        onNavigateToGoogleAccount = {
+                            navController.navigate(Screen.GoogleAccount.route) { launchSingleTop = true }
+                        },
+                        modelPreferences = modelPreferences,
+                        availableModels = availableModels,
+                        selectedModel = selectedModel,
+                        onModelSelected = { model ->
+                            selectedModel = model
+                            llmClientProvider.setModelAndProvider(model)
+                        },
+                        modifier = Modifier.padding(paddingValues)
                     )
                 }
-            ) { paddingValues ->
-                ProvidersScreen(
-                    viewModel = settingsViewModel,
-                    modifier = Modifier.padding(paddingValues)
-                )
             }
-        }
 
-        composable(Screen.Plugins.route) {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Plugins") },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+            composable(Screen.Providers.route) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Providers") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
                             }
-                        }
+                        )
+                    }
+                ) { paddingValues ->
+                    ProvidersScreen(
+                        viewModel = settingsViewModel,
+                        modifier = Modifier.padding(paddingValues)
                     )
                 }
-            ) { paddingValues ->
-                PluginsScreen(
-                    viewModel = settingsViewModel,
-                    modifier = Modifier.padding(paddingValues)
-                )
             }
-        }
 
-        composable(Screen.Skills.route) {
-            val skillsViewModel: SkillsViewModel = koinViewModel()
-
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Skills") },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+            composable(Screen.Plugins.route) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Plugins") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
                             }
-                        }
+                        )
+                    }
+                ) { paddingValues ->
+                    PluginsScreen(
+                        viewModel = settingsViewModel,
+                        modifier = Modifier.padding(paddingValues)
                     )
                 }
-            ) { paddingValues ->
-                SkillsScreen(
+            }
+
+            composable(Screen.Skills.route) {
+                val skillsViewModel: SkillsViewModel = koinViewModel()
+
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Skills") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
+                            }
+                        )
+                    }
+                ) { paddingValues ->
+                    SkillsScreen(
+                        viewModel = skillsViewModel,
+                        onNavigateToEditor = { skillName ->
+                            val route = if (skillName != null) {
+                                "${Screen.SkillEditor.route}?skillName=$skillName"
+                            } else {
+                                Screen.SkillEditor.route
+                            }
+                            navController.navigate(route) { launchSingleTop = true }
+                        },
+                        onNavigateToChat = {
+                            navController.popBackStack(Screen.Chat.route, inclusive = false)
+                        },
+                        modifier = Modifier.padding(paddingValues)
+                    )
+                }
+            }
+
+            composable(
+                route = "${Screen.SkillEditor.route}?skillName={skillName}",
+                arguments = listOf(
+                    navArgument("skillName") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val skillName = backStackEntry.arguments?.getString("skillName")
+                val skillsViewModel: SkillsViewModel = koinViewModel()
+
+                SkillEditorScreen(
                     viewModel = skillsViewModel,
-                    onNavigateToEditor = { skillName ->
-                        val route = if (skillName != null) {
-                            "${Screen.SkillEditor.route}?skillName=$skillName"
-                        } else {
-                            Screen.SkillEditor.route
-                        }
-                        navController.navigate(route)
-                    },
+                    skillName = skillName,
+                    onNavigateBack = { navController.popBackStack() },
                     onNavigateToChat = {
                         navController.popBackStack(Screen.Chat.route, inclusive = false)
-                    },
-                    modifier = Modifier.padding(paddingValues)
+                    }
                 )
             }
-        }
 
-        composable(
-            route = "${Screen.SkillEditor.route}?skillName={skillName}",
-            arguments = listOf(
-                navArgument("skillName") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val skillName = backStackEntry.arguments?.getString("skillName")
-            val skillsViewModel: SkillsViewModel = koinViewModel()
+            composable(Screen.Memory.route) {
+                val memoryViewModel: MemoryViewModel = koinViewModel()
 
-            SkillEditorScreen(
-                viewModel = skillsViewModel,
-                skillName = skillName,
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToChat = {
-                    navController.popBackStack(Screen.Chat.route, inclusive = false)
-                }
-            )
-        }
-
-        composable(Screen.Memory.route) {
-            val memoryViewModel: MemoryViewModel = koinViewModel()
-
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Memory") },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Memory") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
                             }
-                        }
-                    )
-                }
-            ) { paddingValues ->
-                MemoryScreen(
-                    viewModel = memoryViewModel,
-                    onNavigateToDetail = { relativePath, displayName ->
-                        val encoded = java.net.URLEncoder.encode(relativePath, "UTF-8")
-                        val encodedName = java.net.URLEncoder.encode(displayName, "UTF-8")
-                        navController.navigate(
-                            "${Screen.MemoryDetail.route}?path=$encoded&name=$encodedName"
                         )
-                    },
-                    modifier = Modifier.padding(paddingValues)
-                )
-            }
-        }
-
-        composable(
-            route = "${Screen.MemoryDetail.route}?path={path}&name={name}",
-            arguments = listOf(
-                navArgument("path") { type = NavType.StringType },
-                navArgument("name") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val relativePath = java.net.URLDecoder.decode(
-                backStackEntry.arguments?.getString("path") ?: "", "UTF-8"
-            )
-            val displayName = java.net.URLDecoder.decode(
-                backStackEntry.arguments?.getString("name") ?: "", "UTF-8"
-            )
-            val memoryViewModel: MemoryViewModel = koinViewModel()
-
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text(displayName) },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                            }
-                        }
+                    }
+                ) { paddingValues ->
+                    MemoryScreen(
+                        viewModel = memoryViewModel,
+                        onNavigateToDetail = { relativePath, displayName ->
+                            val encoded = java.net.URLEncoder.encode(relativePath, "UTF-8")
+                            val encodedName = java.net.URLEncoder.encode(displayName, "UTF-8")
+                            navController.navigate(
+                                "${Screen.MemoryDetail.route}?path=$encoded&name=$encodedName"
+                            ) { launchSingleTop = true }
+                        },
+                        modifier = Modifier.padding(paddingValues)
                     )
                 }
-            ) { paddingValues ->
-                MemoryDetailScreen(
-                    viewModel = memoryViewModel,
-                    relativePath = relativePath,
-                    onDelete = { navController.popBackStack() },
-                    modifier = Modifier.padding(paddingValues)
-                )
             }
-        }
 
-        composable(Screen.Backup.route) {
-            val backupViewModel: BackupViewModel = koinViewModel()
+            composable(
+                route = "${Screen.MemoryDetail.route}?path={path}&name={name}",
+                arguments = listOf(
+                    navArgument("path") { type = NavType.StringType },
+                    navArgument("name") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val relativePath = java.net.URLDecoder.decode(
+                    backStackEntry.arguments?.getString("path") ?: "", "UTF-8"
+                )
+                val displayName = java.net.URLDecoder.decode(
+                    backStackEntry.arguments?.getString("name") ?: "", "UTF-8"
+                )
+                val memoryViewModel: MemoryViewModel = koinViewModel()
 
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Backup & Restore") },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text(displayName) },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
                             }
-                        }
+                        )
+                    }
+                ) { paddingValues ->
+                    MemoryDetailScreen(
+                        viewModel = memoryViewModel,
+                        relativePath = relativePath,
+                        onDelete = { navController.popBackStack() },
+                        modifier = Modifier.padding(paddingValues)
                     )
                 }
-            ) { paddingValues ->
-                BackupScreen(
-                    viewModel = backupViewModel,
-                    modifier = Modifier.padding(paddingValues)
-                )
             }
-        }
 
-        composable(Screen.AgentProfiles.route) {
-            val agentProfilesViewModel: AgentProfilesViewModel = koinViewModel()
+            composable(Screen.Backup.route) {
+                val backupViewModel: BackupViewModel = koinViewModel()
 
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Agent Profiles") },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Backup & Restore") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
                             }
-                        }
+                        )
+                    }
+                ) { paddingValues ->
+                    BackupScreen(
+                        viewModel = backupViewModel,
+                        modifier = Modifier.padding(paddingValues)
                     )
                 }
-            ) { paddingValues ->
-                AgentProfilesScreen(
+            }
+
+            composable(Screen.AgentProfiles.route) {
+                val agentProfilesViewModel: AgentProfilesViewModel = koinViewModel()
+
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Agent Profiles") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
+                            }
+                        )
+                    }
+                ) { paddingValues ->
+                    AgentProfilesScreen(
+                        viewModel = agentProfilesViewModel,
+                        onNavigateToEditor = { profileName ->
+                            val route = if (profileName != null) {
+                                "${Screen.AgentProfileEditor.route}?profileName=$profileName"
+                            } else {
+                                Screen.AgentProfileEditor.route
+                            }
+                            navController.navigate(route) { launchSingleTop = true }
+                        },
+                        modifier = Modifier.padding(paddingValues)
+                    )
+                }
+            }
+
+            composable(
+                route = "${Screen.AgentProfileEditor.route}?profileName={profileName}",
+                arguments = listOf(
+                    navArgument("profileName") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val profileName = backStackEntry.arguments?.getString("profileName")
+                val agentProfilesViewModel: AgentProfilesViewModel = koinViewModel()
+
+                AgentProfileEditorScreen(
                     viewModel = agentProfilesViewModel,
-                    onNavigateToEditor = { profileName ->
-                        val route = if (profileName != null) {
-                            "${Screen.AgentProfileEditor.route}?profileName=$profileName"
-                        } else {
-                            Screen.AgentProfileEditor.route
-                        }
-                        navController.navigate(route)
-                    },
-                    modifier = Modifier.padding(paddingValues)
+                    profileName = profileName,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
-        }
 
-        composable(
-            route = "${Screen.AgentProfileEditor.route}?profileName={profileName}",
-            arguments = listOf(
-                navArgument("profileName") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val profileName = backStackEntry.arguments?.getString("profileName")
-            val agentProfilesViewModel: AgentProfilesViewModel = koinViewModel()
+            composable(Screen.GoogleAccount.route) {
+                val googleAuthManager: GoogleAuthManager = koinInject()
 
-            AgentProfileEditorScreen(
-                viewModel = agentProfilesViewModel,
-                profileName = profileName,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(Screen.GoogleAccount.route) {
-            val googleAuthManager: GoogleAuthManager = koinInject()
-
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Google Account") },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Google Account") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
                             }
-                        }
+                        )
+                    }
+                ) { paddingValues ->
+                    GoogleAccountScreen(
+                        googleAuthManager = googleAuthManager,
+                        modifier = Modifier.padding(paddingValues)
                     )
                 }
-            ) { paddingValues ->
-                GoogleAccountScreen(
-                    googleAuthManager = googleAuthManager,
-                    modifier = Modifier.padding(paddingValues)
-                )
             }
-        }
 
-        composable(Screen.Cronjobs.route) {
-            val viewModel: CronjobsViewModel = koinViewModel()
+            composable(Screen.Cronjobs.route) {
+                val viewModel: CronjobsViewModel = koinViewModel()
 
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Scheduled Tasks") },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Scheduled Tasks") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
                             }
-                        }
+                        )
+                    }
+                ) { paddingValues ->
+                    CronjobsScreen(
+                        viewModel = viewModel,
+                        modifier = Modifier.padding(paddingValues)
                     )
                 }
-            ) { paddingValues ->
-                CronjobsScreen(
-                    viewModel = viewModel,
-                    modifier = Modifier.padding(paddingValues)
-                )
             }
         }
 
-        composable(Screen.History.route) {
-            val viewModel: ConversationHistoryViewModel = koinViewModel()
+        // History screen shown as an overlay so the Chat composable never leaves
+        // composition during Chat<->History navigation cycles.
+        if (showHistory) {
+            val historyViewModel: ConversationHistoryViewModel = koinViewModel()
+
+            BackHandler { showHistory = false }
 
             Scaffold(
                 topBar = {
                     TopAppBar(
                         title = { Text("Conversation History") },
                         navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
+                            IconButton(onClick = { showHistory = false }) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                             }
                         }
                     )
-                }
+                },
+                modifier = Modifier.fillMaxSize()
             ) { paddingValues ->
                 ConversationHistoryScreen(
-                    viewModel = viewModel,
+                    viewModel = historyViewModel,
                     currentConversationId = chatViewModel.conversationId,
                     onConversationSelected = { convId ->
                         chatViewModel.loadConversation(convId)
-                        navController.popBackStack()
+                        showHistory = false
                     },
                     modifier = Modifier.padding(paddingValues)
                 )

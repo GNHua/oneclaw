@@ -7,6 +7,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.tomandy.palmclaw.agent.AgentCoordinator
@@ -186,7 +189,12 @@ class ChatExecutionService : Service(), KoinComponent {
                     mediaData = allMediaData.takeIf { it.isNotEmpty() }
                 )
 
-                persistResult(conversationId, result, messageDao)
+                val usedDeviceControl = "device_control" in coordinator.activeCategories
+                Log.d(TAG, "activeCategories=${coordinator.activeCategories}, usedDeviceControl=$usedDeviceControl")
+                persistResult(conversationId, result, messageDao, usedDeviceControl)
+                if (usedDeviceControl) {
+                    vibrateCompletion()
+                }
             } catch (e: CancellationException) {
                 Log.d(TAG, "Execution cancelled for $conversationId")
                 withContext(NonCancellable) {
@@ -356,7 +364,8 @@ class ChatExecutionService : Service(), KoinComponent {
     private suspend fun persistResult(
         conversationId: String,
         result: Result<String>,
-        messageDao: com.tomandy.palmclaw.data.dao.MessageDao
+        messageDao: com.tomandy.palmclaw.data.dao.MessageDao,
+        forceNotify: Boolean = false
     ) {
         val conversationDao = database.conversationDao()
         result.fold(
@@ -386,7 +395,8 @@ class ChatExecutionService : Service(), KoinComponent {
                     context = applicationContext,
                     conversationId = conversationId,
                     conversationTitle = conv?.title ?: "New response",
-                    responseText = response
+                    responseText = response,
+                    force = forceNotify
                 )
             },
             onFailure = { e ->
@@ -398,6 +408,15 @@ class ChatExecutionService : Service(), KoinComponent {
                         conversationId,
                         e.message ?: "Unknown error"
                     )
+                    if (forceNotify) {
+                        ChatNotificationHelper.notifyIfNeeded(
+                            context = applicationContext,
+                            conversationId = conversationId,
+                            conversationTitle = "Execution failed",
+                            responseText = e.message ?: "Unknown error",
+                            force = true
+                        )
+                    }
                 }
             }
         )
@@ -469,6 +488,19 @@ class ChatExecutionService : Service(), KoinComponent {
                 stopSelf()
             }
         }
+    }
+
+    // -- Vibration helpers ---------------------------------------------------
+
+    private fun vibrateCompletion() {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val manager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            manager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+        vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 
     // -- Notification helpers ------------------------------------------------

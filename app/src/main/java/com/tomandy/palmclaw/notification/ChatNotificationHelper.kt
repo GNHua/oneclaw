@@ -24,11 +24,12 @@ object ChatNotificationHelper {
         context: Context,
         conversationId: String,
         conversationTitle: String,
-        responseText: String
+        responseText: String,
+        force: Boolean = false
     ) {
         val activeId = ChatScreenTracker.activeConversationId
-        Log.d(TAG, "notifyIfNeeded: activeConversationId=$activeId, targetConversationId=$conversationId")
-        if (activeId == conversationId) {
+        Log.d(TAG, "notifyIfNeeded: activeConversationId=$activeId, targetConversationId=$conversationId, force=$force")
+        if (!force && activeId == conversationId) {
             Log.d(TAG, "Skipping notification: user is viewing this conversation")
             return
         }

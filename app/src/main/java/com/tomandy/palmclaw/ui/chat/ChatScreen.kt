@@ -305,7 +305,7 @@ fun ChatScreen(
                                     modifier = Modifier.height(24.dp)
                                 ) {
                                     Text(
-                                        text = currentProfileName ?: "main",
+                                        text = "Agent: ${currentProfileName ?: "main"}",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.primary
                                     )

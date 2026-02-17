@@ -43,6 +43,8 @@ class AgentCoordinatorTest {
     private lateinit var mockToolExecutor: ToolExecutor
     private lateinit var mockMessageStore: MessageStore
 
+    private val testSystemPrompt = "You are a helpful AI assistant. Be concise and accurate."
+
     @Before
     fun setup() {
         // Create mocks using MockK
@@ -79,7 +81,7 @@ class AgentCoordinatorTest {
         )
 
         // When: Execute agent request
-        val result = coordinator.execute("Hello")
+        val result = coordinator.execute("Hello", systemPrompt = testSystemPrompt)
 
         // Then: Result is successful with expected content
         assertTrue(result.isSuccess)
@@ -96,7 +98,7 @@ class AgentCoordinatorTest {
         )
 
         // When: Execute first request
-        coordinator.execute("Message 1")
+        coordinator.execute("Message 1", systemPrompt = testSystemPrompt)
 
         // Then: History contains user message and assistant response
         assertEquals(2, coordinator.getConversationSize()) // user + assistant
@@ -109,7 +111,7 @@ class AgentCoordinatorTest {
         )
 
         // When: Execute second request
-        coordinator.execute("Message 2")
+        coordinator.execute("Message 2", systemPrompt = testSystemPrompt)
 
         // Then: History contains all messages
         assertEquals(4, coordinator.getConversationSize()) // 2 users + 2 assistants
@@ -128,7 +130,7 @@ class AgentCoordinatorTest {
         assertTrue(coordinator.state.value is AgentState.Idle)
 
         // When: Execute request
-        coordinator.execute("Test")
+        coordinator.execute("Test", systemPrompt = testSystemPrompt)
 
         // Then: Final state should be Completed
         val finalState = coordinator.state.value
@@ -145,7 +147,7 @@ class AgentCoordinatorTest {
         } returns Result.failure(Exception(errorMessage))
 
         // When: Execute request
-        val result = coordinator.execute("Hello")
+        val result = coordinator.execute("Hello", systemPrompt = testSystemPrompt)
 
         // Then: Result is failure
         assertTrue(result.isFailure)
@@ -171,7 +173,7 @@ class AgentCoordinatorTest {
         )
 
         // When: Execute request
-        val result = coordinator.execute("Hello")
+        val result = coordinator.execute("Hello", systemPrompt = testSystemPrompt)
 
         // Then: Result is failure
         assertTrue(result.isFailure)
@@ -205,7 +207,7 @@ class AgentCoordinatorTest {
         )
 
         // When: Execute request
-        val result = coordinator.execute("Hello")
+        val result = coordinator.execute("Hello", systemPrompt = testSystemPrompt)
 
         // Then: Result is failure
         assertTrue(result.isFailure)
@@ -259,7 +261,7 @@ class AgentCoordinatorTest {
         )
 
         // When: Execute request
-        val result = coordinator.execute("What's the weather?")
+        val result = coordinator.execute("What's the weather?", systemPrompt = testSystemPrompt)
 
         // Then: Result is the final answer after tool execution
         assertTrue(result.isSuccess)
@@ -269,7 +271,7 @@ class AgentCoordinatorTest {
     @Test
     fun `cancel stops execution and resets state`() = testScope.runTest {
         // Given: Coordinator in some state
-        coordinator.execute("Test") // This completes immediately in test
+        coordinator.execute("Test", systemPrompt = testSystemPrompt) // This completes immediately in test
 
         // When: Cancel is called
         coordinator.cancel()
@@ -288,8 +290,8 @@ class AgentCoordinatorTest {
         )
 
         // When: Execute multiple requests
-        coordinator.execute("Message 1")
-        coordinator.execute("Message 2")
+        coordinator.execute("Message 1", systemPrompt = testSystemPrompt)
+        coordinator.execute("Message 2", systemPrompt = testSystemPrompt)
 
         // Then: History has messages
         assertTrue(coordinator.getConversationSize() > 0)
@@ -314,8 +316,8 @@ class AgentCoordinatorTest {
         )
 
         // When: Execute multiple requests
-        coordinator.execute("User message 1")
-        coordinator.execute("User message 2")
+        coordinator.execute("User message 1", systemPrompt = testSystemPrompt)
+        coordinator.execute("User message 2", systemPrompt = testSystemPrompt)
 
         // Then: History maintains order
         val history = coordinator.getConversationHistory()
@@ -360,10 +362,10 @@ class AgentCoordinatorTest {
         )
 
         // When: Execute first request
-        coordinator.execute("First message")
+        coordinator.execute("First message", systemPrompt = testSystemPrompt)
 
         // Then: Execute second request
-        coordinator.execute("Second message")
+        coordinator.execute("Second message", systemPrompt = testSystemPrompt)
 
         // The second call should have 3 messages: system + user1 + assistant1 + user2
         // But not duplicate system prompts
@@ -385,7 +387,7 @@ class AgentCoordinatorTest {
         var callbackResult: Result<String>? = null
 
         // When: Execute async
-        coordinator.executeAsync("Test") { result ->
+        coordinator.executeAsync("Test", systemPrompt = testSystemPrompt) { result ->
             callbackInvoked = true
             callbackResult = result
         }
@@ -458,7 +460,7 @@ class AgentCoordinatorTest {
         )
 
         // When: Execute request
-        val result = coordinator.execute("Check weather and time")
+        val result = coordinator.execute("Check weather and time", systemPrompt = testSystemPrompt)
 
         // Then: Result is the final answer after both tools were executed
         assertTrue(result.isSuccess)
@@ -473,7 +475,7 @@ class AgentCoordinatorTest {
         } throws RuntimeException("Unexpected error")
 
         // When: Execute request
-        val result = coordinator.execute("Test")
+        val result = coordinator.execute("Test", systemPrompt = testSystemPrompt)
 
         // Then: Result is failure and state is Error
         assertFalse(result.isSuccess)

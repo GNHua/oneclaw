@@ -301,21 +301,13 @@ class ChatExecutionService : Service(), KoinComponent {
         } else {
             skillRepository.getEnabledSkills()
         }
-        val withSkills = if (
-            toolRegistry.hasTool("read_file") && enabledSkills.isNotEmpty()
-        ) {
-            SystemPromptBuilder.augmentSystemPrompt(basePrompt, enabledSkills)
-        } else {
-            basePrompt
-        }
-
         val workspaceRoot = File(filesDir, "workspace")
         val memoryContext = MemoryBootstrap.loadMemoryContext(workspaceRoot)
-        return if (memoryContext.isNotBlank()) {
-            "$withSkills\n\n$memoryContext"
-        } else {
-            withSkills
-        }
+        return SystemPromptBuilder.buildFullSystemPrompt(
+            basePrompt = basePrompt,
+            skills = enabledSkills,
+            memoryContext = memoryContext
+        )
     }
 
     private fun loadMediaData(

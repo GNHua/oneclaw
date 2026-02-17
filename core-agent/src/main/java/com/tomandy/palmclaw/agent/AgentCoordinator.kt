@@ -106,7 +106,7 @@ class AgentCoordinator(
      */
     suspend fun execute(
         userMessage: String,
-        systemPrompt: String = DEFAULT_SYSTEM_PROMPT,
+        systemPrompt: String,
         model: String = "",
         maxIterations: Int = 200,
         temperature: Float = 0.7f,
@@ -428,7 +428,7 @@ class AgentCoordinator(
      */
     fun executeAsync(
         userMessage: String,
-        systemPrompt: String = DEFAULT_SYSTEM_PROMPT,
+        systemPrompt: String,
         model: String = "gpt-4o-mini",
         context: ExecutionContext = ExecutionContext.Interactive,
         onComplete: ((Result<String>) -> Unit)? = null
@@ -507,19 +507,5 @@ class AgentCoordinator(
         return conversationHistory.size
     }
 
-    companion object {
-        /**
-         * Default system prompt for the AI agent.
-         */
-        const val DEFAULT_SYSTEM_PROMPT =
-            "You are a helpful AI assistant. Be concise and accurate."
-
-        /**
-         * Alternative system prompt for tool-aware agents (Phase 2).
-         */
-        const val TOOL_AWARE_SYSTEM_PROMPT =
-            "You are a helpful AI assistant with access to tools. " +
-            "When you need information or need to perform actions, use the available tools. " +
-            "Be concise and accurate in your responses."
-    }
+    companion object
 }

@@ -1,11 +1,15 @@
 package com.tomandy.palmclaw.agent
 
+import com.tomandy.palmclaw.agent.profile.AgentProfileRepository
 import com.tomandy.palmclaw.data.AppDatabase
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.data.entity.ConversationEntity
 import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.scheduler.AgentExecutor
+import com.tomandy.palmclaw.service.MemoryBootstrap
 import com.tomandy.palmclaw.skill.SkillRepository
+import com.tomandy.palmclaw.skill.SystemPromptBuilder
+import java.io.File
 import java.util.UUID
 
 class ScheduledAgentExecutor(
@@ -15,7 +19,9 @@ class ScheduledAgentExecutor(
     private val toolExecutor: ToolExecutor,
     private val messageStore: MessageStore,
     private val modelPreferences: ModelPreferences,
-    private val skillRepository: SkillRepository
+    private val skillRepository: SkillRepository,
+    private val agentProfileRepository: AgentProfileRepository,
+    private val filesDir: File
 ) : AgentExecutor {
 
     override suspend fun executeTask(
@@ -26,6 +32,7 @@ class ScheduledAgentExecutor(
     ): Result<String> {
         return try {
             skillRepository.reload()
+            agentProfileRepository.reload()
 
             // Use a temporary conversation for agent execution
             // (keeps intermediate tool calls out of the user's conversation)
@@ -45,6 +52,12 @@ class ScheduledAgentExecutor(
                 )
             )
 
+            // Resolve active agent profile for prompt and model
+            val activeAgentName = modelPreferences.getActiveAgent()
+            val profile = activeAgentName?.let {
+                agentProfileRepository.findByName(it)
+            } ?: agentProfileRepository.findByName("main")
+
             // Create agent coordinator for this execution
             val coordinator = AgentCoordinator(
                 clientProvider = { llmClientProvider.getCurrentLlmClient() },
@@ -61,12 +74,25 @@ class ScheduledAgentExecutor(
             )
 
             // Get preferences
-            val model = modelPreferences.getSelectedModel() ?: ""
+            val model = profile?.model
+                ?: modelPreferences.getSelectedModel() ?: ""
             val temperature = modelPreferences.getTemperature()
+
+            // Build full system prompt with skills and memory
+            val basePrompt = profile?.systemPrompt
+                ?: modelPreferences.getSystemPrompt()
+            val enabledSkills = skillRepository.getEnabledSkills()
+            val workspaceRoot = File(filesDir, "workspace")
+            val memoryContext = MemoryBootstrap.loadMemoryContext(workspaceRoot)
+            val systemPrompt = SystemPromptBuilder.buildFullSystemPrompt(
+                basePrompt = basePrompt,
+                skills = enabledSkills,
+                memoryContext = memoryContext
+            )
 
             val result = coordinator.execute(
                 userMessage = instruction,
-                systemPrompt = AgentCoordinator.TOOL_AWARE_SYSTEM_PROMPT,
+                systemPrompt = systemPrompt,
                 model = model,
                 temperature = temperature,
                 context = context

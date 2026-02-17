@@ -171,7 +171,9 @@ val appModule = module {
             toolExecutor = get(),
             messageStore = get(),
             modelPreferences = get(),
-            skillRepository = get()
+            skillRepository = get(),
+            agentProfileRepository = get(),
+            filesDir = androidContext().filesDir
         )
     }
 

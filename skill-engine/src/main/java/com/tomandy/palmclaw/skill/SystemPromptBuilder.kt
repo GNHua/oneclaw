@@ -38,6 +38,31 @@ object SystemPromptBuilder {
         return "$basePrompt\n$block"
     }
 
+    /**
+     * Build a complete system prompt by conditionally appending the skills block
+     * and memory context to a base prompt.
+     *
+     * @param basePrompt The agent profile or default system prompt text
+     * @param skills Enabled skills to advertise (empty list = skip skills block)
+     * @param memoryContext Pre-loaded memory context string (blank = skip)
+     */
+    fun buildFullSystemPrompt(
+        basePrompt: String,
+        skills: List<SkillEntry>,
+        memoryContext: String
+    ): String {
+        val withSkills = if (skills.isNotEmpty()) {
+            augmentSystemPrompt(basePrompt, skills)
+        } else {
+            basePrompt
+        }
+        return if (memoryContext.isNotBlank()) {
+            "$withSkills\n\n$memoryContext"
+        } else {
+            withSkills
+        }
+    }
+
     private fun escapeXml(text: String): String {
         return text
             .replace("&", "&amp;")

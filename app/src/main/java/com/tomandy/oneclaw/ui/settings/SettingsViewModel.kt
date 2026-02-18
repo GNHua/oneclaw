@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomandy.oneclaw.data.ModelPreferences
+import com.tomandy.oneclaw.devicecontrol.DeviceControlManager
 import com.tomandy.oneclaw.pluginmanager.PluginPreferences
 import com.tomandy.oneclaw.pluginmanager.UserPluginManager
 import com.tomandy.oneclaw.engine.GoogleAuthProvider
@@ -100,6 +101,11 @@ class SettingsViewModel(
                 state.metadata.id == "google-places" && !hasGoogleMapsKey -> state.copy(
                     toggleable = false,
                     toggleDisabledReason = "Requires GoogleMaps API key"
+                )
+                state.metadata.id == "device_control" &&
+                    !DeviceControlManager.isServiceConnected() -> state.copy(
+                    toggleable = false,
+                    toggleDisabledReason = "Enable OneClaw in Settings > Accessibility > Installed apps"
                 )
                 state.metadata.id in PLUGIN_CREDENTIAL_IDS &&
                     isPluginMissingCredentials(state) -> state.copy(

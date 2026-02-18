@@ -59,7 +59,6 @@ class AgentCoordinatorTest {
         every { mockToolRegistry.getToolDefinitions(any<Set<String>>()) } returns emptyList()
         every { mockToolRegistry.registerPlugin(any()) } returns Unit
         every { mockToolRegistry.getOnDemandCategories() } returns emptySet()
-        coEvery { mockLlmClient.cancel() } returns Unit
 
         coordinator = AgentCoordinator(
             clientProvider = { mockLlmClient },

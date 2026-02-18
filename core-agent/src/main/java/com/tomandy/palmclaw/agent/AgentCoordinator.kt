@@ -461,9 +461,6 @@ class AgentCoordinator(
      * and reset the state to Idle.
      */
     fun cancel() {
-        // Rely on coroutine cancellation to abort in-flight LLM calls.
-        // Do not call clientProvider().cancel() -- that cancels ALL in-flight
-        // requests across all concurrent coordinators sharing the same client.
         currentJob?.cancel()
         currentJob = null
         _state.value = AgentState.Idle

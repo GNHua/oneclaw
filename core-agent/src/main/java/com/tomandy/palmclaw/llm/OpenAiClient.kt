@@ -278,10 +278,6 @@ class OpenAiClient(
         api = retrofit.create(OpenAiApi::class.java)
     }
 
-    override fun cancel() {
-        httpClient.dispatcher.cancelAll()
-    }
-
     private fun openAiAudioFormat(mimeType: String): String {
         // OpenAI input_audio accepts: wav, mp3, flac, opus, pcm16
         return when {

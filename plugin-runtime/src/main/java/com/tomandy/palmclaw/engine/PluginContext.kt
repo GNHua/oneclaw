@@ -160,6 +160,19 @@ class PluginContext(
     }
 
     /**
+     * Retrieve a global provider credential (not namespaced by plugin ID).
+     *
+     * Use this for accessing shared API keys like "OpenAI" or "GoogleMaps"
+     * that are stored at the provider level rather than per-plugin.
+     *
+     * @param provider The provider key (e.g., "OpenAI", "GoogleMaps")
+     * @return The credential value, or null if not found
+     */
+    suspend fun getProviderCredential(provider: String): String? {
+        return credentialVault.getApiKey(provider)
+    }
+
+    /**
      * Show a notification to the user.
      *
      * Use this to inform the user of important events, results, or errors.

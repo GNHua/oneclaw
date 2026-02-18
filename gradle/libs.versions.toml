@@ -30,6 +30,10 @@ koin = "4.0.2"
 jsoup = "1.18.3"
 ktlint = "1.5.0"
 playServicesAuth = "21.3.0"
+playServicesLocation = "21.3.0"
+mlkitBarcode = "17.3.0"
+zxingCore = "3.5.3"
+coroutinesPlayServices = "1.10.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -116,6 +120,18 @@ koin-test = { group = "io.insert-koin", name = "koin-test" }
 
 # Google Sign-In
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
+
+# Google Play Services Location
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+
+# ML Kit Barcode
+mlkit-barcode = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
+
+# ZXing QR Code
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCore" }
+
+# Coroutines Play Services
+kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutinesPlayServices" }
 
 # Linting
 ktlint-cli = { group = "com.pinterest.ktlint", name = "ktlint-cli", version.ref = "ktlint" }

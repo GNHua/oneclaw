@@ -64,6 +64,7 @@ import com.tomandy.palmclaw.audio.AudioState
 import com.tomandy.palmclaw.audio.AndroidSttProvider
 import com.tomandy.palmclaw.devicecontrol.DeviceControlManager
 import com.tomandy.palmclaw.llm.LlmClientProvider
+import com.tomandy.palmclaw.navigation.NavigationState
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
 import com.tomandy.palmclaw.notification.ChatScreenTracker
 import com.tomandy.palmclaw.service.ChatExecutionTracker
@@ -131,6 +132,26 @@ fun ChatScreen(
     var showAgentPicker by remember { mutableStateOf(false) }
 
     var inputText by remember { mutableStateOf("") }
+
+    // Pre-fill input from share intent (checked on every ON_RESUME,
+    // which fires after both onCreate and onNewIntent)
+    val navigationState: NavigationState = koinInject()
+    DisposableEffect(lifecycleOwner) {
+        val consumeSharedText = {
+            navigationState.pendingSharedText.value?.let { text ->
+                inputText = text
+                navigationState.pendingSharedText.value = null
+            }
+        }
+        consumeSharedText()
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                consumeSharedText()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     val attachedImages = remember { mutableStateListOf<String>() }
     val attachedAudios = remember { mutableStateListOf<String>() }
     val attachedVideos = remember { mutableStateListOf<String>() }

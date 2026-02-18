@@ -132,6 +132,16 @@ fun PalmClawNavGraph(
         }
     }
 
+    // Handle shared text from other apps (ACTION_SEND)
+    // Navigate to chat screen; ChatScreen consumes the text to pre-fill input.
+    val pendingSharedText by navigationState.pendingSharedText.collectAsState()
+    LaunchedEffect(pendingSharedText) {
+        if (pendingSharedText != null) {
+            showHistory = false
+            navController.popBackStack(Screen.Chat.route, inclusive = false)
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         NavHost(
             navController = navController,

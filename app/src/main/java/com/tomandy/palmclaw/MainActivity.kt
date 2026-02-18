@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         requestNotificationPermission()
-        handleNotificationIntent(intent)
+        handleIntent(intent)
 
         setContent {
             PalmClawTheme {
@@ -51,12 +51,22 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        handleNotificationIntent(intent)
+        handleIntent(intent)
     }
 
-    private fun handleNotificationIntent(intent: Intent?) {
-        intent?.getStringExtra(ChatNotificationHelper.EXTRA_CONVERSATION_ID)?.let { convId ->
-            navigationState.pendingConversationId.value = convId
+    private fun handleIntent(intent: Intent?) {
+        if (intent == null) return
+        when (intent.action) {
+            Intent.ACTION_SEND -> {
+                intent.getStringExtra(Intent.EXTRA_TEXT)?.let { text ->
+                    navigationState.pendingSharedText.value = text
+                }
+            }
+            else -> {
+                intent.getStringExtra(ChatNotificationHelper.EXTRA_CONVERSATION_ID)?.let { convId ->
+                    navigationState.pendingConversationId.value = convId
+                }
+            }
         }
     }
 

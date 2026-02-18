@@ -75,6 +75,12 @@ dependencies {
     // Web search and fetch
     implementation(project(":lib-web"))
 
+    // QR code scanning and generation
+    implementation(project(":lib-qrcode"))
+
+    // Location and places
+    implementation(project(":lib-location"))
+
     // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

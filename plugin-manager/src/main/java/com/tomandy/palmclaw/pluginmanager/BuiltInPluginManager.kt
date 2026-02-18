@@ -38,7 +38,8 @@ class BuiltInPluginManager(
             "plugins/google-docs",
             "plugins/google-sheets",
             "plugins/google-slides",
-            "plugins/google-forms"
+            "plugins/google-forms",
+            "plugins/image-gen"
         )
     }
 

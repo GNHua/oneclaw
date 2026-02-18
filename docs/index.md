@@ -20,6 +20,10 @@ layout: default
 
 ---
 
+**100% local.** OneClaw runs entirely on your device. There is no backend server, no account to create, and no data leaves your phone unless you explicitly call an LLM API. Your API keys are encrypted with the Android hardware KeyStore. No root access required -- it works on any stock Android device.
+
+---
+
 ## Install from APK
 
 1. Go to the [Releases page](https://github.com/GNHua/oneclaw/releases/latest) and download the latest `.apk` file

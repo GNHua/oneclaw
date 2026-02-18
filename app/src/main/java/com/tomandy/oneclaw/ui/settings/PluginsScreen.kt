@@ -3,6 +3,8 @@ package com.tomandy.oneclaw.ui.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,11 +16,54 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.ui.drawScrollbar
 import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
 
-@OptIn(ExperimentalMaterial3Api::class)
+private enum class PluginGroup(val label: String) {
+    USER("User Plugins"),
+    GOOGLE_WORKSPACE("Google Workspace"),
+    DEVICE_MEDIA("Device & Media"),
+    COMMUNICATION("Communication"),
+    PRODUCTIVITY("Productivity"),
+    LIFESTYLE("Lifestyle"),
+    UTILITIES("Utilities"),
+    SYSTEM("System")
+}
+
+private val DEVICE_MEDIA_IDS = setOf(
+    "device-control", "camera", "voice-memo", "media-control", "notifications"
+)
+private val COMMUNICATION_IDS = setOf("sms-phone")
+private val PRODUCTIVITY_IDS = setOf("notion")
+private val LIFESTYLE_IDS = setOf("smart-home")
+private val UTILITIES_IDS = setOf(
+    "web", "web-fetch", "location", "search", "qrcode", "pdf-tools", "time", "image-gen"
+)
+private val SYSTEM_IDS = setOf(
+    "workspace", "memory", "scheduler", "config", "delegate-agent", "activate-tools",
+    "install-plugin"
+)
+
+private fun classifyPlugin(plugin: PluginUiState): PluginGroup {
+    if (plugin.isUserPlugin) return PluginGroup.USER
+    val id = plugin.metadata.id
+    return when {
+        id.startsWith("google-") -> PluginGroup.GOOGLE_WORKSPACE
+        id in DEVICE_MEDIA_IDS -> PluginGroup.DEVICE_MEDIA
+        id in COMMUNICATION_IDS -> PluginGroup.COMMUNICATION
+        id in PRODUCTIVITY_IDS -> PluginGroup.PRODUCTIVITY
+        id in LIFESTYLE_IDS -> PluginGroup.LIFESTYLE
+        id in SYSTEM_IDS -> PluginGroup.SYSTEM
+        id in UTILITIES_IDS -> PluginGroup.UTILITIES
+        else -> PluginGroup.UTILITIES
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun PluginsScreen(
     viewModel: SettingsViewModel,
@@ -55,6 +100,17 @@ fun PluginsScreen(
             val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             val heightCache = rememberLazyListHeightCache()
 
+            val groupedPlugins by remember(plugins) {
+                derivedStateOf {
+                    plugins
+                        .groupBy { classifyPlugin(it) }
+                        .toSortedMap(compareBy { it.ordinal })
+                        .mapValues { (_, list) ->
+                            list.sortedBy { it.metadata.name.lowercase() }
+                        }
+                }
+            }
+
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -64,17 +120,22 @@ fun PluginsScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(bottom = 80.dp)
             ) {
-                items(plugins, key = { it.metadata.id }) { pluginState ->
-                    PluginCard(
-                        pluginState = pluginState,
-                        onClick = { selectedPlugin = pluginState },
-                        onToggle = { enabled ->
-                            viewModel.togglePlugin(pluginState.metadata.id, enabled)
-                        },
-                        onDelete = if (pluginState.isUserPlugin) {
-                            { showDeleteConfirm = pluginState.metadata.id }
-                        } else null
-                    )
+                groupedPlugins.forEach { (group, groupPlugins) ->
+                    stickyHeader(key = "header_${group.name}") {
+                        SectionHeader(title = group.label)
+                    }
+                    items(groupPlugins, key = { it.metadata.id }) { pluginState ->
+                        PluginCard(
+                            pluginState = pluginState,
+                            onClick = { selectedPlugin = pluginState },
+                            onToggle = { enabled ->
+                                viewModel.togglePlugin(pluginState.metadata.id, enabled)
+                            },
+                            onDelete = if (pluginState.isUserPlugin) {
+                                { showDeleteConfirm = pluginState.metadata.id }
+                            } else null
+                        )
+                    }
                 }
             }
         }
@@ -259,9 +320,9 @@ private fun PluginCard(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                WrapRow(
+                    horizontalSpacing = 8.dp,
+                    verticalSpacing = 4.dp
                 ) {
                     Text(
                         text = metadata.name,
@@ -331,6 +392,61 @@ private fun PluginCard(
                     onCheckedChange = onToggle,
                     enabled = pluginState.toggleable
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.outlineVariant,
+            modifier = Modifier.padding(vertical = 4.dp)
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+        )
+    }
+}
+
+@Composable
+private fun WrapRow(
+    modifier: Modifier = Modifier,
+    horizontalSpacing: Dp = 0.dp,
+    verticalSpacing: Dp = 0.dp,
+    content: @Composable () -> Unit
+) {
+    Layout(content = content, modifier = modifier) { measurables, constraints ->
+        val hSpacingPx = horizontalSpacing.roundToPx()
+        val vSpacingPx = verticalSpacing.roundToPx()
+        val placeables = measurables.map { it.measure(constraints.copy(minWidth = 0)) }
+        var x = 0
+        var y = 0
+        var rowHeight = 0
+        val positions = placeables.map { placeable ->
+            if (x > 0 && x + hSpacingPx + placeable.width > constraints.maxWidth) {
+                x = 0
+                y += rowHeight + vSpacingPx
+                rowHeight = 0
+            }
+            if (x > 0) x += hSpacingPx
+            val pos = IntOffset(x, y)
+            x += placeable.width
+            rowHeight = maxOf(rowHeight, placeable.height)
+            pos
+        }
+        val totalHeight = if (placeables.isEmpty()) 0 else y + rowHeight
+        layout(constraints.maxWidth, totalHeight) {
+            placeables.forEachIndexed { i, placeable ->
+                placeable.placeRelative(positions[i].x, positions[i].y)
             }
         }
     }

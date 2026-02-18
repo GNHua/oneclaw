@@ -6,6 +6,7 @@
   "author": "OneClaw Team",
   "entryPoint": "ImageGenPlugin",
   "category": "image_gen",
+  "tags": ["experimental"],
   "tools": [
     {
       "name": "generate_image",

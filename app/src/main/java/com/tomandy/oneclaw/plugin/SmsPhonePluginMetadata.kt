@@ -26,7 +26,8 @@ object SmsPhonePluginMetadata {
                 phoneCallLogTool()
             ),
             permissions = listOf("SEND_SMS", "READ_SMS", "READ_CALL_LOG"),
-            category = "phone"
+            category = "phone",
+            tags = listOf("experimental")
         )
     }
 

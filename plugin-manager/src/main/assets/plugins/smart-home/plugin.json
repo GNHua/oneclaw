@@ -6,6 +6,7 @@
   "author": "OneClaw Team",
   "entryPoint": "SmartHomePlugin",
   "category": "smart_home",
+  "tags": ["experimental"],
   "credentials": [
     {
       "key": "base_url",

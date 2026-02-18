@@ -19,7 +19,8 @@ object NotificationPluginMetadata {
                 getNotificationDetailsTool(),
                 dismissNotificationTool()
             ),
-            category = "notifications"
+            category = "notifications",
+            tags = listOf("experimental")
         )
     }
 

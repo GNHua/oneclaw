@@ -6,6 +6,7 @@
   "author": "OneClaw Team",
   "entryPoint": "NotionPlugin",
   "category": "notion",
+  "tags": ["experimental"],
   "credentials": [
     {
       "key": "api_key",

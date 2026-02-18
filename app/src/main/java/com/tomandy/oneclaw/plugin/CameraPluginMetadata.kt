@@ -18,7 +18,8 @@ object CameraPluginMetadata {
                 takePhotoTool(),
                 listCamerasTool()
             ),
-            category = "camera"
+            category = "camera",
+            tags = listOf("experimental")
         )
     }
 

@@ -1,0 +1,47 @@
+{
+  "id": "image-gen",
+  "name": "Image Generation",
+  "version": "1.0.0",
+  "description": "Generate images using OpenAI's DALL-E API. Images are saved to the workspace.",
+  "author": "PalmClaw Team",
+  "entryPoint": "ImageGenPlugin",
+  "category": "image_gen",
+  "tools": [
+    {
+      "name": "generate_image",
+      "description": "Generate an image from a text prompt using OpenAI's image generation API (DALL-E). The generated image is saved to the workspace images directory and the file path is returned.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "A detailed text description of the image to generate"
+          },
+          "size": {
+            "type": "string",
+            "description": "Image size: 1024x1024 (default), 1024x1792, or 1792x1024",
+            "enum": ["1024x1024", "1024x1792", "1792x1024"]
+          },
+          "quality": {
+            "type": "string",
+            "description": "Image quality: standard (default) or hd",
+            "enum": ["standard", "hd"]
+          },
+          "model": {
+            "type": "string",
+            "description": "Model to use: dall-e-3 (default) or dall-e-2",
+            "enum": ["dall-e-3", "dall-e-2"]
+          },
+          "style": {
+            "type": "string",
+            "description": "Image style: vivid (default) or natural. Only for dall-e-3.",
+            "enum": ["vivid", "natural"]
+          }
+        },
+        "required": ["prompt"]
+      }
+    }
+  ],
+  "permissions": [],
+  "dependencies": []
+}

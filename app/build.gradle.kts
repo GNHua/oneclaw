@@ -72,6 +72,12 @@ dependencies {
     // Device control (accessibility service)
     implementation(project(":lib-device-control"))
 
+    // QR code scanning and generation
+    implementation(project(":lib-qrcode"))
+
+    // Location and places
+    implementation(project(":lib-location"))
+
     // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

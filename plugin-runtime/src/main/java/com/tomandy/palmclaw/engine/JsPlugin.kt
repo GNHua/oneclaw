@@ -405,6 +405,10 @@ class JsPlugin(
                 asyncFunction<String, Unit>("delete") { key ->
                     context.deleteCredential(key)
                 }
+
+                asyncFunction<String, String?>("getProviderKey") { provider ->
+                    context.getProviderCredential(provider)
+                }
             }
 
             // -- Notifications --

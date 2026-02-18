@@ -192,6 +192,63 @@ class PluginCoordinator(
             e.printStackTrace()
         }
 
+        // Register LocationPlugin
+        try {
+            val locationPlugin = com.tomandy.palmclaw.location.LocationPlugin()
+            val locationContext = PluginContext.create(
+                androidContext = context,
+                pluginId = "location",
+                credentialVault = credentialVault
+            )
+            locationPlugin.onLoad(locationContext)
+            toolRegistry.registerPlugin(
+                LoadedPlugin(
+                    metadata = com.tomandy.palmclaw.location.LocationPluginMetadata.get(),
+                    instance = locationPlugin
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Register QrCodePlugin
+        try {
+            val qrCodePlugin = com.tomandy.palmclaw.qrcode.QrCodePlugin()
+            val qrCodeContext = PluginContext.create(
+                androidContext = context,
+                pluginId = "qrcode",
+                credentialVault = credentialVault
+            )
+            qrCodePlugin.onLoad(qrCodeContext)
+            toolRegistry.registerPlugin(
+                LoadedPlugin(
+                    metadata = com.tomandy.palmclaw.qrcode.QrCodePluginMetadata.get(),
+                    instance = qrCodePlugin
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Register SmsPhonePlugin
+        try {
+            val smsPhonePlugin = SmsPhonePlugin()
+            val smsPhoneContext = PluginContext.create(
+                androidContext = context,
+                pluginId = "sms-phone",
+                credentialVault = credentialVault
+            )
+            smsPhonePlugin.onLoad(smsPhoneContext)
+            toolRegistry.registerPlugin(
+                LoadedPlugin(
+                    metadata = SmsPhonePluginMetadata.get(),
+                    instance = smsPhonePlugin
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         // Wire abort callback for hardware button abort
         DeviceControlManager.setAbortCallback(object : AbortCallback {
             override fun abortAllExecutions() {

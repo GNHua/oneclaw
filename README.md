@@ -36,9 +36,9 @@ All data stays on your device. You provide your own API keys. Nothing is collect
 <p align="center">
   <img src="docs/screenshots/scheduled-task.png" width="220" alt="Scheduled tasks">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/plugins.png" width="220" alt="Plugin management">
-  &nbsp;&nbsp;
   <img src="docs/screenshots/settings.png" width="220" alt="Settings">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/plugins.png" width="220" alt="Plugin management">
 </p>
 
 <p align="center">

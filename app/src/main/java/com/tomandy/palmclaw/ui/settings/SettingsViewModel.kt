@@ -245,7 +245,12 @@ class SettingsViewModel(
      */
     fun savePluginCredential(pluginId: String, key: String, value: String) {
         viewModelScope.launch {
-            credentialVault.saveApiKey("plugin.${pluginId}.${key}", value)
+            val fullKey = "plugin.${pluginId}.${key}"
+            if (value.isBlank()) {
+                credentialVault.deleteApiKey(fullKey)
+            } else {
+                credentialVault.saveApiKey(fullKey, value)
+            }
         }
     }
 

@@ -182,17 +182,27 @@ private fun CredentialForm(
                                 DropdownMenuItem(
                                     text = { Text(option) },
                                     onClick = {
-                                        values[cred.key] = option
-                                        viewModel.savePluginCredential(pluginId, cred.key, option)
                                         expanded = false
-                                        // Reload scoped fields for the new selection
                                         coroutineScope.launch {
-                                            credentials.filter { it.scopedBy == cred.key }.forEach { scoped ->
+                                            val scopedFields = credentials.filter { it.scopedBy == cred.key }
+                                            // Always update visual state and reload scoped fields
+                                            values[cred.key] = option
+                                            scopedFields.forEach { scoped ->
                                                 values[scoped.key] = viewModel.getPluginCredential(
                                                     pluginId, "${option}_${scoped.key}"
                                                 )
                                             }
-                                            dirty = false
+                                            val hasKey = scopedFields.isEmpty() || scopedFields.all { scoped ->
+                                                values[scoped.key]?.isNotEmpty() == true
+                                            }
+                                            if (hasKey) {
+                                                // Scoped key already exists -- persist immediately
+                                                viewModel.savePluginCredential(pluginId, cred.key, option)
+                                                dirty = false
+                                            } else {
+                                                // No key yet -- defer provider save to Save button
+                                                dirty = true
+                                            }
                                         }
                                     }
                                 )
@@ -243,6 +253,11 @@ private fun CredentialForm(
 
             Button(
                 onClick = {
+                    // Persist dropdown selections (e.g. pending provider switch)
+                    credentials.filter { it.options.isNotEmpty() }.forEach { cred ->
+                        viewModel.savePluginCredential(pluginId, cred.key, values[cred.key] ?: "")
+                    }
+                    // Persist text fields (e.g. API keys)
                     credentials.filter { it.options.isEmpty() }.forEach { cred ->
                         viewModel.savePluginCredential(pluginId, storageKey(cred), values[cred.key] ?: "")
                     }

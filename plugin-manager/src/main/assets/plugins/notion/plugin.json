@@ -1,0 +1,167 @@
+{
+  "id": "notion",
+  "name": "Notion",
+  "version": "1.0.0",
+  "description": "Search, read, and write Notion pages and databases",
+  "author": "PalmClaw Team",
+  "entryPoint": "NotionPlugin",
+  "category": "notion",
+  "credentials": [
+    {
+      "key": "api_key",
+      "label": "Integration Token",
+      "description": "Notion Internal Integration Token (starts with ntn_ or secret_). Create one at notion.so/my-integrations."
+    }
+  ],
+  "tools": [
+    {
+      "name": "notion_search",
+      "description": "Search Notion pages and databases by title or content. Returns matching pages/databases with their IDs and titles.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query text"
+          },
+          "filter": {
+            "type": "string",
+            "description": "Filter results by type: 'page' or 'database'",
+            "enum": ["page", "database"]
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of results to return (default 10)"
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "notion_get_page",
+      "description": "Get a Notion page's properties (title, dates, tags, etc.). Use notion_get_page_content to read the page body.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string",
+            "description": "The Notion page ID (UUID format, with or without dashes)"
+          }
+        },
+        "required": ["page_id"]
+      }
+    },
+    {
+      "name": "notion_get_page_content",
+      "description": "Get a Notion page's body content as readable text. Converts Notion blocks (paragraphs, headings, lists, code, etc.) into plain text.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string",
+            "description": "The Notion page ID"
+          },
+          "max_blocks": {
+            "type": "integer",
+            "description": "Maximum number of blocks to retrieve (default 100)"
+          }
+        },
+        "required": ["page_id"]
+      }
+    },
+    {
+      "name": "notion_create_page",
+      "description": "Create a new Notion page in a database or under a parent page. Supports setting a title and adding markdown-like content.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "parent_id": {
+            "type": "string",
+            "description": "Parent database ID or page ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "Page title"
+          },
+          "properties": {
+            "type": "object",
+            "description": "Additional page properties as key-value pairs (for database pages)"
+          },
+          "content": {
+            "type": "string",
+            "description": "Page body content as plain text (each line becomes a paragraph block)"
+          }
+        },
+        "required": ["parent_id", "title"]
+      }
+    },
+    {
+      "name": "notion_update_page",
+      "description": "Update properties of an existing Notion page. Can update title, tags, dates, and other properties. Can also archive/un-archive a page.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string",
+            "description": "The Notion page ID to update"
+          },
+          "properties": {
+            "type": "object",
+            "description": "Properties to update as key-value pairs"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Set to true to archive (delete) the page, false to un-archive"
+          }
+        },
+        "required": ["page_id"]
+      }
+    },
+    {
+      "name": "notion_query_database",
+      "description": "Query a Notion database with optional filter and sort. Returns matching pages with their properties.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "database_id": {
+            "type": "string",
+            "description": "The Notion database ID"
+          },
+          "filter": {
+            "type": "object",
+            "description": "Notion filter object (e.g. {\"property\": \"Status\", \"select\": {\"equals\": \"Done\"}})"
+          },
+          "sorts": {
+            "type": "array",
+            "description": "Array of sort objects (e.g. [{\"property\": \"Created\", \"direction\": \"descending\"}])"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of results (default 20)"
+          }
+        },
+        "required": ["database_id"]
+      }
+    },
+    {
+      "name": "notion_add_blocks",
+      "description": "Append content blocks to an existing Notion page. Each line of content becomes a paragraph block.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string",
+            "description": "The Notion page ID to append content to"
+          },
+          "content": {
+            "type": "string",
+            "description": "Content to append (each line becomes a paragraph block; lines starting with # become headings, - become bullet items, 1. become numbered items)"
+          }
+        },
+        "required": ["page_id", "content"]
+      }
+    }
+  ],
+  "permissions": [],
+  "dependencies": []
+}

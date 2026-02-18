@@ -88,13 +88,13 @@ data class PluginMetadata(
      * Credential definitions for plugin-specific configuration.
      * Each entry describes a credential the user can configure in Settings.
      */
-    @kotlinx.serialization.Transient
     val credentials: List<CredentialDefinition> = emptyList()
 )
 
 /**
  * Describes a configurable credential for a plugin.
  */
+@Serializable
 data class CredentialDefinition(
     val key: String,
     val label: String,

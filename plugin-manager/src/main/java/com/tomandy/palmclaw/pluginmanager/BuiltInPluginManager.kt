@@ -39,7 +39,9 @@ class BuiltInPluginManager(
             "plugins/google-sheets",
             "plugins/google-slides",
             "plugins/google-forms",
-            "plugins/image-gen"
+            "plugins/image-gen",
+            "plugins/smart-home",
+            "plugins/notion"
         )
     }
 

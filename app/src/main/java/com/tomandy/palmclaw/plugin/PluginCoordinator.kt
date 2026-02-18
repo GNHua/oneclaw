@@ -276,6 +276,25 @@ class PluginCoordinator(
             e.printStackTrace()
         }
 
+        // Register PdfToolsPlugin
+        try {
+            val pdfToolsPlugin = com.tomandy.palmclaw.pdf.PdfToolsPlugin()
+            val pdfContext = PluginContext.create(
+                androidContext = context,
+                pluginId = "pdf-tools",
+                credentialVault = credentialVault
+            )
+            pdfToolsPlugin.onLoad(pdfContext)
+            toolRegistry.registerPlugin(
+                LoadedPlugin(
+                    metadata = com.tomandy.palmclaw.pdf.PdfToolsPluginMetadata.get(),
+                    instance = pdfToolsPlugin
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         // Wire abort callback for hardware button abort
         DeviceControlManager.setAbortCallback(object : AbortCallback {
             override fun abortAllExecutions() {

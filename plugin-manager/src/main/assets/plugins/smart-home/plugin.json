@@ -1,0 +1,101 @@
+{
+  "id": "smart-home",
+  "name": "Smart Home",
+  "version": "1.0.0",
+  "description": "Control and monitor Home Assistant smart home devices",
+  "author": "PalmClaw Team",
+  "entryPoint": "SmartHomePlugin",
+  "category": "smart_home",
+  "credentials": [
+    {
+      "key": "base_url",
+      "label": "Home Assistant URL",
+      "description": "Your Home Assistant instance URL (e.g. http://homeassistant.local:8123)"
+    },
+    {
+      "key": "api_key",
+      "label": "Access Token",
+      "description": "Long-Lived Access Token from Home Assistant (Profile > Security > Long-Lived Access Tokens)"
+    }
+  ],
+  "tools": [
+    {
+      "name": "ha_list_entities",
+      "description": "List Home Assistant entities, optionally filtered by domain (e.g. light, switch, sensor, climate, cover). Returns entity IDs and their current states.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Filter by entity domain (e.g. light, switch, sensor, climate, cover, media_player, fan, lock)"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of entities to return (default 50)"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "ha_get_state",
+      "description": "Get the full state and attributes for a specific Home Assistant entity. Returns the current state, last changed/updated timestamps, and all attributes.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "description": "The entity ID (e.g. light.living_room, sensor.temperature)"
+          }
+        },
+        "required": ["entity_id"]
+      }
+    },
+    {
+      "name": "ha_call_service",
+      "description": "Call a Home Assistant service to control devices. Common services: turn_on, turn_off, toggle for lights/switches; set_temperature for climate; open_cover/close_cover for covers; lock/unlock for locks.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Service domain (e.g. light, switch, climate, cover, lock, media_player)"
+          },
+          "service": {
+            "type": "string",
+            "description": "Service name (e.g. turn_on, turn_off, toggle, set_temperature)"
+          },
+          "entity_id": {
+            "type": "string",
+            "description": "Target entity ID (e.g. light.living_room)"
+          },
+          "service_data": {
+            "type": "object",
+            "description": "Additional service data (e.g. {\"brightness\": 255, \"color_name\": \"red\"} for lights, {\"temperature\": 22} for climate)"
+          }
+        },
+        "required": ["domain", "service", "entity_id"]
+      }
+    },
+    {
+      "name": "ha_get_history",
+      "description": "Get state history for a Home Assistant entity over a time period. Useful for checking sensor trends, device activity, or when something last changed.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "description": "The entity ID to get history for"
+          },
+          "hours": {
+            "type": "integer",
+            "description": "Number of hours of history to retrieve (default 24, max 168)"
+          }
+        },
+        "required": ["entity_id"]
+      }
+    }
+  ],
+  "permissions": [],
+  "dependencies": []
+}

@@ -177,7 +177,7 @@ private fun SummaryDivider() {
 }
 
 private fun MessageEntity.isToolCallOnly(): Boolean =
-    role == "assistant" && !toolCalls.isNullOrEmpty() && content.isBlank()
+    role == "assistant" && !toolCalls.isNullOrEmpty()
 
 private sealed class DisplayItem {
     abstract val key: String

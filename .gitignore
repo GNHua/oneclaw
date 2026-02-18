@@ -10,3 +10,5 @@
 local.properties
 **/secrets.xml
 .kotlin
+release.jks
+signing.properties

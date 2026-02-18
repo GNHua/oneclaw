@@ -103,7 +103,16 @@ OneClaw is a multi-module Kotlin project:
 
 Core tools (file ops, memory, exec) are always available. Category-based tools (Gmail, Calendar, etc.) activate on demand when the agent calls `activate_tools`, keeping the context window clean.
 
-## Getting Started
+## Install
+
+1. Download the latest APK from the [Releases](https://github.com/GNHua/oneclaw/releases/latest) page
+2. Transfer the APK to your Android device (or download directly on the device)
+3. Open the APK to install -- you may need to enable "Install from unknown sources" in your device settings
+4. Open OneClaw, go to Settings, select your LLM provider, and enter your API key
+
+Requires Android 8.0 (API 26) or later.
+
+## Build from Source
 
 ### Prerequisites
 
@@ -114,7 +123,7 @@ Core tools (file ops, memory, exec) are always available. Category-based tools (
 ### Build
 
 ```bash
-git clone https://github.com/nicholashua/oneclaw.git
+git clone https://github.com/GNHua/oneclaw.git
 cd oneclaw
 
 # Build debug APK
@@ -126,13 +135,6 @@ cd oneclaw
 # Run tests
 ./gradlew test
 ```
-
-### Setup
-
-1. Install the APK on your device
-2. Open Settings and select your LLM provider
-3. Enter your API key (encrypted locally with Android KeyStore)
-4. Start chatting
 
 ### Supported Providers
 

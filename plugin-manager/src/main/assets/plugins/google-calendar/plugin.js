@@ -52,6 +52,18 @@ function isDateOnly(str) {
     return /^\d{4}-\d{2}-\d{2}$/.test(str);
 }
 
+function buildTimeObj(dt, tz) {
+    if (isDateOnly(dt)) {
+        return { date: dt };
+    }
+    var obj = { dateTime: dt };
+    // If datetime lacks offset/Z, attach calendar timezone so Google API can interpret it
+    if (!/[Zz]$/.test(dt) && !/[+\-]\d{2}:\d{2}$/.test(dt) && tz) {
+        obj.timeZone = tz;
+    }
+    return obj;
+}
+
 async function execute(toolName, args) {
     try {
         switch (toolName) {
@@ -94,17 +106,24 @@ async function execute(toolName, args) {
 
             case "calendar_create_event": {
                 var calId = encodeURIComponent(args.calendar_id || "primary");
-                var event = {
-                    summary: args.summary
-                };
-
-                if (isDateOnly(args.start)) {
-                    event.start = { date: args.start };
-                    event.end = { date: args.end };
-                } else {
-                    event.start = { dateTime: args.start };
-                    event.end = { dateTime: args.end };
+                if (!args.start || !args.end) {
+                    return { error: "Missing required parameters 'start' and 'end'. Use ISO 8601 with timezone offset (e.g. '2026-02-20T14:00:00-08:00') or date-only (e.g. '2026-02-20') for all-day events." };
                 }
+
+                // Fetch calendar timezone to fill in bare datetimes
+                var tz = "";
+                if (!isDateOnly(args.start)) {
+                    try {
+                        var calMeta = await calFetch("GET", "/calendars/" + calId);
+                        tz = calMeta.timeZone || "";
+                    } catch (e) { /* proceed without tz */ }
+                }
+
+                var event = {
+                    summary: args.summary,
+                    start: buildTimeObj(args.start, tz),
+                    end: buildTimeObj(args.end, tz)
+                };
 
                 if (args.description) event.description = args.description;
                 if (args.location) event.location = args.location;
@@ -136,18 +155,18 @@ async function execute(toolName, args) {
                 if (args.summary) existing.summary = args.summary;
                 if (args.description !== undefined) existing.description = args.description;
                 if (args.location !== undefined) existing.location = args.location;
-                if (args.start) {
-                    if (isDateOnly(args.start)) {
-                        existing.start = { date: args.start };
-                    } else {
-                        existing.start = { dateTime: args.start };
+
+                if (args.start || args.end) {
+                    var tz = "";
+                    try {
+                        var calMeta = await calFetch("GET", "/calendars/" + calId);
+                        tz = calMeta.timeZone || "";
+                    } catch (e) { /* proceed without tz */ }
+                    if (args.start) {
+                        existing.start = buildTimeObj(args.start, tz);
                     }
-                }
-                if (args.end) {
-                    if (isDateOnly(args.end)) {
-                        existing.end = { date: args.end };
-                    } else {
-                        existing.end = { dateTime: args.end };
+                    if (args.end) {
+                        existing.end = buildTimeObj(args.end, tz);
                     }
                 }
 

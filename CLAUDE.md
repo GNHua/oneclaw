@@ -44,6 +44,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `plugin-runtime` | QuickJS-based JavaScript plugin engine |
 | `lib-device-control` | Accessibility Service-based screen observation and interaction |
 | `plugin-manager` | Built-in and user plugin management |
+| `lib-web` | Web search (`web_search`, `web_fetch`) via Tavily or Brave; credential-gated |
+| `lib-qrcode` | QR code scan and generate tools |
+| `lib-location` | GPS location, nearby places search, directions URL; requires Maps API key for `search_nearby` |
+| `lib-notification-media` | Notification list/inspect/dismiss + media playback control; requires Notification Listener Service |
+| `lib-pdf` | PDF info, text extraction, page rendering tools |
 
 ### Dependency Injection
 
@@ -91,8 +96,8 @@ Markdown files with YAML frontmatter defining persona, model, and tool/skill acc
 
 ### Two-Tier Tool Activation
 
-1. **Core tools** (`category = "core"`) -- always visible to LLM (e.g., read_file, write_file, exec, search_memory, activate_tools)
-2. **On-demand categories** (e.g., `gmail`, `calendar`, `scheduler`) -- hidden until LLM calls `activate_tools` meta-tool mid-conversation
+1. **Always-on tools** -- plugins with no category (WorkspacePlugin, MemoryPlugin, SchedulerPlugin, ConfigPlugin, SearchPlugin, DelegateAgentPlugin, ActivateToolsPlugin, QrCodePlugin) are always visible to the LLM
+2. **On-demand categories** (e.g., `gmail`, `calendar`, `web`, `location`, `phone`, `camera`, `device_control`) -- hidden until LLM calls `activate_tools` meta-tool mid-conversation
 3. Once activated, a category stays active for the rest of the conversation (`AgentCoordinator.activeCategories`)
 4. Agent profile's `allowedTools` further restricts the final tool set
 
@@ -133,16 +138,26 @@ Managed by `LlmClientProvider` (in `app` module) which handles API key loading, 
 Two kinds of plugins register tools in `ToolRegistry`:
 
 **Kotlin native plugins** (registered in `PluginCoordinator.registerBuiltInPlugins()`):
-- `WorkspacePlugin` -- file ops, exec, javascript_eval (category: `core`)
-- `MemoryPlugin` -- full-text search across workspace memory files (category: `core`)
-- `SchedulerPlugin` -- cron-based scheduled tasks (category: `scheduler`)
-- `ConfigPlugin` -- runtime config introspection (temperature, system prompt, plugins, skills)
-- `SearchPlugin` -- `search_conversations` for conversation history search
-- `DelegateAgentPlugin` -- mid-conversation sub-agent execution
+- `WorkspacePlugin` -- file ops, exec, javascript_eval (always-on)
+- `MemoryPlugin` -- full-text search across workspace memory files (always-on)
+- `SchedulerPlugin` -- cron-based scheduled tasks (always-on)
+- `ConfigPlugin` -- runtime config introspection (always-on)
+- `SearchPlugin` -- `search_conversations` for conversation history search (always-on)
+- `DelegateAgentPlugin` -- mid-conversation sub-agent execution (always-on)
+- `ActivateToolsPlugin` -- meta-tool for two-tier dynamic tool activation (always-on)
+- `QrCodePlugin` -- QR scan and generate (always-on)
 - `DeviceControlPlugin` -- screen observation, tap, type, swipe via Accessibility Service (category: `device_control`)
-- `ActivateToolsPlugin` -- meta-tool for two-tier dynamic tool activation (category: `core`)
+- `WebPlugin` -- web search and fetch via Tavily/Brave (category: `web`)
+- `LocationPlugin` -- GPS location, nearby places, directions (category: `location`)
+- `NotificationPlugin` -- list/inspect/dismiss notifications (category: `notifications`)
+- `MediaControlPlugin` -- play/pause/skip/stop media (category: `media_control`)
+- `PdfToolsPlugin` -- PDF info, text extraction, page rendering (category: `pdf`)
+- `SmsPhonePlugin` -- SMS send/list/search, phone dial, call log (category: `phone`)
+- `CameraPlugin` -- headless photo capture via CameraX (category: `camera`)
+- `VoiceMemoPlugin` -- audio recording, transcription via OpenAI Whisper (category: `voice_memo`)
+- `InstallPluginTool` -- lets the LLM install new user plugins at runtime
 
-**JS plugins** -- `plugin.json` + `plugin.js`, loaded from `assets/plugins/` (built-in) or `workspace/plugins/` (user), wrapped in `JsPlugin`. Includes ~16 built-in JS plugins, notably the Google Workspace suite (Gmail, Calendar, Contacts, Tasks, Drive, Docs, Sheets, Slides, Forms) authenticated via Google Sign-In (`GoogleAuthManager`).
+**JS plugins** -- `plugin.json` + `plugin.js`, loaded from `assets/plugins/` (built-in) or `workspace/plugins/` (user), wrapped in `JsPlugin`. 15 built-in JS plugins: Google Workspace suite (Gmail, Gmail Settings, Calendar, Contacts, Tasks, Drive, Docs, Sheets, Slides, Forms) authenticated via Google Sign-In, plus `time`, `web-fetch` (raw HTTP), `image-gen`, `notion`, and `smart-home`.
 
 QuickJS host bindings exposed as `oneclaw.*` namespace: `fs`, `http`, `credentials`, `notifications`, `env`, `log`.
 
@@ -169,7 +184,15 @@ Chat messages support images, audio, video, and document/PDF attachments. Media 
 
 ### Google Sign-In
 
-`GoogleAuthManager` (in `app`) handles OAuth via Google Play Services. Manages scopes for Gmail, Calendar, Tasks, Contacts, Drive, Docs, Sheets, Presentations, and Forms. Tokens are used by the Google Workspace JS plugins.
+`CompositeGoogleAuthProvider` (in `app`) is the active `GoogleAuthProvider` binding. It delegates to BYOK OAuth (`OAuthGoogleAuthManager`) first, falling back to Play Services (`GoogleAuthManager`). Manages scopes for Gmail, Calendar, Tasks, Contacts, Drive, Docs, Sheets, Presentations, and Forms. Tokens are used by the Google Workspace JS plugins.
+
+### Memory Bootstrap
+
+`MemoryBootstrap` loads memory context at session start (MEMORY.md + today's/yesterday's daily memory files, character-limited) and injects it into the system prompt. This is separate from the `MemoryPlugin` search tool which the LLM uses mid-conversation.
+
+### Backup & Restore
+
+`BackupManager` (`app/.../backup/`) exports conversations, messages, cronjobs, execution logs, preferences, and optionally media as a ZIP archive. Corresponding `BackupScreen` in settings UI.
 
 ### Database Schema
 

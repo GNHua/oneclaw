@@ -3,7 +3,7 @@
   "name": "Google Gmail",
   "version": "2.0.0",
   "description": "Search, read, send, and manage Gmail messages, threads, drafts, labels, and attachments via Google API",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "GoogleGmailPlugin",
   "category": "gmail",
   "tools": [

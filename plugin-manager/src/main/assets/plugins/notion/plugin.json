@@ -3,7 +3,7 @@
   "name": "Notion",
   "version": "1.0.0",
   "description": "Search, read, and write Notion pages and databases",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "NotionPlugin",
   "category": "notion",
   "credentials": [

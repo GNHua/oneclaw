@@ -13,14 +13,14 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        palmclaw.log.error("smart-home error: " + e.message);
+        oneclaw.log.error("smart-home error: " + e.message);
         return { error: e.message };
     }
 }
 
 async function getConfig() {
-    var baseUrl = await palmclaw.credentials.get("base_url");
-    var apiKey = await palmclaw.credentials.get("api_key");
+    var baseUrl = await oneclaw.credentials.get("base_url");
+    var apiKey = await oneclaw.credentials.get("api_key");
     if (!baseUrl || !apiKey) {
         throw new Error("Home Assistant not configured. Please set the URL and Access Token in Settings > Plugins > Smart Home.");
     }
@@ -36,7 +36,7 @@ async function haFetch(method, path, body) {
         "Authorization": "Bearer " + config.apiKey
     };
 
-    var raw = await palmclaw.http.fetch(
+    var raw = await oneclaw.http.fetch(
         method,
         url,
         body ? JSON.stringify(body) : "",

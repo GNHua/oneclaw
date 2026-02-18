@@ -3,7 +3,7 @@
   "name": "Google Forms",
   "version": "1.0.0",
   "description": "Read Google Forms structure and responses",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "GoogleFormsPlugin",
   "category": "drive",
   "tools": [

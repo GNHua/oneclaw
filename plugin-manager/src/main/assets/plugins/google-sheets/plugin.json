@@ -3,7 +3,7 @@
   "name": "Google Sheets",
   "version": "1.0.0",
   "description": "Read and write Google Sheets spreadsheet data - get values, update cells, append rows",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "GoogleSheetsPlugin",
   "category": "drive",
   "tools": [

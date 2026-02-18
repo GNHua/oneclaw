@@ -1,10 +1,10 @@
 var PEOPLE_API = "https://people.googleapis.com/v1";
 
 async function getToken() {
-    if (typeof palmclaw.google === "undefined") {
+    if (typeof oneclaw.google === "undefined") {
         throw new Error("Google auth not available. Connect your Google account in Settings.");
     }
-    var token = await palmclaw.google.getAccessToken();
+    var token = await oneclaw.google.getAccessToken();
     if (!token) {
         throw new Error("Not signed in to Google. Connect your Google account in Settings.");
     }
@@ -14,7 +14,7 @@ async function getToken() {
 async function peopleFetch(method, path, body) {
     var token = await getToken();
     var headers = { "Authorization": "Bearer " + token };
-    var raw = await palmclaw.http.fetch(
+    var raw = await oneclaw.http.fetch(
         method,
         PEOPLE_API + path,
         body || null,
@@ -297,7 +297,7 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        palmclaw.log.error("contacts error: " + e.message);
+        oneclaw.log.error("contacts error: " + e.message);
         return { error: e.message };
     }
 }

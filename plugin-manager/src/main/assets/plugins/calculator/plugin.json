@@ -3,7 +3,7 @@
   "name": "Calculator",
   "version": "1.0.0",
   "description": "Basic arithmetic operations (add, subtract, multiply, divide)",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "CalculatorPlugin",
   "tools": [
     {

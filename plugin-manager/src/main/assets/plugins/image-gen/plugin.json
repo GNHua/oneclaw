@@ -3,7 +3,7 @@
   "name": "Image Generation",
   "version": "1.0.0",
   "description": "Generate images using OpenAI's DALL-E API. Images are saved to the workspace.",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "ImageGenPlugin",
   "category": "image_gen",
   "tools": [

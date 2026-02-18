@@ -3,7 +3,7 @@
   "name": "Workspace Notes",
   "version": "1.0.0",
   "description": "Persistent note-taking that saves to the workspace filesystem",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "WorkspaceNotesPlugin",
   "tools": [
     {

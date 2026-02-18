@@ -3,7 +3,7 @@
   "name": "Google Calendar",
   "version": "2.0.0",
   "description": "View, create, update, and delete Google Calendar events, check availability, and manage recurring events",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "GoogleCalendarPlugin",
   "category": "calendar",
   "tools": [

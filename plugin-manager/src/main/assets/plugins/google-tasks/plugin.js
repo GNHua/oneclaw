@@ -1,10 +1,10 @@
 var TASKS_API = "https://tasks.googleapis.com/tasks/v1";
 
 async function getToken() {
-    if (typeof palmclaw.google === "undefined") {
+    if (typeof oneclaw.google === "undefined") {
         throw new Error("Google auth not available. Connect your Google account in Settings.");
     }
-    var token = await palmclaw.google.getAccessToken();
+    var token = await oneclaw.google.getAccessToken();
     if (!token) {
         throw new Error("Not signed in to Google. Connect your Google account in Settings.");
     }
@@ -14,7 +14,7 @@ async function getToken() {
 async function tasksFetch(method, path, body) {
     var token = await getToken();
     var headers = { "Authorization": "Bearer " + token };
-    var raw = await palmclaw.http.fetch(
+    var raw = await oneclaw.http.fetch(
         method,
         TASKS_API + path,
         body || null,
@@ -172,7 +172,7 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        palmclaw.log.error("tasks error: " + e.message);
+        oneclaw.log.error("tasks error: " + e.message);
         return { error: e.message };
     }
 }

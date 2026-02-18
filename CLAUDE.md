@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew test
 
 # Run a single test class
-./gradlew :core-agent:test --tests "com.tomandy.palmclaw.agent.AgentCoordinatorTest"
+./gradlew :core-agent:test --tests "com.tomandy.oneclaw.agent.AgentCoordinatorTest"
 
 # Run Android instrumented tests (requires device/emulator)
 ./gradlew connectedAndroidTest
@@ -52,7 +52,7 @@ Uses **Koin**. Modules defined in:
 - `app/.../di/ViewModelModule.kt` -- ViewModel factories with parameter injection
 - `lib-scheduler/.../di/SchedulerModule.kt` -- scheduler components
 
-All Koin modules registered in `PalmClawApp.onCreate()`.
+All Koin modules registered in `OneClawApp.onCreate()`.
 
 ### Key Data Flow: Chat Message Execution
 
@@ -144,7 +144,7 @@ Two kinds of plugins register tools in `ToolRegistry`:
 
 **JS plugins** -- `plugin.json` + `plugin.js`, loaded from `assets/plugins/` (built-in) or `workspace/plugins/` (user), wrapped in `JsPlugin`. Includes ~16 built-in JS plugins, notably the Google Workspace suite (Gmail, Calendar, Contacts, Tasks, Drive, Docs, Sheets, Slides, Forms) authenticated via Google Sign-In (`GoogleAuthManager`).
 
-QuickJS host bindings exposed as `palmclaw.*` namespace: `fs`, `http`, `credentials`, `notifications`, `env`, `log`.
+QuickJS host bindings exposed as `oneclaw.*` namespace: `fs`, `http`, `credentials`, `notifications`, `env`, `log`.
 
 ### Conversation Summarization
 
@@ -186,7 +186,7 @@ Handled in `ChatViewModel.sendMessage()` before normal message flow. Built-in: `
 ## Code Conventions
 
 - Kotlin source files go in `src/main/java/` (Android convention, not `src/main/kotlin/`)
-- Package: `com.tomandy.palmclaw`
+- Package: `com.tomandy.oneclaw`
 - Composables: small, focused, in `ui/` subpackages
 - ViewModels: business logic, no direct Compose dependencies
 - `core-agent` module must not depend on Android framework classes beyond `android.util.Log`

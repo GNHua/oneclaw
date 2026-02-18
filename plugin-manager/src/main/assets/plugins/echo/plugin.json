@@ -3,7 +3,7 @@
   "name": "Echo",
   "version": "1.0.0",
   "description": "Simple echo plugin for testing",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "EchoPlugin",
   "tools": [
     {

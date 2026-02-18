@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tomandy.palmclaw.agent"
+    namespace = "com.tomandy.oneclaw.agent"
     compileSdk = 36
 
     defaultConfig {

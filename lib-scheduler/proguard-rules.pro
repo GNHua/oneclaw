@@ -6,13 +6,13 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Keep Room entities
--keep class com.tomandy.palmclaw.scheduler.data.** { *; }
+-keep class com.tomandy.oneclaw.scheduler.data.** { *; }
 
 # Keep WorkManager workers
--keep class com.tomandy.palmclaw.scheduler.worker.** { *; }
+-keep class com.tomandy.oneclaw.scheduler.worker.** { *; }
 
 # Keep BroadcastReceivers
--keep class com.tomandy.palmclaw.scheduler.receiver.** { *; }
+-keep class com.tomandy.oneclaw.scheduler.receiver.** { *; }
 
 # If your project uses WebView with JS, uncomment the following
 # and specify the fully qualified class name to the JavaScript interface

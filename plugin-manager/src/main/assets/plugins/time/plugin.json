@@ -3,7 +3,7 @@
   "name": "Time",
   "version": "1.0.0",
   "description": "Time and date utilities",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "TimePlugin",
   "tools": [
     {

@@ -1,8 +1,8 @@
 var NOTES_DIR = "notes";
 
 function ensureDir() {
-    if (!palmclaw.fs.exists(NOTES_DIR)) {
-        palmclaw.fs.writeFile(NOTES_DIR + "/.keep", "");
+    if (!oneclaw.fs.exists(NOTES_DIR)) {
+        oneclaw.fs.writeFile(NOTES_DIR + "/.keep", "");
     }
 }
 
@@ -17,25 +17,25 @@ function execute(toolName, args) {
         switch (toolName) {
             case "ws_save_note": {
                 var path = notePath(args.filename);
-                palmclaw.fs.writeFile(path, args.content);
-                palmclaw.log.info("Saved note: " + args.filename);
+                oneclaw.fs.writeFile(path, args.content);
+                oneclaw.log.info("Saved note: " + args.filename);
                 return { output: "Saved " + args.filename };
             }
             case "ws_read_note": {
                 var path = notePath(args.filename);
-                if (!palmclaw.fs.exists(path)) {
+                if (!oneclaw.fs.exists(path)) {
                     return { error: "Note not found: " + args.filename };
                 }
-                var content = palmclaw.fs.readFile(path);
+                var content = oneclaw.fs.readFile(path);
                 return { output: content };
             }
             case "ws_append_note": {
                 var path = notePath(args.filename);
-                palmclaw.fs.appendFile(path, args.content);
+                oneclaw.fs.appendFile(path, args.content);
                 return { output: "Appended to " + args.filename };
             }
             case "ws_list_notes": {
-                var listing = palmclaw.fs.listFiles(NOTES_DIR);
+                var listing = oneclaw.fs.listFiles(NOTES_DIR);
                 if (!listing || listing.length === 0) {
                     return { output: "No notes found." };
                 }
@@ -43,18 +43,18 @@ function execute(toolName, args) {
             }
             case "ws_delete_note": {
                 var path = notePath(args.filename);
-                if (!palmclaw.fs.exists(path)) {
+                if (!oneclaw.fs.exists(path)) {
                     return { error: "Note not found: " + args.filename };
                 }
-                palmclaw.fs.deleteFile(path);
-                palmclaw.log.info("Deleted note: " + args.filename);
+                oneclaw.fs.deleteFile(path);
+                oneclaw.log.info("Deleted note: " + args.filename);
                 return { output: "Deleted " + args.filename };
             }
             default:
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        palmclaw.log.error("workspace-notes error: " + e.message);
+        oneclaw.log.error("workspace-notes error: " + e.message);
         return { error: e.message };
     }
 }

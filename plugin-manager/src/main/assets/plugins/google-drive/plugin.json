@@ -3,7 +3,7 @@
   "name": "Google Drive",
   "version": "1.0.0",
   "description": "List, search, upload, download, and manage files in Google Drive",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "GoogleDrivePlugin",
   "category": "drive",
   "tools": [

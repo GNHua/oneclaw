@@ -5,10 +5,10 @@ var FILE_FIELDS = "files(id,name,mimeType,size,modifiedTime,parents)";
 var DETAIL_FIELDS = "id,name,mimeType,size,modifiedTime,createdTime,parents,webViewLink,description";
 
 async function getToken() {
-    if (typeof palmclaw.google === "undefined") {
+    if (typeof oneclaw.google === "undefined") {
         throw new Error("Google auth not available. Connect your Google account in Settings.");
     }
-    var token = await palmclaw.google.getAccessToken();
+    var token = await oneclaw.google.getAccessToken();
     if (!token) {
         throw new Error("Not signed in to Google. Connect your Google account in Settings.");
     }
@@ -18,7 +18,7 @@ async function getToken() {
 async function driveFetch(method, path, body) {
     var token = await getToken();
     var headers = { "Authorization": "Bearer " + token };
-    var raw = await palmclaw.http.fetch(
+    var raw = await oneclaw.http.fetch(
         method,
         DRIVE_API + path,
         body || null,
@@ -224,7 +224,7 @@ async function execute(toolName, args) {
                 var token = await getToken();
                 var url = DRIVE_API + "/files/" + encodeURIComponent(args.file_id) + "?alt=media";
                 var headers = { "Authorization": "Bearer " + token };
-                var result = await palmclaw.http.downloadToFile(url, args.save_path, headers);
+                var result = await oneclaw.http.downloadToFile(url, args.save_path, headers);
                 return { output: "File downloaded to workspace: " + args.save_path };
             }
 
@@ -248,7 +248,7 @@ async function execute(toolName, args) {
                     }
                 ];
                 var headers = { "Authorization": "Bearer " + token };
-                var raw = await palmclaw.http.uploadMultipart(url, parts, headers);
+                var raw = await oneclaw.http.uploadMultipart(url, parts, headers);
                 var resp = JSON.parse(raw);
                 if (resp.status >= 400) {
                     throw new Error("Drive upload error (HTTP " + resp.status + "): " + resp.body);
@@ -265,7 +265,7 @@ async function execute(toolName, args) {
                 var url = DRIVE_API + "/files/" + encodeURIComponent(args.file_id) +
                     "/export?mimeType=" + encodeURIComponent(args.mime_type);
                 var headers = { "Authorization": "Bearer " + token };
-                var result = await palmclaw.http.downloadToFile(url, args.save_path, headers);
+                var result = await oneclaw.http.downloadToFile(url, args.save_path, headers);
                 return { output: "File exported to workspace: " + args.save_path };
             }
 
@@ -273,7 +273,7 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        palmclaw.log.error("drive error: " + e.message);
+        oneclaw.log.error("drive error: " + e.message);
         return { error: e.message };
     }
 }

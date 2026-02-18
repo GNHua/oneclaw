@@ -22,13 +22,13 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        palmclaw.log.error("notion error: " + e.message);
+        oneclaw.log.error("notion error: " + e.message);
         return { error: e.message };
     }
 }
 
 async function getApiKey() {
-    var apiKey = await palmclaw.credentials.get("api_key");
+    var apiKey = await oneclaw.credentials.get("api_key");
     if (!apiKey) {
         throw new Error("Notion API key not configured. Please set it in Settings > Plugins > Notion.");
     }
@@ -42,7 +42,7 @@ async function notionFetch(method, path, body) {
         "Notion-Version": NOTION_VERSION
     };
 
-    var raw = await palmclaw.http.fetch(
+    var raw = await oneclaw.http.fetch(
         method,
         NOTION_API + path,
         body ? JSON.stringify(body) : "",

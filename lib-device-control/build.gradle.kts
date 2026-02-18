@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tomandy.palmclaw.devicecontrol"
+    namespace = "com.tomandy.oneclaw.devicecontrol"
     compileSdk = 36
 
     defaultConfig {

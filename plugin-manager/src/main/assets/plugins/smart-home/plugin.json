@@ -3,7 +3,7 @@
   "name": "Smart Home",
   "version": "1.0.0",
   "description": "Control and monitor Home Assistant smart home devices",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "SmartHomePlugin",
   "category": "smart_home",
   "credentials": [

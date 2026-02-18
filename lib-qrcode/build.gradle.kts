@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tomandy.palmclaw.qrcode"
+    namespace = "com.tomandy.oneclaw.qrcode"
     compileSdk = 36
 
     defaultConfig {

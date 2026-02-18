@@ -3,7 +3,7 @@
   "name": "Google Gmail Settings",
   "version": "1.0.0",
   "description": "Manage Gmail settings including filters, vacation responder, forwarding, and delegates",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "GoogleGmailSettingsPlugin",
   "category": "gmail",
   "tools": [

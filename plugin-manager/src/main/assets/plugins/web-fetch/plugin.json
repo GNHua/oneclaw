@@ -3,7 +3,7 @@
   "name": "HTTP",
   "version": "1.0.0",
   "description": "Fetch content from URLs. Supports GET and POST with headers.",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "WebFetchPlugin",
   "tools": [
     {

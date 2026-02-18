@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.tomandy.palmclaw"
+    namespace = "com.tomandy.oneclaw"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.tomandy.palmclaw"
+        applicationId = "com.tomandy.oneclaw"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

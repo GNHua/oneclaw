@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="accessibility_service_description">Allows PalmClaw to observe and interact with the screen on your behalf. Used for device control tools such as tapping buttons, typing text, and navigating between apps.</string>
+    <string name="accessibility_service_description">Allows OneClaw to observe and interact with the screen on your behalf. Used for device control tools such as tapping buttons, typing text, and navigating between apps.</string>
 </resources>

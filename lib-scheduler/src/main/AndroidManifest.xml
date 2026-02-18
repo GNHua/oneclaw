@@ -23,7 +23,7 @@
             android:enabled="true"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.tomandy.palmclaw.scheduler.EXECUTE_CRONJOB" />
+                <action android:name="com.tomandy.oneclaw.scheduler.EXECUTE_CRONJOB" />
             </intent-filter>
         </receiver>
 

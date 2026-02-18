@@ -3,7 +3,7 @@
   "name": "Google Tasks",
   "version": "1.0.0",
   "description": "Manage Google Tasks - task lists, tasks, completion status",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "GoogleTasksPlugin",
   "category": "tasks",
   "tools": [

@@ -3,7 +3,7 @@
   "name": "Notes",
   "version": "1.0.0",
   "description": "Simple in-memory note-taking plugin",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "NotesPlugin",
   "tools": [
     {

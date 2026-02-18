@@ -1,10 +1,10 @@
 var CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 
 async function getToken() {
-    if (typeof palmclaw.google === "undefined") {
+    if (typeof oneclaw.google === "undefined") {
         throw new Error("Google auth not available. Connect your Google account in Settings.");
     }
-    var token = await palmclaw.google.getAccessToken();
+    var token = await oneclaw.google.getAccessToken();
     if (!token) {
         throw new Error("Not signed in to Google. Connect your Google account in Settings.");
     }
@@ -14,7 +14,7 @@ async function getToken() {
 async function calFetch(method, path, body) {
     var token = await getToken();
     var headers = { "Authorization": "Bearer " + token };
-    var raw = await palmclaw.http.fetch(
+    var raw = await oneclaw.http.fetch(
         method,
         CALENDAR_API + path,
         body || null,
@@ -207,7 +207,7 @@ async function execute(toolName, args) {
                 var event = await calFetch("GET",
                     "/calendars/" + calId + "/events/" + eventId);
 
-                var email = await palmclaw.google.getAccountEmail();
+                var email = await oneclaw.google.getAccountEmail();
                 var attendees = event.attendees || [];
                 var found = false;
                 for (var i = 0; i < attendees.length; i++) {
@@ -271,7 +271,7 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        palmclaw.log.error("calendar error: " + e.message);
+        oneclaw.log.error("calendar error: " + e.message);
         return { error: e.message };
     }
 }

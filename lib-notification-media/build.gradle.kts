@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tomandy.palmclaw.notificationmedia"
+    namespace = "com.tomandy.oneclaw.notificationmedia"
     compileSdk = 36
 
     defaultConfig {

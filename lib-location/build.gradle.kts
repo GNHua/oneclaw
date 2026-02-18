@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tomandy.palmclaw.location"
+    namespace = "com.tomandy.oneclaw.location"
     compileSdk = 36
 
     defaultConfig {

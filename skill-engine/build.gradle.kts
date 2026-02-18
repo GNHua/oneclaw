@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tomandy.palmclaw.skill"
+    namespace = "com.tomandy.oneclaw.skill"
     compileSdk = 36
 
     defaultConfig {

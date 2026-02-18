@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tomandy.palmclaw.scheduler"
+    namespace = "com.tomandy.oneclaw.scheduler"
     compileSdk = 36
 
     defaultConfig {

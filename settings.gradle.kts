@@ -23,7 +23,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Palm Claw"
+rootProject.name = "One Claw"
 include(":app")
 include(":plugin-runtime")
 include(":core-agent")

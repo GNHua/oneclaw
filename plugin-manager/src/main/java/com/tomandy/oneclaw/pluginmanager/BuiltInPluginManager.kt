@@ -1,0 +1,69 @@
+package com.tomandy.oneclaw.pluginmanager
+
+import android.content.Context
+import android.util.Log
+import com.tomandy.oneclaw.agent.ToolRegistry
+import com.tomandy.oneclaw.engine.CredentialVault
+import com.tomandy.oneclaw.engine.GoogleAuthProvider
+import com.tomandy.oneclaw.engine.PluginContext
+import com.tomandy.oneclaw.engine.PluginEngine
+
+/**
+ * Manages loading of built-in JavaScript plugins bundled in assets.
+ */
+class BuiltInPluginManager(
+    private val context: Context,
+    private val pluginEngine: PluginEngine,
+    private val toolRegistry: ToolRegistry,
+    private val pluginPreferences: PluginPreferences,
+    private val credentialVault: CredentialVault,
+    private val googleAuthProvider: GoogleAuthProvider? = null
+) {
+    companion object {
+        private const val TAG = "BuiltInPluginManager"
+
+        private val BUILT_IN_PLUGIN_PATHS = listOf(
+            "plugins/calculator",
+            "plugins/time",
+            "plugins/notes",
+            "plugins/echo",
+            "plugins/workspace-notes",
+            "plugins/web-fetch",
+            "plugins/google-gmail",
+            "plugins/google-gmail-settings",
+            "plugins/google-calendar",
+            "plugins/google-tasks",
+            "plugins/google-contacts",
+            "plugins/google-drive",
+            "plugins/google-docs",
+            "plugins/google-sheets",
+            "plugins/google-slides",
+            "plugins/google-forms",
+            "plugins/image-gen",
+            "plugins/smart-home",
+            "plugins/notion"
+        )
+    }
+
+    /**
+     * Load all built-in JavaScript plugins from assets.
+     * All plugins are loaded into PluginEngine (for metadata), but only
+     * enabled plugins are registered with ToolRegistry.
+     */
+    suspend fun loadBuiltInPlugins() {
+        BUILT_IN_PLUGIN_PATHS.forEach { path ->
+            val pluginId = path.substringAfterLast("/")
+            val pluginContext = PluginContext(context, pluginId, credentialVault, googleAuthProvider)
+            pluginEngine.loadFromAssets(path, pluginContext)
+                .onSuccess { loadedPlugin ->
+                    if (pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {
+                        toolRegistry.registerPlugin(loadedPlugin)
+                    }
+                    Log.i(TAG, "Loaded plugin: ${loadedPlugin.metadata.name} (enabled=${pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)})")
+                }
+                .onFailure { error ->
+                    Log.e(TAG, "Failed to load $pluginId: ${error.message}", error)
+                }
+        }
+    }
+}

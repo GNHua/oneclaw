@@ -3,7 +3,7 @@
   "name": "Google Slides",
   "version": "1.0.0",
   "description": "Create and manage Google Slides presentations - view slides, extract text, add and remove slides",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "GoogleSlidesPlugin",
   "category": "drive",
   "tools": [

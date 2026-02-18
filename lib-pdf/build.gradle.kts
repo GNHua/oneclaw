@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tomandy.palmclaw.pdf"
+    namespace = "com.tomandy.oneclaw.pdf"
     compileSdk = 36
 
     defaultConfig {

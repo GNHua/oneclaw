@@ -3,7 +3,7 @@
   "name": "Google Docs",
   "version": "1.0.0",
   "description": "Create and edit Google Docs documents - read text, insert content, find and replace",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "GoogleDocsPlugin",
   "category": "drive",
   "tools": [

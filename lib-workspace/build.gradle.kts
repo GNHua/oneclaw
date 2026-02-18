@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tomandy.palmclaw.workspace"
+    namespace = "com.tomandy.oneclaw.workspace"
     compileSdk = 36
 
     defaultConfig {

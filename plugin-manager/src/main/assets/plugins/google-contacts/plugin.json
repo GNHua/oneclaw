@@ -3,7 +3,7 @@
   "name": "Google Contacts",
   "version": "1.0.0",
   "description": "Search, view, create, update, and delete Google Contacts via People API",
-  "author": "PalmClaw Team",
+  "author": "OneClaw Team",
   "entryPoint": "GoogleContactsPlugin",
   "category": "contacts",
   "tools": [

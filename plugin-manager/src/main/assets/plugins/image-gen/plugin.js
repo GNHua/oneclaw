@@ -7,13 +7,13 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        palmclaw.log.error("image-gen error: " + e.message);
+        oneclaw.log.error("image-gen error: " + e.message);
         return { error: e.message };
     }
 }
 
 async function generateImage(args) {
-    var apiKey = await palmclaw.credentials.getProviderKey("OpenAI");
+    var apiKey = await oneclaw.credentials.getProviderKey("OpenAI");
     if (!apiKey) {
         return { error: "OpenAI API key not configured. Please set it in Settings > API Keys." };
     }
@@ -36,9 +36,9 @@ async function generateImage(args) {
         body.style = style;
     }
 
-    palmclaw.log.info("Generating image with " + model + ": " + args.prompt.substring(0, 80));
+    oneclaw.log.info("Generating image with " + model + ": " + args.prompt.substring(0, 80));
 
-    var raw = await palmclaw.http.fetch(
+    var raw = await oneclaw.http.fetch(
         "POST",
         "https://api.openai.com/v1/images/generations",
         JSON.stringify(body),
@@ -61,7 +61,7 @@ async function generateImage(args) {
     var safeName = args.prompt.substring(0, 40).replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_");
     var filename = "images/" + timestamp + "-" + safeName + ".png";
 
-    var dlResult = await palmclaw.http.downloadToFile(imageUrl, filename);
+    var dlResult = await oneclaw.http.downloadToFile(imageUrl, filename);
     var dl = JSON.parse(dlResult);
 
     var output = "Image generated and saved to: " + dl.path + "\n";

@@ -17,6 +17,7 @@ object ChatExecutionTracker {
 
     sealed interface UiEvent {
         object AccessibilityServiceNeeded : UiEvent
+        object NotificationListenerServiceNeeded : UiEvent
     }
 
     private val _uiEvents = MutableSharedFlow<UiEvent>(

@@ -31,6 +31,12 @@ import com.tomandy.palmclaw.devicecontrol.AccessibilityPromptCallback
 import com.tomandy.palmclaw.devicecontrol.DeviceControlManager
 import com.tomandy.palmclaw.devicecontrol.DeviceControlPlugin
 import com.tomandy.palmclaw.devicecontrol.DeviceControlPluginMetadata
+import com.tomandy.palmclaw.notificationmedia.MediaControlPlugin
+import com.tomandy.palmclaw.notificationmedia.MediaControlPluginMetadata
+import com.tomandy.palmclaw.notificationmedia.NotificationListenerPromptCallback
+import com.tomandy.palmclaw.notificationmedia.NotificationMediaServiceManager
+import com.tomandy.palmclaw.notificationmedia.NotificationPlugin
+import com.tomandy.palmclaw.notificationmedia.NotificationPluginMetadata
 import com.tomandy.palmclaw.service.ChatExecutionService
 import com.tomandy.palmclaw.service.ChatExecutionTracker
 
@@ -286,6 +292,92 @@ class PluginCoordinator(
                 ChatExecutionTracker.emitEvent(ChatExecutionTracker.UiEvent.AccessibilityServiceNeeded)
             }
         })
+
+        // Register NotificationPlugin
+        try {
+            val notificationPlugin = NotificationPlugin()
+            val notificationContext = PluginContext.create(
+                androidContext = context,
+                pluginId = "notifications",
+                credentialVault = credentialVault
+            )
+            notificationPlugin.onLoad(notificationContext)
+            toolRegistry.registerPlugin(
+                LoadedPlugin(
+                    metadata = NotificationPluginMetadata.get(),
+                    instance = notificationPlugin
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Register MediaControlPlugin
+        try {
+            val mediaControlPlugin = MediaControlPlugin()
+            val mediaControlContext = PluginContext.create(
+                androidContext = context,
+                pluginId = "media_control",
+                credentialVault = credentialVault
+            )
+            mediaControlPlugin.onLoad(mediaControlContext)
+            toolRegistry.registerPlugin(
+                LoadedPlugin(
+                    metadata = MediaControlPluginMetadata.get(),
+                    instance = mediaControlPlugin
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Wire notification listener prompt callback
+        NotificationMediaServiceManager.setPromptCallback(object : NotificationListenerPromptCallback {
+            override fun onNotificationListenerServiceNeeded() {
+                ChatExecutionTracker.emitEvent(ChatExecutionTracker.UiEvent.NotificationListenerServiceNeeded)
+            }
+        })
+
+        // Register CameraPlugin
+        try {
+            val cameraPlugin = CameraPlugin()
+            val cameraContext = PluginContext.create(
+                androidContext = context,
+                pluginId = "camera",
+                credentialVault = credentialVault
+            )
+            cameraPlugin.onLoad(cameraContext)
+            toolRegistry.registerPlugin(
+                LoadedPlugin(
+                    metadata = CameraPluginMetadata.get(),
+                    instance = cameraPlugin
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Register VoiceMemoPlugin
+        try {
+            val voiceMemoPlugin = VoiceMemoPlugin(
+                getOpenAiApiKey = { credentialVault.getApiKey("OpenAI") },
+                getOpenAiBaseUrl = { credentialVault.getApiKey("OpenAI_baseUrl") }
+            )
+            val voiceMemoContext = PluginContext.create(
+                androidContext = context,
+                pluginId = "voice_memo",
+                credentialVault = credentialVault
+            )
+            voiceMemoPlugin.onLoad(voiceMemoContext)
+            toolRegistry.registerPlugin(
+                LoadedPlugin(
+                    metadata = VoiceMemoPluginMetadata.get(),
+                    instance = voiceMemoPlugin
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun registerInstallPluginTool() {

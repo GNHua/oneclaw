@@ -63,6 +63,7 @@ import com.tomandy.palmclaw.audio.AudioInputController
 import com.tomandy.palmclaw.audio.AudioState
 import com.tomandy.palmclaw.audio.AndroidSttProvider
 import com.tomandy.palmclaw.devicecontrol.DeviceControlManager
+import com.tomandy.palmclaw.notificationmedia.NotificationMediaServiceManager
 import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.navigation.NavigationState
 import com.tomandy.palmclaw.notification.ChatNotificationHelper
@@ -327,6 +328,16 @@ fun ChatScreen(
                     )
                     if (result == SnackbarResult.ActionPerformed) {
                         DeviceControlManager.openAccessibilitySettings(context)
+                    }
+                }
+                is ChatExecutionTracker.UiEvent.NotificationListenerServiceNeeded -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = "Notification listener required for notification/media tools",
+                        actionLabel = "Open Settings",
+                        duration = SnackbarDuration.Long
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        NotificationMediaServiceManager.openNotificationListenerSettings(context)
                     }
                 }
             }

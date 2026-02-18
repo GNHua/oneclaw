@@ -81,6 +81,14 @@ dependencies {
     // Location and places
     implementation(project(":lib-location"))
 
+    // Notification & media control
+    implementation(project(":lib-notification-media"))
+
+    // CameraX (headless capture)
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+
     // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

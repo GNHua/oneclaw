@@ -34,7 +34,7 @@ class UserPluginManager(
 
     val userPluginsDir: File = File(context.filesDir, USER_PLUGINS_DIR).apply { mkdirs() }
 
-    private val builtInPluginIds = setOf("scheduler", "calculator", "time", "notes", "echo")
+    private val builtInPluginIds = setOf("scheduler", "time")
 
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)

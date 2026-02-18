@@ -34,11 +34,7 @@ class BuiltInPluginManager(
         )
 
         private val BUILT_IN_PLUGIN_PATHS = listOf(
-            "plugins/calculator",
             "plugins/time",
-            "plugins/notes",
-            "plugins/echo",
-            "plugins/workspace-notes",
             "plugins/web-fetch",
             "plugins/google-gmail",
             "plugins/google-gmail-settings",

@@ -8,6 +8,7 @@ import com.tomandy.oneclaw.pluginmanager.PluginPreferences
 import com.tomandy.oneclaw.pluginmanager.UserPluginManager
 import com.tomandy.oneclaw.engine.GoogleAuthProvider
 import com.tomandy.oneclaw.engine.LoadedPlugin
+import com.tomandy.oneclaw.engine.PluginEngine
 import com.tomandy.oneclaw.engine.PluginMetadata
 import com.tomandy.oneclaw.llm.LlmProvider
 import com.tomandy.oneclaw.security.CredentialVault
@@ -15,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
@@ -24,7 +26,7 @@ class SettingsViewModel(
     private val credentialVault: CredentialVault,
     private val modelPreferences: ModelPreferences,
     private val pluginPreferences: PluginPreferences,
-    private val loadedPlugins: List<LoadedPlugin>,
+    private val pluginEngine: PluginEngine,
     private val userPluginManager: UserPluginManager,
     private val onApiKeyChanged: suspend () -> Unit,
     private val onPluginToggled: (String, Boolean) -> Unit,
@@ -59,11 +61,18 @@ class SettingsViewModel(
     init {
         loadProviders()
         loadPlugins()
+        viewModelScope.launch {
+            pluginEngine.pluginsFlow.collectLatest { plugins ->
+                if (plugins.isNotEmpty()) {
+                    loadPlugins()
+                }
+            }
+        }
     }
 
     private fun loadPlugins() {
         val userPluginIds = userPluginManager.getUserPluginIds()
-        _plugins.value = loadedPlugins.map { loaded ->
+        _plugins.value = pluginEngine.getAllPlugins().map { loaded ->
             PluginUiState(
                 metadata = loaded.metadata,
                 enabled = pluginPreferences.isPluginEnabled(loaded.metadata.id),

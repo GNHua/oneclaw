@@ -1,6 +1,9 @@
 package com.tomandy.oneclaw.engine
 
 import android.content.Context
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
 import java.io.File
 
@@ -21,6 +24,8 @@ class PluginEngine(
     private val context: Context
 ) {
     private val loadedPlugins = mutableMapOf<String, LoadedPlugin>()
+    private val _pluginsFlow = MutableStateFlow<List<LoadedPlugin>>(emptyList())
+    val pluginsFlow: StateFlow<List<LoadedPlugin>> = _pluginsFlow.asStateFlow()
 
     /**
      * Load a plugin from app assets.
@@ -62,6 +67,7 @@ class PluginEngine(
                 instance = jsPlugin
             )
             loadedPlugins[metadata.id] = loadedPlugin
+            _pluginsFlow.value = loadedPlugins.values.toList()
 
             Result.success(loadedPlugin)
 
@@ -115,6 +121,7 @@ class PluginEngine(
                 instance = jsPlugin
             )
             loadedPlugins[metadata.id] = loadedPlugin
+            _pluginsFlow.value = loadedPlugins.values.toList()
 
             Result.success(loadedPlugin)
 
@@ -134,6 +141,7 @@ class PluginEngine(
      */
     fun registerLoadedPlugin(plugin: LoadedPlugin) {
         loadedPlugins[plugin.metadata.id] = plugin
+        _pluginsFlow.value = loadedPlugins.values.toList()
     }
 
     /**
@@ -155,6 +163,7 @@ class PluginEngine(
      */
     suspend fun unloadPlugin(pluginId: String) {
         loadedPlugins.remove(pluginId)?.instance?.onUnload()
+        _pluginsFlow.value = loadedPlugins.values.toList()
     }
 
     /**
@@ -163,5 +172,6 @@ class PluginEngine(
     suspend fun unloadAllPlugins() {
         loadedPlugins.values.forEach { it.instance.onUnload() }
         loadedPlugins.clear()
+        _pluginsFlow.value = emptyList()
     }
 }

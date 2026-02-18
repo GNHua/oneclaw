@@ -1,0 +1,100 @@
+{
+  "id": "google-places",
+  "name": "Google Places",
+  "version": "1.0.0",
+  "description": "Search for places, get place details, and resolve locations using Google Places API",
+  "author": "OneClaw Team",
+  "entryPoint": "GooglePlacesPlugin",
+  "category": "location",
+  "tools": [
+    {
+      "name": "places_search",
+      "description": "Search for places (restaurants, cafes, shops, etc.) using Google Places API. Supports location biasing, filtering by type, open status, rating, and price level. Returns place IDs that can be used with places_details for more info.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query (e.g. \"coffee shops\", \"Italian restaurant\", \"gas station\")"
+          },
+          "latitude": {
+            "type": "number",
+            "description": "Center latitude for location bias (-90 to 90)"
+          },
+          "longitude": {
+            "type": "number",
+            "description": "Center longitude for location bias (-180 to 180)"
+          },
+          "radius_meters": {
+            "type": "number",
+            "description": "Search radius in meters (default 5000, max 50000)"
+          },
+          "type": {
+            "type": "string",
+            "description": "Place type filter (e.g. \"restaurant\", \"cafe\", \"gas_station\", \"pharmacy\"). Only one type allowed."
+          },
+          "open_now": {
+            "type": "boolean",
+            "description": "Only return places that are currently open"
+          },
+          "min_rating": {
+            "type": "number",
+            "description": "Minimum rating filter (0-5, in 0.5 increments)"
+          },
+          "price_levels": {
+            "type": "array",
+            "items": { "type": "integer" },
+            "description": "Price level filter. Array of integers 0-4 (0=free, 1=inexpensive, 2=moderate, 3=expensive, 4=very expensive)"
+          },
+          "keyword": {
+            "type": "string",
+            "description": "Additional keyword to append to the search query for finer filtering"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of results (default 10, max 20)"
+          },
+          "page_token": {
+            "type": "string",
+            "description": "Token from a previous search response to get the next page of results"
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "places_details",
+      "description": "Get detailed information about a specific place by its place ID. Returns name, address, coordinates, rating, price level, phone number, website, and opening hours.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "place_id": {
+            "type": "string",
+            "description": "The Google Place ID (obtained from places_search or places_resolve)"
+          }
+        },
+        "required": ["place_id"]
+      }
+    },
+    {
+      "name": "places_resolve",
+      "description": "Resolve a location name or address to place IDs and coordinates. Useful for geocoding addresses or finding the place ID for a known location.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location_text": {
+            "type": "string",
+            "description": "Location name or address to resolve (e.g. \"Soho, London\", \"1600 Amphitheatre Parkway\")"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of results (default 5, max 10)"
+          }
+        },
+        "required": ["location_text"]
+      }
+    }
+  ],
+  "permissions": [],
+  "dependencies": []
+}

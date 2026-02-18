@@ -33,6 +33,10 @@ class BuiltInPluginManager(
             "notion" to "api_key"
         )
 
+        private val PROVIDER_KEY_PLUGIN_IDS = mapOf(
+            "google-places" to "GoogleMaps"
+        )
+
         private val BUILT_IN_PLUGIN_PATHS = listOf(
             "plugins/time",
             "plugins/web-fetch",
@@ -48,7 +52,8 @@ class BuiltInPluginManager(
             "plugins/google-forms",
             "plugins/image-gen",
             "plugins/smart-home",
-            "plugins/notion"
+            "plugins/notion",
+            "plugins/google-places"
         )
     }
 
@@ -87,6 +92,15 @@ class BuiltInPluginManager(
                         if (!hasKey && pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {
                             pluginPreferences.setPluginEnabled(loadedPlugin.metadata.id, false)
                             Log.i(TAG, "Auto-disabled ${loadedPlugin.metadata.id}: API key not configured")
+                        }
+                    }
+
+                    // Auto-disable plugins that require a provider API key
+                    PROVIDER_KEY_PLUGIN_IDS[loadedPlugin.metadata.id]?.let { provider ->
+                        val hasKey = !credentialVault.getApiKey(provider).isNullOrBlank()
+                        if (!hasKey && pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {
+                            pluginPreferences.setPluginEnabled(loadedPlugin.metadata.id, false)
+                            Log.i(TAG, "Auto-disabled ${loadedPlugin.metadata.id}: $provider API key not configured")
                         }
                     }
 

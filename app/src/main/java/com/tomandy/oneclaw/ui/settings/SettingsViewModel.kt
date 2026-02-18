@@ -85,6 +85,7 @@ class SettingsViewModel(
     private suspend fun refreshPluginStates() {
         val hasOpenAiKey = !credentialVault.getApiKey("OpenAI").isNullOrBlank()
         val googleSignedIn = googleAuthProvider.isSignedIn()
+        val hasGoogleMapsKey = !credentialVault.getApiKey("GoogleMaps").isNullOrBlank()
 
         _plugins.value = _plugins.value.map { state ->
             when {
@@ -95,6 +96,10 @@ class SettingsViewModel(
                 state.metadata.id in GOOGLE_PLUGIN_IDS && !googleSignedIn -> state.copy(
                     toggleable = false,
                     toggleDisabledReason = "Requires Google sign-in"
+                )
+                state.metadata.id == "google-places" && !hasGoogleMapsKey -> state.copy(
+                    toggleable = false,
+                    toggleDisabledReason = "Requires GoogleMaps API key"
                 )
                 state.metadata.id in PLUGIN_CREDENTIAL_IDS &&
                     isPluginMissingCredentials(state) -> state.copy(

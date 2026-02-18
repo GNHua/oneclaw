@@ -27,6 +27,16 @@
             </intent-filter>
         </receiver>
 
+        <!-- Receiver to re-schedule AlarmManager alarms after reboot -->
+        <receiver
+            android:name=".receiver.BootCompletedReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Foreground service for executing scheduled tasks -->
         <service
             android:name=".service.AgentExecutionService"

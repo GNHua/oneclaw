@@ -269,6 +269,30 @@ class CronjobManager(
     }
 
     /**
+     * Re-schedule all AlarmManager alarms that were lost (e.g., after device reboot).
+     * WorkManager tasks survive reboots automatically, so only ONE_TIME alarm-based
+     * tasks need to be restored.
+     *
+     * @return the number of alarms re-scheduled
+     */
+    suspend fun rescheduleAlarms(): Int {
+        val oneTimeTasks = cronjobDao.getByType(ScheduleType.ONE_TIME)
+        val now = System.currentTimeMillis()
+        var count = 0
+        for (task in oneTimeTasks) {
+            val executeAt = task.executeAt ?: continue
+            if (executeAt > now) {
+                scheduleOneTime(task)
+                count++
+            } else {
+                // Expired while device was off -- disable it
+                cronjobDao.updateEnabled(task.id, false)
+            }
+        }
+        return count
+    }
+
+    /**
      * Cancel an AlarmManager alarm
      */
     private fun cancelAlarm(cronjobId: String) {

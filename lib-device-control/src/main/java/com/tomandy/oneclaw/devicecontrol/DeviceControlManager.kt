@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import android.util.Log
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.lang.ref.WeakReference
 
 object DeviceControlManager {
@@ -14,13 +17,18 @@ object DeviceControlManager {
     private var abortCallback: AbortCallback? = null
     private var accessibilityPromptCallback: AccessibilityPromptCallback? = null
 
+    private val _serviceConnected = MutableStateFlow(false)
+    val serviceConnected: StateFlow<Boolean> = _serviceConnected.asStateFlow()
+
     fun registerService(service: DeviceControlService) {
         serviceRef = WeakReference(service)
+        _serviceConnected.value = true
         Log.i(TAG, "Accessibility service registered")
     }
 
     fun unregisterService() {
         serviceRef = null
+        _serviceConnected.value = false
         Log.i(TAG, "Accessibility service unregistered")
     }
 

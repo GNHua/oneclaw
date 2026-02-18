@@ -69,6 +69,14 @@ class SettingsViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            DeviceControlManager.serviceConnected.collectLatest { connected ->
+                if (!connected) {
+                    togglePlugin("device_control", false)
+                }
+                refreshPluginStates()
+            }
+        }
     }
 
     private fun loadPlugins() {

@@ -37,6 +37,8 @@ class SettingsViewModel(
             "google-tasks", "google-contacts", "google-drive",
             "google-docs", "google-sheets", "google-slides", "google-forms"
         )
+
+        private val PLUGIN_CREDENTIAL_IDS = setOf("web", "smart-home", "notion")
     }
 
     private val _providers = MutableStateFlow<List<String>>(emptyList())
@@ -85,8 +87,35 @@ class SettingsViewModel(
                     toggleable = false,
                     toggleDisabledReason = "Requires Google sign-in"
                 )
+                state.metadata.id in PLUGIN_CREDENTIAL_IDS &&
+                    isPluginMissingCredentials(state) -> state.copy(
+                    toggleable = false,
+                    toggleDisabledReason = "Requires API key configuration"
+                )
                 else -> state.copy(toggleable = true, toggleDisabledReason = null)
             }
+        }
+    }
+
+    private suspend fun isPluginMissingCredentials(state: PluginUiState): Boolean {
+        val creds = state.metadata.credentials
+        if (creds.isEmpty()) return false
+        val pluginId = state.metadata.id
+        // Resolve dropdown/scope values first
+        val scopeValues = mutableMapOf<String, String>()
+        creds.filter { it.options.isNotEmpty() }.forEach { cred ->
+            scopeValues[cred.key] =
+                credentialVault.getApiKey("plugin.$pluginId.${cred.key}") ?: ""
+        }
+        // Check non-dropdown credentials using scoped storage keys
+        return creds.filter { it.options.isEmpty() }.any { cred ->
+            val storageKey = if (cred.scopedBy.isNotEmpty()) {
+                val scope = scopeValues[cred.scopedBy] ?: ""
+                if (scope.isNotEmpty()) "${scope}_${cred.key}" else cred.key
+            } else {
+                cred.key
+            }
+            credentialVault.getApiKey("plugin.$pluginId.$storageKey").isNullOrBlank()
         }
     }
 
@@ -301,6 +330,14 @@ class SettingsViewModel(
                 credentialVault.deleteApiKey(fullKey)
             } else {
                 credentialVault.saveApiKey(fullKey, value)
+            }
+            if (pluginId in PLUGIN_CREDENTIAL_IDS) {
+                val pluginState = _plugins.value.find { it.metadata.id == pluginId }
+                if (pluginState != null) {
+                    val missing = isPluginMissingCredentials(pluginState)
+                    togglePlugin(pluginId, !missing)
+                }
+                refreshPluginStates()
             }
         }
     }

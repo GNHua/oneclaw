@@ -28,6 +28,11 @@ class BuiltInPluginManager(
             "google-docs", "google-sheets", "google-slides", "google-forms"
         )
 
+        private val PLUGIN_CREDENTIAL_KEYS = mapOf(
+            "smart-home" to "api_key",
+            "notion" to "api_key"
+        )
+
         private val BUILT_IN_PLUGIN_PATHS = listOf(
             "plugins/calculator",
             "plugins/time",
@@ -77,6 +82,15 @@ class BuiltInPluginManager(
                         if (!signedIn && pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {
                             pluginPreferences.setPluginEnabled(loadedPlugin.metadata.id, false)
                             Log.i(TAG, "Auto-disabled ${loadedPlugin.metadata.id}: Google sign-in required")
+                        }
+                    }
+
+                    // Auto-disable plugins with missing per-plugin credentials
+                    PLUGIN_CREDENTIAL_KEYS[loadedPlugin.metadata.id]?.let { credKey ->
+                        val hasKey = !credentialVault.getApiKey("plugin.${loadedPlugin.metadata.id}.$credKey").isNullOrBlank()
+                        if (!hasKey && pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {
+                            pluginPreferences.setPluginEnabled(loadedPlugin.metadata.id, false)
+                            Log.i(TAG, "Auto-disabled ${loadedPlugin.metadata.id}: API key not configured")
                         }
                     }
 

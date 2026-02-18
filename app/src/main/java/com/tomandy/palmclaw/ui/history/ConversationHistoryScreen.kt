@@ -160,8 +160,8 @@ fun ConversationHistoryScreen(
             state = listState,
             modifier = modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .drawScrollbar(listState, scrollbarColor, heightCache),
+                .drawScrollbar(listState, scrollbarColor, heightCache)
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item { Spacer(modifier = Modifier.height(8.dp)) }
@@ -323,7 +323,6 @@ private fun ConversationPreviewSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
             .padding(bottom = 32.dp)
     ) {
         // Message preview -- use Column + verticalScroll to avoid nested LazyColumn conflict
@@ -332,7 +331,7 @@ private fun ConversationPreviewSheet(
                 text = "No messages",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 24.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)
             )
         } else {
             val scrollState = rememberScrollState()
@@ -344,6 +343,7 @@ private fun ConversationPreviewSheet(
                     .weight(1f, fill = false)
                     .drawColumnScrollbar(scrollState, scrollbarColor)
                     .verticalScroll(scrollState)
+                    .padding(horizontal = 16.dp)
             ) {
                 displayItems.forEach { (msgs, isToolGroup) ->
                     if (isToolGroup) {
@@ -400,7 +400,7 @@ private fun ConversationPreviewSheet(
 
         // Action buttons
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.End
         ) {
             OutlinedButton(onClick = onDismiss) {

@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -14,6 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.tomandy.palmclaw.ui.drawScrollbar
+import com.tomandy.palmclaw.ui.rememberLazyListHeightCache
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,9 +51,15 @@ fun PluginsScreen(
                 )
             }
         } else {
+            val listState = rememberLazyListState()
+            val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+            val heightCache = rememberLazyListHeightCache()
+
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
+                    .drawScrollbar(listState, scrollbarColor, heightCache)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {

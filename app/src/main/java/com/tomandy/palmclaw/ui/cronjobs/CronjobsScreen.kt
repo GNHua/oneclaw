@@ -168,8 +168,8 @@ fun CronjobsScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .drawScrollbar(listState, scrollbarColor, heightCache),
+                        .drawScrollbar(listState, scrollbarColor, heightCache)
+                        .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item { Spacer(modifier = Modifier.height(4.dp)) }
@@ -258,8 +258,8 @@ private fun HistorySheetContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f, fill = false)
-                    .padding(horizontal = 16.dp)
-                    .drawScrollbar(listState, scrollbarColor, heightCache),
+                    .drawScrollbar(listState, scrollbarColor, heightCache)
+                    .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(historyCronjobs, key = { it.id }) { cronjob ->

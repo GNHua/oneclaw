@@ -79,8 +79,8 @@ fun PluginDetailSheet(
             state = listState,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .drawScrollbar(listState, scrollbarColor, heightCache),
+                .drawScrollbar(listState, scrollbarColor, heightCache)
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (credentials.isNotEmpty()) {

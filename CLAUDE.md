@@ -42,6 +42,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `skill-engine` | Skill loading, slash command routing, system prompt augmentation |
 | `lib-scheduler` | WorkManager/AlarmManager-based scheduled task execution |
 | `plugin-runtime` | QuickJS-based JavaScript plugin engine |
+| `lib-device-control` | Accessibility Service-based screen observation and interaction |
 | `plugin-manager` | Built-in and user plugin management |
 
 ### Dependency Injection
@@ -84,6 +85,10 @@ Markdown files with YAML frontmatter defining persona, model, and tool/skill acc
 - Profile's `model` overrides global model selection
 - Loaded/merged by `AgentProfileRepository` (bundled + user, user overrides)
 
+### Agent Delegation
+
+`DelegateAgentPlugin` allows mid-conversation sub-agent execution. The LLM can invoke a different agent profile (e.g., a JavaScript-specialist agent) as a sub-task, then resume the main conversation. Only profiles other than `main` are available as delegation targets.
+
 ### Two-Tier Tool Activation
 
 1. **Core tools** (`category = "core"`) -- always visible to LLM (e.g., read_file, write_file, exec, search_memory, activate_tools)
@@ -125,9 +130,19 @@ Managed by `LlmClientProvider` (in `app` module) which handles API key loading, 
 
 ### Plugin System
 
-Plugins are JavaScript files executed via QuickJS (`plugin-runtime`). Each plugin can register tools in `ToolRegistry`. Two plugin sources:
-- **Kotlin native plugins** (WorkspacePlugin, MemoryPlugin, SchedulerPlugin, etc.) -- implement `Plugin` interface, registered via `PluginCoordinator.registerBuiltInPlugins()`
-- **JS plugins** -- `plugin.json` + `plugin.js`, loaded from `assets/plugins/` (built-in) or `workspace/plugins/` (user), wrapped in `JsPlugin`
+Two kinds of plugins register tools in `ToolRegistry`:
+
+**Kotlin native plugins** (registered in `PluginCoordinator.registerBuiltInPlugins()`):
+- `WorkspacePlugin` -- file ops, exec, javascript_eval (category: `core`)
+- `MemoryPlugin` -- full-text search across workspace memory files (category: `core`)
+- `SchedulerPlugin` -- cron-based scheduled tasks (category: `scheduler`)
+- `ConfigPlugin` -- runtime config introspection (temperature, system prompt, plugins, skills)
+- `SearchPlugin` -- `search_conversations` for conversation history search
+- `DelegateAgentPlugin` -- mid-conversation sub-agent execution
+- `DeviceControlPlugin` -- screen observation, tap, type, swipe via Accessibility Service (category: `device_control`)
+- `ActivateToolsPlugin` -- meta-tool for two-tier dynamic tool activation (category: `core`)
+
+**JS plugins** -- `plugin.json` + `plugin.js`, loaded from `assets/plugins/` (built-in) or `workspace/plugins/` (user), wrapped in `JsPlugin`. Includes ~16 built-in JS plugins, notably the Google Workspace suite (Gmail, Calendar, Contacts, Tasks, Drive, Docs, Sheets, Slides, Forms) authenticated via Google Sign-In (`GoogleAuthManager`).
 
 QuickJS host bindings exposed as `palmclaw.*` namespace: `fs`, `http`, `credentials`, `notifications`, `env`, `log`.
 
@@ -147,6 +162,14 @@ QuickJS host bindings exposed as `palmclaw.*` namespace: `fs`, `http`, `credenti
 - `"command"` -- slash command feedback
 
 Meta messages are naturally excluded from LLM history (the history builder only picks up `user`/`assistant`/`stopped`).
+
+### Media Attachments
+
+Chat messages support images, audio, video, and document/PDF attachments. Media paths are stored as JSON arrays on `MessageEntity` (`imagePaths`, `audioPaths`, `videoPaths`, `documentPaths`). Input sources include gallery picker, camera capture, and audio recording with speech-to-text.
+
+### Google Sign-In
+
+`GoogleAuthManager` (in `app`) handles OAuth via Google Play Services. Manages scopes for Gmail, Calendar, Tasks, Contacts, Drive, Docs, Sheets, Presentations, and Forms. Tokens are used by the Google Workspace JS plugins.
 
 ### Database Schema
 

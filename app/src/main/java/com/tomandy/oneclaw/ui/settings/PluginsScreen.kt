@@ -278,6 +278,22 @@ private fun PluginCard(
                         },
                         modifier = Modifier.height(24.dp)
                     )
+                    metadata.tags.forEach { tag ->
+                        AssistChip(
+                            onClick = {},
+                            label = {
+                                Text(
+                                    text = tag.replaceFirstChar { it.uppercaseChar() },
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            },
+                            modifier = Modifier.height(24.dp),
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                labelColor = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        )
+                    }
                 }
                 Text(
                     text = metadata.description,

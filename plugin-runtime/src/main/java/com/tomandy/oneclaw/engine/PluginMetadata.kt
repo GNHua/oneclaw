@@ -88,7 +88,12 @@ data class PluginMetadata(
      * Credential definitions for plugin-specific configuration.
      * Each entry describes a credential the user can configure in Settings.
      */
-    val credentials: List<CredentialDefinition> = emptyList()
+    val credentials: List<CredentialDefinition> = emptyList(),
+
+    /**
+     * Freeform tags for UI display (e.g., "experimental").
+     */
+    val tags: List<String> = emptyList()
 )
 
 /**

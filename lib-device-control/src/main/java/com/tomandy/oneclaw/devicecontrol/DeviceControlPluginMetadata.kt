@@ -23,7 +23,8 @@ object DeviceControlPluginMetadata {
                 pressHomeTool(),
                 launchAppTool()
             ),
-            category = "device_control"
+            category = "device_control",
+            tags = listOf("experimental")
         )
     }
 

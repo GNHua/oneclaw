@@ -258,11 +258,11 @@ fun GoogleAccountScreen(
                         "   People API, Drive API, Docs API, Sheets API, Slides API, Forms API",
                         "3. Go to APIs & Services > OAuth consent screen",
                         "4. Under Branding: set an app name, user support email, and developer email",
-                        "5. Under Audience: select External (publishing status stays in Testing)",
-                        "6. Under Audience > Test users: click Add users, enter your Google email",
-                        "7. Go to APIs & Services > Credentials > + Create Credentials > OAuth client ID",
-                        "8. Set Application type to \"Desktop app\", give it any name, click Create",
-                        "9. Copy the Client ID and Client Secret below"
+                        "5. Under Audience: select External, then click Publish App",
+                        "   (keeps tokens valid indefinitely; shows a warning screen during sign-in which is fine for personal use)",
+                        "6. Go to APIs & Services > Credentials > + Create Credentials > OAuth client ID",
+                        "7. Set Application type to \"Desktop app\", give it any name, click Create",
+                        "8. Copy the Client ID and Client Secret below"
                     )
                     steps.forEach { step ->
                         Text(

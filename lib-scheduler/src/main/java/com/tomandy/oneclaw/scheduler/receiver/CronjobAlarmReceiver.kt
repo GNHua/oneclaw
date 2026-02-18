@@ -3,7 +3,6 @@ package com.tomandy.oneclaw.scheduler.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import com.tomandy.oneclaw.scheduler.service.AgentExecutionService
 
 /**
@@ -32,11 +31,7 @@ class CronjobAlarmReceiver : BroadcastReceiver() {
             putExtra(AgentExecutionService.EXTRA_CRONJOB_ID, cronjobId)
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(serviceIntent)
-        } else {
-            context.startService(serviceIntent)
-        }
+        context.startForegroundService(serviceIntent)
     }
 
     companion object {

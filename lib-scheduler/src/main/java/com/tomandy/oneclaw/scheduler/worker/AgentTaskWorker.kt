@@ -112,32 +112,30 @@ class AgentTaskWorker(
     }
 
     private fun createNotificationChannels() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE)
-                as NotificationManager
+        val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE)
+            as NotificationManager
 
-            val serviceChannel = NotificationChannel(
-                CHANNEL_ID,
-                "Scheduled Tasks",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Notifications for scheduled agent tasks"
-            }
-            notificationManager.createNotificationChannel(serviceChannel)
-
-            val resultChannel = NotificationChannel(
-                RESULT_CHANNEL_ID,
-                "Task Results",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Notifications when scheduled tasks complete or fail"
-                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
-            }
-            notificationManager.createNotificationChannel(resultChannel)
-
-            // Cleanup old channel
-            notificationManager.deleteNotificationChannel("cronjob_result_channel")
+        val serviceChannel = NotificationChannel(
+            CHANNEL_ID,
+            "Scheduled Tasks",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Notifications for scheduled agent tasks"
         }
+        notificationManager.createNotificationChannel(serviceChannel)
+
+        val resultChannel = NotificationChannel(
+            RESULT_CHANNEL_ID,
+            "Task Results",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Notifications when scheduled tasks complete or fail"
+            lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+        }
+        notificationManager.createNotificationChannel(resultChannel)
+
+        // Cleanup old channel
+        notificationManager.deleteNotificationChannel("cronjob_result_channel")
     }
 
     private suspend fun executeAgentTask(instruction: String): String {

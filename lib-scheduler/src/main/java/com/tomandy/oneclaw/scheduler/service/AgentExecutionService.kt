@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
-import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.tomandy.oneclaw.scheduler.AgentExecutor
@@ -213,33 +212,31 @@ class AgentExecutionService : Service(), KoinComponent {
      * Create notification channels
      */
     private fun createNotificationChannels() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = getSystemService(NotificationManager::class.java)
+        val notificationManager = getSystemService(NotificationManager::class.java)
 
-            // Low-importance channel for the foreground service (ongoing, silent)
-            val serviceChannel = NotificationChannel(
-                SERVICE_CHANNEL_ID,
-                "Task Execution",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Shown while a scheduled task is running"
-            }
-            notificationManager.createNotificationChannel(serviceChannel)
-
-            // High-importance channel for results (banner + lockscreen)
-            val resultChannel = NotificationChannel(
-                RESULT_CHANNEL_ID,
-                "Task Results",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Notifications when scheduled tasks complete or fail"
-                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
-            }
-            notificationManager.createNotificationChannel(resultChannel)
-
-            // Cleanup old channel
-            notificationManager.deleteNotificationChannel("cronjob_result_channel")
+        // Low-importance channel for the foreground service (ongoing, silent)
+        val serviceChannel = NotificationChannel(
+            SERVICE_CHANNEL_ID,
+            "Task Execution",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Shown while a scheduled task is running"
         }
+        notificationManager.createNotificationChannel(serviceChannel)
+
+        // High-importance channel for results (banner + lockscreen)
+        val resultChannel = NotificationChannel(
+            RESULT_CHANNEL_ID,
+            "Task Results",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Notifications when scheduled tasks complete or fail"
+            lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+        }
+        notificationManager.createNotificationChannel(resultChannel)
+
+        // Cleanup old channel
+        notificationManager.deleteNotificationChannel("cronjob_result_channel")
     }
 
     private fun createContentIntent(conversationId: String?): PendingIntent? {

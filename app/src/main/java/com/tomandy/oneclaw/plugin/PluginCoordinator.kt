@@ -6,7 +6,7 @@ import com.tomandy.oneclaw.engine.LoadedPlugin
 import com.tomandy.oneclaw.engine.PluginContext
 import com.tomandy.oneclaw.engine.PluginEngine
 import com.tomandy.oneclaw.pluginmanager.BuiltInPluginManager
-import com.tomandy.oneclaw.pluginmanager.InstallPluginTool
+import com.tomandy.oneclaw.pluginmanager.PluginManagementTool
 import com.tomandy.oneclaw.pluginmanager.PluginPreferences
 import com.tomandy.oneclaw.pluginmanager.UserPluginManager
 import com.tomandy.oneclaw.scheduler.plugin.SchedulerPlugin
@@ -60,7 +60,7 @@ class PluginCoordinator(
 ) {
     suspend fun initializePlugins() {
         registerBuiltInPlugins()
-        registerInstallPluginTool()
+        registerPluginManagementTool()
         builtInPluginManager.loadBuiltInPlugins()
         userPluginManager.loadAllUserPlugins()
         skillRepository.loadAll()
@@ -425,11 +425,11 @@ class PluginCoordinator(
         }
     }
 
-    private fun registerInstallPluginTool() {
-        val installTool = InstallPluginTool(userPluginManager)
+    private fun registerPluginManagementTool() {
+        val managementTool = PluginManagementTool(userPluginManager, pluginEngine)
         val loadedPlugin = LoadedPlugin(
-            metadata = InstallPluginTool.metadata(),
-            instance = installTool
+            metadata = PluginManagementTool.metadata(),
+            instance = managementTool
         )
         toolRegistry.registerPlugin(loadedPlugin)
     }

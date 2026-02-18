@@ -2,6 +2,7 @@ package com.tomandy.oneclaw.pluginmanager
 
 import com.tomandy.oneclaw.engine.Plugin
 import com.tomandy.oneclaw.engine.PluginContext
+import com.tomandy.oneclaw.engine.PluginEngine
 import com.tomandy.oneclaw.engine.PluginMetadata
 import com.tomandy.oneclaw.engine.ToolDefinition
 import com.tomandy.oneclaw.engine.ToolResult
@@ -14,8 +15,9 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 
-class InstallPluginTool(
-    private val userPluginManager: UserPluginManager
+class PluginManagementTool(
+    private val userPluginManager: UserPluginManager,
+    private val pluginEngine: PluginEngine
 ) : Plugin {
 
     override suspend fun onLoad(context: PluginContext) {}
@@ -23,6 +25,8 @@ class InstallPluginTool(
     override suspend fun execute(toolName: String, arguments: JsonObject): ToolResult {
         return when (toolName) {
             "install_plugin" -> installPlugin(arguments)
+            "remove_plugin" -> removePlugin(arguments)
+            "list_user_plugins" -> listUserPlugins()
             else -> ToolResult.Failure("Unknown tool: $toolName")
         }
     }
@@ -51,28 +55,70 @@ class InstallPluginTool(
         }
     }
 
+    private suspend fun removePlugin(arguments: JsonObject): ToolResult {
+        val pluginId = arguments["plugin_id"]?.jsonPrimitive?.content
+            ?: return ToolResult.Failure("Missing 'plugin_id' parameter")
+
+        if (!userPluginManager.isUserPlugin(pluginId)) {
+            return ToolResult.Failure("Plugin '$pluginId' is not a user-installed plugin and cannot be removed")
+        }
+
+        return withContext(Dispatchers.IO) {
+            val deleted = userPluginManager.deletePlugin(pluginId)
+            if (deleted) {
+                ToolResult.Success("Plugin '$pluginId' removed successfully")
+            } else {
+                ToolResult.Failure("Failed to remove plugin '$pluginId'")
+            }
+        }
+    }
+
+    private fun listUserPlugins(): ToolResult {
+        val pluginIds = userPluginManager.getUserPluginIds()
+        if (pluginIds.isEmpty()) {
+            return ToolResult.Success("No user-installed plugins found.")
+        }
+
+        val entries = pluginIds.sorted().map { id ->
+            val loaded = pluginEngine.getLoadedPlugin(id)
+            if (loaded != null) {
+                val m = loaded.metadata
+                "- ${m.name} (${m.id}) v${m.version}: ${m.description} [${m.tools.size} tool(s): ${m.tools.joinToString { it.name }}]"
+            } else {
+                "- $id (not loaded)"
+            }
+        }
+
+        return ToolResult.Success("User-installed plugins:\n${entries.joinToString("\n")}")
+    }
+
     companion object {
         fun metadata(): PluginMetadata {
             return PluginMetadata(
-                id = "install_plugin_tool",
-                name = "Plugin Installer",
+                id = "plugin_management",
+                name = "Plugin Manager",
                 version = "1.0.0",
-                description = "Install custom JavaScript plugins at runtime",
+                description = "Install, list, and remove custom JavaScript plugins at runtime",
                 author = "OneClaw",
-                entryPoint = "InstallPluginTool",
-                tools = listOf(installPluginToolDef())
+                entryPoint = "PluginManagementTool",
+                tools = listOf(
+                    installPluginToolDef(),
+                    removePluginToolDef(),
+                    listUserPluginsToolDef()
+                )
             )
         }
 
         private fun installPluginToolDef() = ToolDefinition(
             name = "install_plugin",
-            description = """Install a custom JavaScript plugin at runtime.
+            description = """Install or update a custom JavaScript plugin at runtime.
                 |
                 |Create a plugin by providing:
                 |1. A plugin.json metadata string defining the plugin's ID, name, version, description, and tools
                 |2. A JavaScript source string implementing the execute(toolName, args) function
                 |
                 |The plugin will be installed and its tools will become available immediately.
+                |If a plugin with the same ID already exists, it will be replaced.
                 |
                 |Example metadata:
                 |{
@@ -100,13 +146,49 @@ class InstallPluginTool(
                     }
                     putJsonObject("source") {
                         put("type", JsonPrimitive("string"))
-                        put("description", JsonPrimitive("JavaScript source code implementing the execute(toolName, args) function"))
+                        put(
+                            "description",
+                            JsonPrimitive("JavaScript source code implementing the execute(toolName, args) function")
+                        )
                     }
                 }
                 putJsonArray("required") {
                     add(JsonPrimitive("metadata"))
                     add(JsonPrimitive("source"))
                 }
+            }
+        )
+
+        private fun removePluginToolDef() = ToolDefinition(
+            name = "remove_plugin",
+            description = """Remove a user-installed JavaScript plugin.
+                |
+                |Only user-installed plugins can be removed. Built-in plugins cannot be removed.
+                |The plugin's tools will be unregistered immediately.
+            """.trimMargin(),
+            parameters = buildJsonObject {
+                put("type", JsonPrimitive("object"))
+                putJsonObject("properties") {
+                    putJsonObject("plugin_id") {
+                        put("type", JsonPrimitive("string"))
+                        put("description", JsonPrimitive("The ID of the user-installed plugin to remove"))
+                    }
+                }
+                putJsonArray("required") {
+                    add(JsonPrimitive("plugin_id"))
+                }
+            }
+        )
+
+        private fun listUserPluginsToolDef() = ToolDefinition(
+            name = "list_user_plugins",
+            description = """List all user-installed JavaScript plugins with their metadata.
+                |
+                |Returns each plugin's ID, name, version, description, and tool count.
+            """.trimMargin(),
+            parameters = buildJsonObject {
+                put("type", JsonPrimitive("object"))
+                putJsonObject("properties") {}
             }
         )
     }

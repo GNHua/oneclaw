@@ -104,7 +104,11 @@ class UserPluginManager(
             File(pluginDir, "plugin.json").writeText(metadataJson)
             File(pluginDir, "plugin.js").writeText(jsSource)
 
-            loadPluginFromDir(pluginDir)
+            loadPluginFromDir(pluginDir).also { result ->
+                result.onSuccess { loaded ->
+                    toolRegistry.registerPlugin(loaded)
+                }
+            }
         } catch (e: Exception) {
             Result.failure(Exception("Failed to install plugin: ${e.message}", e))
         }

@@ -8,6 +8,7 @@ import com.tomandy.palmclaw.llm.MessageResponse
 import com.tomandy.palmclaw.llm.ToolCall
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
@@ -53,11 +54,11 @@ class AgentCoordinatorTest {
         mockToolExecutor = mockk<ToolExecutor>()
         mockMessageStore = mockk<MessageStore>(relaxed = true)
 
-        // Default: no tools available
-        coEvery { mockToolRegistry.getToolDefinitions() } returns emptyList()
-        coEvery { mockToolRegistry.getToolDefinitions(any<Set<String>>()) } returns emptyList()
-        coEvery { mockToolRegistry.registerPlugin(any()) } returns Unit
-        coEvery { mockToolRegistry.getTool(any()) } returns null
+        // Default: no tools available, no on-demand categories
+        every { mockToolRegistry.getToolDefinitions() } returns emptyList()
+        every { mockToolRegistry.getToolDefinitions(any<Set<String>>()) } returns emptyList()
+        every { mockToolRegistry.registerPlugin(any()) } returns Unit
+        every { mockToolRegistry.getOnDemandCategories() } returns emptySet()
         coEvery { mockLlmClient.cancel() } returns Unit
 
         coordinator = AgentCoordinator(

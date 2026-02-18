@@ -1,6 +1,7 @@
 package com.tomandy.palmclaw.agent
 
 import android.util.Log
+import com.tomandy.palmclaw.engine.LoadedPlugin
 import com.tomandy.palmclaw.llm.LlmClient
 import com.tomandy.palmclaw.llm.Message
 import kotlinx.coroutines.CoroutineScope
@@ -64,17 +65,23 @@ class AgentCoordinator(
     private var lastModel: String = ""
 
     init {
-        // Register summarization tool so the LLM can trigger summarization
+        // Register per-coordinator summarization tool
         val plugin = SummarizationPlugin.createLoadedPlugin {
             forceSummarize()
         }
         toolRegistry.registerPlugin(plugin)
 
-        // Wire ActivateToolsPlugin to this coordinator's activeCategories
-        toolRegistry.getTool("activate_tools")?.plugin?.let { p ->
-            if (p is ActivateToolsPlugin) {
-                p.activeCategories = activeCategories
-            }
+        // Register per-coordinator ActivateToolsPlugin so concurrent coordinators
+        // each have their own activeCategories set
+        if (toolRegistry.getOnDemandCategories().isNotEmpty()) {
+            val activatePlugin = ActivateToolsPlugin(toolRegistry)
+            activatePlugin.activeCategories = activeCategories
+            toolRegistry.registerPlugin(
+                LoadedPlugin(
+                    metadata = ActivateToolsPlugin.metadata(toolRegistry),
+                    instance = activatePlugin
+                )
+            )
         }
     }
 
@@ -180,11 +187,6 @@ class AgentCoordinator(
 
             // Store user message in history WITHOUT mediaData (avoid keeping large base64 in memory)
             conversationHistory.add(Message(role = "user", content = userMessage))
-
-            // Wire ActivateToolsPlugin to this coordinator's active categories
-            toolRegistry.getTool("activate_tools")?.let { reg ->
-                (reg.plugin as? ActivateToolsPlugin)?.activeCategories = activeCategories
-            }
 
             // Build tool provider with category filtering, plus optional toolFilter
             Log.d("AgentCoordinator", "Setting up tools provider with active categories: $activeCategories")
@@ -459,7 +461,9 @@ class AgentCoordinator(
      * and reset the state to Idle.
      */
     fun cancel() {
-        clientProvider().cancel()
+        // Rely on coroutine cancellation to abort in-flight LLM calls.
+        // Do not call clientProvider().cancel() -- that cancels ALL in-flight
+        // requests across all concurrent coordinators sharing the same client.
         currentJob?.cancel()
         currentJob = null
         _state.value = AgentState.Idle

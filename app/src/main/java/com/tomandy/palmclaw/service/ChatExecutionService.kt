@@ -50,7 +50,6 @@ class ChatExecutionService : Service(), KoinComponent {
 
     private val llmClientProvider: LlmClientProvider by inject()
     private val toolRegistry: ToolRegistry by inject()
-    private val toolExecutor: ToolExecutor by inject()
     private val messageStore: MessageStore by inject()
     private val modelPreferences: ModelPreferences by inject()
     private val database: AppDatabase by inject()
@@ -133,11 +132,14 @@ class ChatExecutionService : Service(), KoinComponent {
                 val contextWindow = LlmProvider.getContextWindow(selectedModel)
                 val toolFilter = profile?.allowedTools?.toSet()
 
+                val snapshotRegistry = toolRegistry.snapshot()
+                val snapshotToolExecutor = ToolExecutor(snapshotRegistry, messageStore)
+
                 lateinit var coordinator: AgentCoordinator
                 coordinator = AgentCoordinator(
                     clientProvider = { llmClientProvider.getCurrentLlmClient() },
-                    toolRegistry = toolRegistry,
-                    toolExecutor = toolExecutor,
+                    toolRegistry = snapshotRegistry,
+                    toolExecutor = snapshotToolExecutor,
                     messageStore = messageStore,
                     conversationId = conversationId,
                     contextWindow = contextWindow,
@@ -145,8 +147,8 @@ class ChatExecutionService : Service(), KoinComponent {
                     onBeforeSummarize = {
                         memoryFlush(
                             clientProvider = { llmClientProvider.getCurrentLlmClient() },
-                            toolExecutor = toolExecutor,
-                            toolRegistry = toolRegistry,
+                            toolExecutor = snapshotToolExecutor,
+                            toolRegistry = snapshotRegistry,
                             messageStore = messageStore,
                             conversationHistory = coordinator.getConversationHistory(),
                             conversationId = conversationId,
@@ -433,10 +435,13 @@ class ChatExecutionService : Service(), KoinComponent {
                     ?: modelPreferences.getModel(llmClientProvider.selectedProvider.value)
                 val contextWindow = LlmProvider.getContextWindow(selectedModel)
 
+                val sumSnapshotRegistry = toolRegistry.snapshot()
+                val sumSnapshotToolExecutor = ToolExecutor(sumSnapshotRegistry, messageStore)
+
                 val coordinator = AgentCoordinator(
                     clientProvider = { llmClientProvider.getCurrentLlmClient() },
-                    toolRegistry = toolRegistry,
-                    toolExecutor = toolExecutor,
+                    toolRegistry = sumSnapshotRegistry,
+                    toolExecutor = sumSnapshotToolExecutor,
                     messageStore = messageStore,
                     conversationId = conversationId,
                     contextWindow = contextWindow

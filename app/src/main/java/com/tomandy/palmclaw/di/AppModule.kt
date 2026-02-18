@@ -1,7 +1,6 @@
 package com.tomandy.palmclaw.di
 
 import com.tomandy.palmclaw.agent.ScheduledAgentExecutor
-import com.tomandy.palmclaw.agent.ToolExecutor
 import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.agent.MessageStore
 import com.tomandy.palmclaw.backup.BackupManager
@@ -85,9 +84,6 @@ val appModule = module {
     // Message Store
     single<MessageStore> { RoomMessageStore(get()) }
 
-    // Tool Executor
-    single { ToolExecutor(toolRegistry = get(), messageStore = get()) }
-
     // LLM Client Provider
     single { LlmClientProvider(credentialVault = get(), modelPreferences = get()) }
 
@@ -168,7 +164,6 @@ val appModule = module {
             database = get(),
             llmClientProvider = get(),
             toolRegistry = get(),
-            toolExecutor = get(),
             messageStore = get(),
             modelPreferences = get(),
             skillRepository = get(),

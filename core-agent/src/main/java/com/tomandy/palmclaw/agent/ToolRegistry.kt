@@ -10,6 +10,11 @@ import com.tomandy.palmclaw.engine.ToolDefinition
  * The ToolRegistry maintains a mapping from tool names to their plugin sources,
  * allowing the agent to discover available tools and execute them.
  *
+ * The global singleton (registered via Koin) serves as a template that plugins
+ * register into at startup. Each [AgentCoordinator] receives its own [snapshot]
+ * so that per-coordinator plugins (SummarizationPlugin, ActivateToolsPlugin)
+ * do not collide across concurrent executions.
+ *
  * Usage:
  * ```kotlin
  * val registry = ToolRegistry()
@@ -157,6 +162,22 @@ class ToolRegistry {
      */
     fun hasTool(toolName: String): Boolean {
         return tools.containsKey(toolName)
+    }
+
+    /**
+     * Create a full independent copy of this registry.
+     *
+     * Each [AgentCoordinator] should operate on its own snapshot so that
+     * per-coordinator plugins (SummarizationPlugin, ActivateToolsPlugin state)
+     * do not collide across concurrent executions.
+     */
+    fun snapshot(): ToolRegistry {
+        val copy = ToolRegistry()
+        tools.forEach { (name, tool) -> copy.tools[name] = tool }
+        categoryDescriptions.forEach { (k, v) ->
+            copy.categoryDescriptions[k] = v.toMutableList()
+        }
+        return copy
     }
 
     /**

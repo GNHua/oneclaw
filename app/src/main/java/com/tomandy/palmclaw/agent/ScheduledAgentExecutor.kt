@@ -16,7 +16,6 @@ class ScheduledAgentExecutor(
     private val database: AppDatabase,
     private val llmClientProvider: LlmClientProvider,
     private val toolRegistry: ToolRegistry,
-    private val toolExecutor: ToolExecutor,
     private val messageStore: MessageStore,
     private val modelPreferences: ModelPreferences,
     private val skillRepository: SkillRepository,
@@ -58,71 +57,76 @@ class ScheduledAgentExecutor(
                 agentProfileRepository.findByName(it)
             } ?: agentProfileRepository.findByName("main")
 
-            // Create agent coordinator for this execution
+            // Create per-coordinator snapshot to avoid conflicts with concurrent executions
+            val snapshotRegistry = toolRegistry.snapshot()
+            val snapshotToolExecutor = ToolExecutor(snapshotRegistry, messageStore)
+
             val coordinator = AgentCoordinator(
                 clientProvider = { llmClientProvider.getCurrentLlmClient() },
-                toolRegistry = toolRegistry,
-                toolExecutor = toolExecutor,
+                toolRegistry = snapshotRegistry,
+                toolExecutor = snapshotToolExecutor,
                 messageStore = messageStore,
                 conversationId = tempConversationId
             )
 
-            // Execute with scheduled context
-            val context = ExecutionContext.Scheduled(
-                cronjobId = cronjobId,
-                triggerTime = triggerTime
-            )
-
-            // Get preferences
-            val model = profile?.model
-                ?: modelPreferences.getSelectedModel() ?: ""
-            val temperature = modelPreferences.getTemperature()
-
-            // Build full system prompt with skills and memory
-            val basePrompt = profile?.systemPrompt
-                ?: modelPreferences.getSystemPrompt()
-            val enabledSkills = skillRepository.getEnabledSkills()
-            val workspaceRoot = File(filesDir, "workspace")
-            val memoryContext = MemoryBootstrap.loadMemoryContext(workspaceRoot)
-            val systemPrompt = SystemPromptBuilder.buildFullSystemPrompt(
-                basePrompt = basePrompt,
-                skills = enabledSkills,
-                memoryContext = memoryContext
-            )
-
-            val result = coordinator.execute(
-                userMessage = instruction,
-                systemPrompt = systemPrompt,
-                model = model,
-                temperature = temperature,
-                context = context
-            )
-
-            // Clean up temporary conversation (cascade deletes its messages)
-            conversationDao.deleteById(tempConversationId)
-
-            // Post result to the original conversation
-            if (conversationId != null && result.isSuccess) {
-                val summary = result.getOrNull() ?: ""
-                messageStore.insert(
-                    MessageRecord(
-                        id = UUID.randomUUID().toString(),
-                        conversationId = conversationId,
-                        role = "assistant",
-                        content = "[Scheduled Task] $instruction\n\n$summary"
-                    )
+            try {
+                // Execute with scheduled context
+                val context = ExecutionContext.Scheduled(
+                    cronjobId = cronjobId,
+                    triggerTime = triggerTime
                 )
-                // Update conversation metadata so the new message is visible
-                conversationDao.getConversationOnce(conversationId)?.let { conv ->
-                    conversationDao.update(conv.copy(
-                        updatedAt = System.currentTimeMillis(),
-                        messageCount = conv.messageCount + 1,
-                        lastMessagePreview = summary.take(100)
-                    ))
-                }
-            }
 
-            result
+                // Get preferences
+                val model = profile?.model
+                    ?: modelPreferences.getSelectedModel() ?: ""
+                val temperature = modelPreferences.getTemperature()
+
+                // Build full system prompt with skills and memory
+                val basePrompt = profile?.systemPrompt
+                    ?: modelPreferences.getSystemPrompt()
+                val enabledSkills = skillRepository.getEnabledSkills()
+                val workspaceRoot = File(filesDir, "workspace")
+                val memoryContext = MemoryBootstrap.loadMemoryContext(workspaceRoot)
+                val systemPrompt = SystemPromptBuilder.buildFullSystemPrompt(
+                    basePrompt = basePrompt,
+                    skills = enabledSkills,
+                    memoryContext = memoryContext
+                )
+
+                val result = coordinator.execute(
+                    userMessage = instruction,
+                    systemPrompt = systemPrompt,
+                    model = model,
+                    temperature = temperature,
+                    context = context
+                )
+
+                // Post result to the original conversation
+                if (conversationId != null && result.isSuccess) {
+                    val summary = result.getOrNull() ?: ""
+                    messageStore.insert(
+                        MessageRecord(
+                            id = UUID.randomUUID().toString(),
+                            conversationId = conversationId,
+                            role = "assistant",
+                            content = "[Scheduled Task] $instruction\n\n$summary"
+                        )
+                    )
+                    // Update conversation metadata so the new message is visible
+                    conversationDao.getConversationOnce(conversationId)?.let { conv ->
+                        conversationDao.update(conv.copy(
+                            updatedAt = System.currentTimeMillis(),
+                            messageCount = conv.messageCount + 1,
+                            lastMessagePreview = summary.take(100)
+                        ))
+                    }
+                }
+
+                result
+            } finally {
+                coordinator.cleanup()
+                conversationDao.deleteById(tempConversationId)
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

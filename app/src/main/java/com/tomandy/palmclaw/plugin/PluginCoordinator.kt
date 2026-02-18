@@ -1,7 +1,6 @@
 package com.tomandy.palmclaw.plugin
 
 import android.content.Context
-import com.tomandy.palmclaw.agent.ActivateToolsPlugin
 import com.tomandy.palmclaw.agent.ToolRegistry
 import com.tomandy.palmclaw.engine.LoadedPlugin
 import com.tomandy.palmclaw.engine.PluginContext
@@ -57,7 +56,6 @@ class PluginCoordinator(
         builtInPluginManager.loadBuiltInPlugins()
         userPluginManager.loadAllUserPlugins()
         skillRepository.loadAll()
-        refreshActivateToolsPlugin()
     }
 
     fun setPluginEnabled(pluginId: String, enabled: Boolean) {
@@ -69,7 +67,6 @@ class PluginCoordinator(
         } else {
             toolRegistry.unregisterPlugin(pluginId)
         }
-        refreshActivateToolsPlugin()
     }
 
     private suspend fun registerBuiltInPlugins() {
@@ -211,27 +208,6 @@ class PluginCoordinator(
                 ChatExecutionTracker.emitEvent(ChatExecutionTracker.UiEvent.AccessibilityServiceNeeded)
             }
         })
-    }
-
-    /**
-     * Register or re-register activate_tools meta-tool.
-     * Called at startup and whenever plugins are enabled/disabled so the
-     * category list stays current.
-     */
-    private fun refreshActivateToolsPlugin() {
-        // Always remove stale registration first
-        toolRegistry.unregisterPlugin("activate_tools")
-
-        val onDemandCategories = toolRegistry.getOnDemandCategories()
-        if (onDemandCategories.isEmpty()) return
-
-        val plugin = ActivateToolsPlugin(toolRegistry)
-        toolRegistry.registerPlugin(
-            LoadedPlugin(
-                metadata = ActivateToolsPlugin.metadata(toolRegistry),
-                instance = plugin
-            )
-        )
     }
 
     private fun registerInstallPluginTool() {

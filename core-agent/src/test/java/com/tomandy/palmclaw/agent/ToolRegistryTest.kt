@@ -253,4 +253,49 @@ class ToolRegistryTest {
         assertEquals(1, registry.size())
         assertTrue(registry.hasTool("a"))
     }
+
+    @Test
+    fun `snapshot creates full independent copy`() {
+        registry.registerPlugin(loadedPlugin("p1", listOf(toolDef("a"), toolDef("b")), category = "core"))
+        registry.registerPlugin(loadedPlugin("p2", listOf(toolDef("c")), category = "gmail", description = "Gmail tools"))
+
+        val snapshot = registry.snapshot()
+
+        assertEquals(3, snapshot.size())
+        assertTrue(snapshot.hasTool("a"))
+        assertTrue(snapshot.hasTool("b"))
+        assertTrue(snapshot.hasTool("c"))
+        assertEquals("Gmail tools", snapshot.getCategoryDescription("gmail"))
+    }
+
+    @Test
+    fun `snapshot does not affect original when modified`() {
+        registry.registerPlugin(loadedPlugin("p1", listOf(toolDef("a")), category = "core"))
+        val snapshot = registry.snapshot()
+
+        snapshot.registerPlugin(loadedPlugin("p2", listOf(toolDef("new_tool"))))
+        snapshot.unregisterPlugin("p1")
+
+        assertEquals(1, registry.size())
+        assertTrue(registry.hasTool("a"))
+        assertFalse(registry.hasTool("new_tool"))
+    }
+
+    @Test
+    fun `snapshot copies category descriptions independently`() {
+        registry.registerPlugin(
+            loadedPlugin("p1", listOf(toolDef("a")), category = "gmail", description = "Search emails")
+        )
+        val snapshot = registry.snapshot()
+
+        // Add another plugin to the same category in the snapshot
+        snapshot.registerPlugin(
+            loadedPlugin("p2", listOf(toolDef("b")), category = "gmail", description = "Send emails")
+        )
+
+        // Original should still only have the first description
+        assertEquals("Search emails", registry.getCategoryDescription("gmail"))
+        // Snapshot should have both
+        assertEquals("Search emails; Send emails", snapshot.getCategoryDescription("gmail"))
+    }
 }

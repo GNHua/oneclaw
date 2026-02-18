@@ -24,6 +24,8 @@ import com.tomandy.palmclaw.workspace.MemoryPlugin
 import com.tomandy.palmclaw.workspace.MemoryPluginMetadata
 import com.tomandy.palmclaw.workspace.WorkspacePlugin
 import com.tomandy.palmclaw.workspace.WorkspacePluginMetadata
+import com.tomandy.palmclaw.web.WebPlugin
+import com.tomandy.palmclaw.web.WebPluginMetadata
 import com.tomandy.palmclaw.devicecontrol.AbortCallback
 import com.tomandy.palmclaw.devicecontrol.AccessibilityPromptCallback
 import com.tomandy.palmclaw.devicecontrol.DeviceControlManager
@@ -186,6 +188,25 @@ class PluginCoordinator(
                 LoadedPlugin(
                     metadata = DeviceControlPluginMetadata.get(),
                     instance = deviceControlPlugin
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Register WebPlugin
+        try {
+            val webPlugin = WebPlugin()
+            val webContext = PluginContext.create(
+                androidContext = context,
+                pluginId = "web",
+                credentialVault = credentialVault
+            )
+            webPlugin.onLoad(webContext)
+            toolRegistry.registerPlugin(
+                LoadedPlugin(
+                    metadata = WebPluginMetadata.get(),
+                    instance = webPlugin
                 )
             )
         } catch (e: Exception) {

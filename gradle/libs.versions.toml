@@ -27,6 +27,7 @@ work = "2.9.1"
 paging = "3.3.6"
 roomPaging = "2.7.0-alpha11"
 koin = "4.0.2"
+jsoup = "1.18.3"
 ktlint = "1.5.0"
 playServicesAuth = "21.3.0"
 
@@ -95,6 +96,9 @@ compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown",
 
 # QuickJS
 quickjs-android = { group = "io.github.dokar3", name = "quickjs-kt-android", version.ref = "quickjs" }
+
+# HTML Parsing
+jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 
 # Testing
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }

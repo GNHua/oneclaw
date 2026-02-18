@@ -72,6 +72,9 @@ dependencies {
     // Device control (accessibility service)
     implementation(project(":lib-device-control"))
 
+    // Web search and fetch
+    implementation(project(":lib-web"))
+
     // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

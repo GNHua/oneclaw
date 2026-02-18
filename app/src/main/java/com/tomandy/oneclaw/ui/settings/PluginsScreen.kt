@@ -61,7 +61,8 @@ fun PluginsScreen(
                     .fillMaxSize()
                     .drawScrollbar(listState, scrollbarColor, heightCache)
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 80.dp)
             ) {
                 items(plugins, key = { it.metadata.id }) { pluginState ->
                     PluginCard(

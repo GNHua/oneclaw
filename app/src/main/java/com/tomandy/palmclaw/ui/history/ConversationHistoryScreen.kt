@@ -302,11 +302,11 @@ private fun ConversationPreviewSheet(
             var i = 0
             while (i < filtered.size) {
                 val msg = filtered[i]
-                if (msg.role == "assistant" && !msg.toolCalls.isNullOrEmpty() && msg.content.isBlank()) {
+                if (msg.role == "assistant" && !msg.toolCalls.isNullOrEmpty()) {
                     val group = mutableListOf(msg)
                     while (i + 1 < filtered.size) {
                         val next = filtered[i + 1]
-                        if (next.role == "assistant" && !next.toolCalls.isNullOrEmpty() && next.content.isBlank()) {
+                        if (next.role == "assistant" && !next.toolCalls.isNullOrEmpty()) {
                             i++
                             group.add(next)
                         } else break

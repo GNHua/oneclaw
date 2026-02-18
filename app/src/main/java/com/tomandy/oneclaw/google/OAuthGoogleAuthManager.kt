@@ -7,27 +7,29 @@ import android.util.Log
 import com.tomandy.oneclaw.engine.GoogleAuthProvider
 import com.tomandy.oneclaw.security.CredentialVault
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import net.openid.appauth.AuthorizationRequest
-import net.openid.appauth.AuthorizationResponse
-import net.openid.appauth.AuthorizationService
-import net.openid.appauth.AuthorizationServiceConfiguration
-import net.openid.appauth.ResponseTypeValues
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.InetAddress
+import java.net.ServerSocket
+import java.net.URLDecoder
 
 /**
- * Google OAuth implementation using AppAuth-Android (BYOK).
+ * Google OAuth implementation using loopback redirect (BYOK).
  *
- * Users provide their own GCP OAuth Client ID and Secret (Web application type).
- * Authorization happens via Chrome Custom Tab, and refresh tokens are stored
- * in CredentialVault for persistent sessions.
+ * Users provide their own GCP OAuth Client ID and Secret (Desktop app type).
+ * Authorization opens the browser, and a loopback HTTP server on the device
+ * captures the redirect. Refresh tokens are stored in CredentialVault.
  */
 class OAuthGoogleAuthManager(
     private val context: Context,
@@ -44,12 +46,8 @@ class OAuthGoogleAuthManager(
         private const val KEY_TOKEN_EXPIRY = "google_oauth_token_expiry"
         private const val KEY_EMAIL = "google_oauth_email"
 
-        private const val REDIRECT_URI = "com.tomandy.oneclaw:/oauth2callback"
-
-        private val AUTH_CONFIG = AuthorizationServiceConfiguration(
-            Uri.parse("https://accounts.google.com/o/oauth2/v2/auth"),
-            Uri.parse("https://oauth2.googleapis.com/token")
-        )
+        private const val AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
+        private const val TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
 
         private val SCOPES = listOf(
             "https://www.googleapis.com/auth/gmail.modify",
@@ -66,6 +64,7 @@ class OAuthGoogleAuthManager(
         )
 
         private const val TOKEN_EXPIRY_MARGIN_MS = 60_000L
+        private const val AUTH_TIMEOUT_MS = 120_000
     }
 
     private val httpClient = OkHttpClient()
@@ -89,72 +88,153 @@ class OAuthGoogleAuthManager(
     }
 
     /**
-     * Build an authorization intent that launches a Chrome Custom Tab.
+     * Run the full authorization flow:
+     * 1. Start a loopback HTTP server on a random port
+     * 2. Open browser to Google's consent screen
+     * 3. Capture the redirect with the auth code
+     * 4. Exchange the code for tokens
+     *
+     * @param launchBrowser called on main thread to open the auth URL in a browser
+     * @return null on success, or an error message string on failure
      */
-    suspend fun buildAuthorizationIntent(): Intent {
+    suspend fun authorize(launchBrowser: (Intent) -> Unit): String? {
         val clientId = credentialVault.getApiKey(KEY_CLIENT_ID)
-            ?: throw IllegalStateException("Client ID not configured")
+            ?: return "Client ID not configured"
+        val clientSecret = credentialVault.getApiKey(KEY_CLIENT_SECRET)
+            ?: return "Client Secret not configured"
 
-        val request = AuthorizationRequest.Builder(
-            AUTH_CONFIG,
-            clientId,
-            ResponseTypeValues.CODE,
-            Uri.parse(REDIRECT_URI)
-        )
-            .setScopes(SCOPES)
-            .setAdditionalParameters(
-                mapOf("access_type" to "offline", "prompt" to "consent")
-            )
-            .build()
+        val server = withContext(Dispatchers.IO) {
+            ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
+        }
+        val port = server.localPort
+        val redirectUri = "http://127.0.0.1:$port"
 
-        val authService = AuthorizationService(context)
-        return authService.getAuthorizationRequestIntent(request)
+        try {
+            val authUrl = Uri.parse(AUTH_ENDPOINT).buildUpon()
+                .appendQueryParameter("client_id", clientId)
+                .appendQueryParameter("redirect_uri", redirectUri)
+                .appendQueryParameter("response_type", "code")
+                .appendQueryParameter("scope", SCOPES.joinToString(" "))
+                .appendQueryParameter("access_type", "offline")
+                .appendQueryParameter("prompt", "consent")
+                .build()
+                .toString()
+
+            withContext(Dispatchers.Main) {
+                launchBrowser(Intent(Intent.ACTION_VIEW, Uri.parse(authUrl)))
+            }
+
+            // Wait for the browser redirect -- use NonCancellable so that
+            // activity recreation doesn't abort the flow mid-exchange.
+            return withContext(NonCancellable) {
+                val code = withContext(Dispatchers.IO) {
+                    server.soTimeout = AUTH_TIMEOUT_MS
+                    try {
+                        val socket = server.accept()
+                        try {
+                            val reader =
+                                BufferedReader(InputStreamReader(socket.getInputStream()))
+                            val requestLine = reader.readLine() ?: ""
+                            val authCode = parseAuthCode(requestLine)
+
+                            val html = if (authCode != null) {
+                                "<html><body><h2>Authorization complete</h2>" +
+                                    "<p>You can close this tab and return to OneClaw.</p></body></html>"
+                            } else {
+                                "<html><body><h2>Authorization failed</h2>" +
+                                    "<p>Please close this tab and try again.</p></body></html>"
+                            }
+                            val response = "HTTP/1.1 200 OK\r\n" +
+                                "Content-Type: text/html; charset=utf-8\r\n" +
+                                "Connection: close\r\n\r\n$html"
+                            socket.getOutputStream().write(response.toByteArray())
+                            socket.getOutputStream().flush()
+                            authCode
+                        } finally {
+                            socket.close()
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Loopback server error", e)
+                        null
+                    }
+                }
+
+                if (code == null) {
+                    Log.e(TAG, "No authorization code received")
+                    return@withContext "No authorization code received (timed out or cancelled)"
+                }
+
+                // Retry token exchange -- the first attempt may fail because
+                // the app is still backgrounded and Android restricts network.
+                var lastError: String? = null
+                repeat(3) { attempt ->
+                    if (attempt > 0) {
+                        Log.d(TAG, "Token exchange retry $attempt after: $lastError")
+                        delay(3000)
+                    }
+                    val error = exchangeCodeForTokens(code, redirectUri, clientId, clientSecret)
+                    if (error == null) return@withContext null // success
+                    lastError = error
+                }
+                lastError
+            }
+        } finally {
+            withContext(Dispatchers.IO + NonCancellable) { server.close() }
+        }
+    }
+
+    private fun parseAuthCode(requestLine: String): String? {
+        // "GET /?code=CODE&scope=... HTTP/1.1"
+        val pathAndQuery = requestLine.split(" ").getOrNull(1) ?: return null
+        val queryStart = pathAndQuery.indexOf('?')
+        if (queryStart < 0) return null
+        val query = pathAndQuery.substring(queryStart + 1)
+        return query.split("&")
+            .map { it.split("=", limit = 2) }
+            .find { it[0] == "code" }
+            ?.getOrNull(1)
+            ?.let { URLDecoder.decode(it, "UTF-8") }
     }
 
     /**
-     * Handle the authorization response by exchanging the code for tokens.
-     * Returns true on success, false on failure.
+     * @return null on success, or an error message on failure.
      */
-    suspend fun handleAuthorizationResponse(intent: Intent): Boolean {
-        val resp = AuthorizationResponse.fromIntent(intent) ?: run {
-            val errorMsg = net.openid.appauth.AuthorizationException.fromIntent(intent)
-            Log.e(TAG, "Authorization failed: $errorMsg")
-            return false
-        }
-
-        val code = resp.authorizationCode ?: run {
-            Log.e(TAG, "No authorization code in response")
-            return false
-        }
-
+    private suspend fun exchangeCodeForTokens(
+        code: String,
+        redirectUri: String,
+        clientId: String,
+        clientSecret: String
+    ): String? {
         return withContext(Dispatchers.IO) {
             try {
-                val clientId = credentialVault.getApiKey(KEY_CLIENT_ID)!!
-                val clientSecret = credentialVault.getApiKey(KEY_CLIENT_SECRET)!!
-
-                // Exchange authorization code for tokens
                 val tokenBody = FormBody.Builder()
                     .add("code", code)
                     .add("client_id", clientId)
                     .add("client_secret", clientSecret)
-                    .add("redirect_uri", REDIRECT_URI)
+                    .add("redirect_uri", redirectUri)
                     .add("grant_type", "authorization_code")
                     .build()
 
                 val tokenRequest = Request.Builder()
-                    .url("https://oauth2.googleapis.com/token")
+                    .url(TOKEN_ENDPOINT)
                     .post(tokenBody)
                     .build()
 
                 val tokenResponse = httpClient.newCall(tokenRequest).execute()
-                val tokenJson = json.parseToJsonElement(
-                    tokenResponse.body?.string() ?: throw Exception("Empty token response")
-                ).jsonObject
+                val responseBody = tokenResponse.body?.string()
+                    ?: return@withContext "Empty token response"
+
+                if (!tokenResponse.isSuccessful) {
+                    Log.e(TAG, "Token exchange HTTP ${tokenResponse.code}: $responseBody")
+                    return@withContext "Token exchange failed (${tokenResponse.code}): $responseBody"
+                }
+
+                val tokenJson = json.parseToJsonElement(responseBody).jsonObject
 
                 val accessToken = tokenJson["access_token"]?.jsonPrimitive?.content
-                    ?: throw Exception("No access_token in response")
+                    ?: return@withContext "No access_token in response: $responseBody"
                 val refreshToken = tokenJson["refresh_token"]?.jsonPrimitive?.content
-                    ?: throw Exception("No refresh_token in response")
+                    ?: return@withContext "No refresh_token in response: $responseBody"
                 val expiresIn = tokenJson["expires_in"]?.jsonPrimitive?.content?.toLongOrNull()
                     ?: 3600L
 
@@ -179,10 +259,10 @@ class OAuthGoogleAuthManager(
                 }
 
                 Log.i(TAG, "Authorization successful for $email")
-                true
+                null // success
             } catch (e: Exception) {
                 Log.e(TAG, "Token exchange failed", e)
-                false
+                "Token exchange failed: ${e.message}"
             }
         }
     }
@@ -223,7 +303,7 @@ class OAuthGoogleAuthManager(
                         .build()
 
                     val request = Request.Builder()
-                        .url("https://oauth2.googleapis.com/token")
+                        .url(TOKEN_ENDPOINT)
                         .post(body)
                         .build()
 
@@ -260,7 +340,7 @@ class OAuthGoogleAuthManager(
     }
 
     /**
-     * Sign out: clear all stored credentials and revoke token server-side (best-effort).
+     * Sign out: clear all stored tokens and revoke server-side (best-effort).
      */
     suspend fun signOut() {
         val token = credentialVault.getApiKey(KEY_ACCESS_TOKEN)

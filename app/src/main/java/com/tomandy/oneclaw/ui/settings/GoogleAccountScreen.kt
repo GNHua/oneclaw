@@ -1,7 +1,5 @@
 package com.tomandy.oneclaw.ui.settings
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -29,14 +27,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
 import kotlinx.coroutines.launch
@@ -47,6 +46,7 @@ fun GoogleAccountScreen(
     onSignInChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var hasCredentials by remember { mutableStateOf(false) }
     var isSignedIn by remember { mutableStateOf(false) }
@@ -57,32 +57,12 @@ fun GoogleAccountScreen(
     var clientId by remember { mutableStateOf("") }
     var clientSecret by remember { mutableStateOf("") }
     var saving by remember { mutableStateOf(false) }
+    var authorizing by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         hasCredentials = googleAuthManager.hasOAuthCredentials()
         isSignedIn = googleAuthManager.isSignedIn()
         email = googleAuthManager.getAccountEmail()
-    }
-
-    val authLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val data = result.data
-        if (data != null) {
-            scope.launch {
-                val success = googleAuthManager.handleAuthorizationResponse(data)
-                if (success) {
-                    isSignedIn = true
-                    email = googleAuthManager.getAccountEmail()
-                    errorMessage = null
-                    onSignInChanged(true)
-                } else {
-                    errorMessage = "Authorization failed. Check your Client ID and Secret."
-                }
-            }
-        } else {
-            errorMessage = "Authorization cancelled."
-        }
     }
 
     Column(
@@ -169,17 +149,30 @@ fun GoogleAccountScreen(
             Button(
                 onClick = {
                     scope.launch {
+                        authorizing = true
+                        errorMessage = null
                         try {
-                            val intent = googleAuthManager.buildAuthorizationIntent()
-                            authLauncher.launch(intent)
+                            val error = googleAuthManager.authorize { intent ->
+                                context.startActivity(intent)
+                            }
+                            if (error == null) {
+                                isSignedIn = true
+                                email = googleAuthManager.getAccountEmail()
+                                onSignInChanged(true)
+                            } else {
+                                errorMessage = error
+                            }
                         } catch (e: Exception) {
                             errorMessage = "Failed to start authorization: ${e.message}"
+                        } finally {
+                            authorizing = false
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !authorizing
             ) {
-                Text("Authorize with Google")
+                Text(if (authorizing) "Waiting for authorization..." else "Authorize with Google")
             }
 
             // Option to clear credentials and re-enter
@@ -187,7 +180,6 @@ fun GoogleAccountScreen(
                 onClick = {
                     scope.launch {
                         googleAuthManager.signOut()
-                        // Clear client credentials too by saving empty
                         hasCredentials = false
                         isSignedIn = false
                         email = null
@@ -261,12 +253,16 @@ fun GoogleAccountScreen(
                         style = bodySmall
                     )
                     val steps = listOf(
-                        "2. Enable the APIs you need (Gmail, Calendar, Drive, etc.)",
-                        "3. Configure the OAuth consent screen (External, Testing mode)",
-                        "4. Add your Google account as a test user",
-                        "5. Create an OAuth Client ID (type: Web application)",
-                        "6. Add redirect URI: com.tomandy.oneclaw:/oauth2callback",
-                        "7. Copy the Client ID and Client Secret below"
+                        "2. Go to APIs & Services > Library > search and enable each API:",
+                        "   Gmail API, Google Calendar API, Google Tasks API,",
+                        "   People API, Drive API, Docs API, Sheets API, Slides API, Forms API",
+                        "3. Go to APIs & Services > OAuth consent screen",
+                        "4. Under Branding: set an app name, user support email, and developer email",
+                        "5. Under Audience: select External (publishing status stays in Testing)",
+                        "6. Under Audience > Test users: click Add users, enter your Google email",
+                        "7. Go to APIs & Services > Credentials > + Create Credentials > OAuth client ID",
+                        "8. Set Application type to \"Desktop app\", give it any name, click Create",
+                        "9. Copy the Client ID and Client Secret below"
                     )
                     steps.forEach { step ->
                         Text(

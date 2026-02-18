@@ -190,12 +190,14 @@ class PluginCoordinator(
                 credentialVault = credentialVault
             )
             deviceControlPlugin.onLoad(deviceControlContext)
-            toolRegistry.registerPlugin(
-                LoadedPlugin(
-                    metadata = DeviceControlPluginMetadata.get(),
-                    instance = deviceControlPlugin
-                )
+            val deviceControlLoaded = LoadedPlugin(
+                metadata = DeviceControlPluginMetadata.get(),
+                instance = deviceControlPlugin
             )
+            if (pluginPreferences.isPluginEnabled("device_control")) {
+                toolRegistry.registerPlugin(deviceControlLoaded)
+            }
+            pluginEngine.registerLoadedPlugin(deviceControlLoaded)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -236,12 +238,14 @@ class PluginCoordinator(
                 credentialVault = credentialVault
             )
             locationPlugin.onLoad(locationContext)
-            toolRegistry.registerPlugin(
-                LoadedPlugin(
-                    metadata = com.tomandy.oneclaw.location.LocationPluginMetadata.get(),
-                    instance = locationPlugin
-                )
+            val locationLoaded = LoadedPlugin(
+                metadata = com.tomandy.oneclaw.location.LocationPluginMetadata.get(),
+                instance = locationPlugin
             )
+            if (pluginPreferences.isPluginEnabled("location")) {
+                toolRegistry.registerPlugin(locationLoaded)
+            }
+            pluginEngine.registerLoadedPlugin(locationLoaded)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -255,12 +259,14 @@ class PluginCoordinator(
                 credentialVault = credentialVault
             )
             qrCodePlugin.onLoad(qrCodeContext)
-            toolRegistry.registerPlugin(
-                LoadedPlugin(
-                    metadata = com.tomandy.oneclaw.qrcode.QrCodePluginMetadata.get(),
-                    instance = qrCodePlugin
-                )
+            val qrCodeLoaded = LoadedPlugin(
+                metadata = com.tomandy.oneclaw.qrcode.QrCodePluginMetadata.get(),
+                instance = qrCodePlugin
             )
+            if (pluginPreferences.isPluginEnabled("qrcode")) {
+                toolRegistry.registerPlugin(qrCodeLoaded)
+            }
+            pluginEngine.registerLoadedPlugin(qrCodeLoaded)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -274,12 +280,14 @@ class PluginCoordinator(
                 credentialVault = credentialVault
             )
             smsPhonePlugin.onLoad(smsPhoneContext)
-            toolRegistry.registerPlugin(
-                LoadedPlugin(
-                    metadata = SmsPhonePluginMetadata.get(),
-                    instance = smsPhonePlugin
-                )
+            val smsPhoneLoaded = LoadedPlugin(
+                metadata = SmsPhonePluginMetadata.get(),
+                instance = smsPhonePlugin
             )
+            if (pluginPreferences.isPluginEnabled("sms-phone")) {
+                toolRegistry.registerPlugin(smsPhoneLoaded)
+            }
+            pluginEngine.registerLoadedPlugin(smsPhoneLoaded)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -293,12 +301,14 @@ class PluginCoordinator(
                 credentialVault = credentialVault
             )
             pdfToolsPlugin.onLoad(pdfContext)
-            toolRegistry.registerPlugin(
-                LoadedPlugin(
-                    metadata = com.tomandy.oneclaw.pdf.PdfToolsPluginMetadata.get(),
-                    instance = pdfToolsPlugin
-                )
+            val pdfToolsLoaded = LoadedPlugin(
+                metadata = com.tomandy.oneclaw.pdf.PdfToolsPluginMetadata.get(),
+                instance = pdfToolsPlugin
             )
+            if (pluginPreferences.isPluginEnabled("pdf-tools")) {
+                toolRegistry.registerPlugin(pdfToolsLoaded)
+            }
+            pluginEngine.registerLoadedPlugin(pdfToolsLoaded)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -329,12 +339,14 @@ class PluginCoordinator(
                 credentialVault = credentialVault
             )
             notificationPlugin.onLoad(notificationContext)
-            toolRegistry.registerPlugin(
-                LoadedPlugin(
-                    metadata = NotificationPluginMetadata.get(),
-                    instance = notificationPlugin
-                )
+            val notificationLoaded = LoadedPlugin(
+                metadata = NotificationPluginMetadata.get(),
+                instance = notificationPlugin
             )
+            if (pluginPreferences.isPluginEnabled("notifications")) {
+                toolRegistry.registerPlugin(notificationLoaded)
+            }
+            pluginEngine.registerLoadedPlugin(notificationLoaded)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -348,12 +360,14 @@ class PluginCoordinator(
                 credentialVault = credentialVault
             )
             mediaControlPlugin.onLoad(mediaControlContext)
-            toolRegistry.registerPlugin(
-                LoadedPlugin(
-                    metadata = MediaControlPluginMetadata.get(),
-                    instance = mediaControlPlugin
-                )
+            val mediaControlLoaded = LoadedPlugin(
+                metadata = MediaControlPluginMetadata.get(),
+                instance = mediaControlPlugin
             )
+            if (pluginPreferences.isPluginEnabled("media_control")) {
+                toolRegistry.registerPlugin(mediaControlLoaded)
+            }
+            pluginEngine.registerLoadedPlugin(mediaControlLoaded)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -374,12 +388,14 @@ class PluginCoordinator(
                 credentialVault = credentialVault
             )
             cameraPlugin.onLoad(cameraContext)
-            toolRegistry.registerPlugin(
-                LoadedPlugin(
-                    metadata = CameraPluginMetadata.get(),
-                    instance = cameraPlugin
-                )
+            val cameraLoaded = LoadedPlugin(
+                metadata = CameraPluginMetadata.get(),
+                instance = cameraPlugin
             )
+            if (pluginPreferences.isPluginEnabled("camera")) {
+                toolRegistry.registerPlugin(cameraLoaded)
+            }
+            pluginEngine.registerLoadedPlugin(cameraLoaded)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -396,12 +412,14 @@ class PluginCoordinator(
                 credentialVault = credentialVault
             )
             voiceMemoPlugin.onLoad(voiceMemoContext)
-            toolRegistry.registerPlugin(
-                LoadedPlugin(
-                    metadata = VoiceMemoPluginMetadata.get(),
-                    instance = voiceMemoPlugin
-                )
+            val voiceMemoLoaded = LoadedPlugin(
+                metadata = VoiceMemoPluginMetadata.get(),
+                instance = voiceMemoPlugin
             )
+            if (pluginPreferences.isPluginEnabled("voice_memo")) {
+                toolRegistry.registerPlugin(voiceMemoLoaded)
+            }
+            pluginEngine.registerLoadedPlugin(voiceMemoLoaded)
         } catch (e: Exception) {
             e.printStackTrace()
         }

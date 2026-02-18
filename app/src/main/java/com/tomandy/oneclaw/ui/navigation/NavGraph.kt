@@ -99,7 +99,9 @@ fun OneClawNavGraph(
     // so the Chat composable never leaves composition during Chat<->History cycles.
     var showHistory by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    val providers by settingsViewModel.providers.collectAsState()
+
+    LaunchedEffect(providers) {
         llmClientProvider.reloadApiKeys()
         availableModels = llmClientProvider.getAvailableModels()
         if (availableModels.isNotEmpty() && selectedModel !in availableModels.map { it.first }) {

@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import java.util.UUID
@@ -134,6 +135,14 @@ class ToolExecutor(
             }
             Log.d("ToolExecutor", "Saving tool result to database")
 
+            val resultImagePaths = when (result) {
+                is ToolResult.Success -> result.imagePaths.takeIf { it.isNotEmpty() }?.let { paths ->
+                    buildJsonArray {
+                        paths.forEach { add(JsonPrimitive(it)) }
+                    }.toString()
+                }
+                else -> null
+            }
             val resultMessage = MessageRecord(
                 id = UUID.randomUUID().toString(),
                 conversationId = conversationId,
@@ -141,7 +150,8 @@ class ToolExecutor(
                 content = storedContent,
                 toolCallId = toolCall.id,
                 toolName = toolCall.function.name,
-                timestamp = System.currentTimeMillis()
+                timestamp = System.currentTimeMillis(),
+                imagePaths = resultImagePaths
             )
             messageStore.insert(resultMessage)
 

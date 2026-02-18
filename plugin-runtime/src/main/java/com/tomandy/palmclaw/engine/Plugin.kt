@@ -84,7 +84,8 @@ sealed class ToolResult {
      */
     data class Success(
         val output: String,
-        val metadata: Map<String, String> = emptyMap()
+        val metadata: Map<String, String> = emptyMap(),
+        val imagePaths: List<String> = emptyList()
     ) : ToolResult()
 
     /**

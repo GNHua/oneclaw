@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.tomandy.palmclaw.data.ModelPreferences
 import com.tomandy.palmclaw.pluginmanager.PluginPreferences
 import com.tomandy.palmclaw.pluginmanager.UserPluginManager
+import com.tomandy.palmclaw.engine.GoogleAuthProvider
 import com.tomandy.palmclaw.engine.LoadedPlugin
 import com.tomandy.palmclaw.engine.PluginMetadata
 import com.tomandy.palmclaw.llm.LlmProvider
@@ -26,8 +27,17 @@ class SettingsViewModel(
     private val loadedPlugins: List<LoadedPlugin>,
     private val userPluginManager: UserPluginManager,
     private val onApiKeyChanged: suspend () -> Unit,
-    private val onPluginToggled: (String, Boolean) -> Unit
+    private val onPluginToggled: (String, Boolean) -> Unit,
+    private val googleAuthProvider: GoogleAuthProvider
 ) : ViewModel() {
+
+    companion object {
+        private val GOOGLE_PLUGIN_IDS = setOf(
+            "google-gmail", "google-gmail-settings", "google-calendar",
+            "google-tasks", "google-contacts", "google-drive",
+            "google-docs", "google-sheets", "google-slides", "google-forms"
+        )
+    }
 
     private val _providers = MutableStateFlow<List<String>>(emptyList())
     val providers: StateFlow<List<String>> = _providers.asStateFlow()
@@ -58,12 +68,41 @@ class SettingsViewModel(
                 isUserPlugin = loaded.metadata.id in userPluginIds
             )
         }
+        viewModelScope.launch { refreshPluginStates() }
+    }
+
+    private suspend fun refreshPluginStates() {
+        val hasOpenAiKey = !credentialVault.getApiKey("OpenAI").isNullOrBlank()
+        val googleSignedIn = googleAuthProvider.isSignedIn()
+
+        _plugins.value = _plugins.value.map { state ->
+            when {
+                state.metadata.id == "image-gen" && !hasOpenAiKey -> state.copy(
+                    toggleable = false,
+                    toggleDisabledReason = "Requires OpenAI API key"
+                )
+                state.metadata.id in GOOGLE_PLUGIN_IDS && !googleSignedIn -> state.copy(
+                    toggleable = false,
+                    toggleDisabledReason = "Requires Google sign-in"
+                )
+                else -> state.copy(toggleable = true, toggleDisabledReason = null)
+            }
+        }
     }
 
     fun togglePlugin(pluginId: String, enabled: Boolean) {
         onPluginToggled(pluginId, enabled)
         _plugins.value = _plugins.value.map { state ->
             if (state.metadata.id == pluginId) state.copy(enabled = enabled) else state
+        }
+    }
+
+    fun onGoogleSignInChanged(signedIn: Boolean) {
+        viewModelScope.launch {
+            GOOGLE_PLUGIN_IDS.forEach { id ->
+                togglePlugin(id, signedIn)
+            }
+            refreshPluginStates()
         }
     }
 
@@ -166,6 +205,12 @@ class SettingsViewModel(
                 // Notify app that API key changed
                 onApiKeyChanged()
 
+                // Auto-enable image-gen when OpenAI key is added
+                if (provider == "OpenAI") {
+                    togglePlugin("image-gen", true)
+                    refreshPluginStates()
+                }
+
                 // Reset status after a delay
                 kotlinx.coroutines.delay(2000)
                 _saveStatus.value = SaveStatus.Idle
@@ -192,6 +237,12 @@ class SettingsViewModel(
 
                 // Reload providers list to remove deleted provider
                 loadProviders()
+
+                // Auto-disable image-gen when OpenAI key is removed
+                if (provider == "OpenAI") {
+                    togglePlugin("image-gen", false)
+                    refreshPluginStates()
+                }
 
                 // Reset status after a delay
                 kotlinx.coroutines.delay(1500)
@@ -306,5 +357,7 @@ sealed class ImportStatus {
 data class PluginUiState(
     val metadata: PluginMetadata,
     val enabled: Boolean,
-    val isUserPlugin: Boolean = false
+    val isUserPlugin: Boolean = false,
+    val toggleable: Boolean = true,
+    val toggleDisabledReason: String? = null
 )

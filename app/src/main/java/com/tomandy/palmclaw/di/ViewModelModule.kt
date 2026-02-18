@@ -1,6 +1,7 @@
 package com.tomandy.palmclaw.di
 
 import com.tomandy.palmclaw.backup.BackupViewModel
+import com.tomandy.palmclaw.engine.GoogleAuthProvider
 import com.tomandy.palmclaw.engine.PluginEngine
 import com.tomandy.palmclaw.llm.LlmClientProvider
 import com.tomandy.palmclaw.plugin.PluginCoordinator
@@ -40,7 +41,8 @@ val viewModelModule = module {
             loadedPlugins = get<PluginEngine>().getAllPlugins(),
             userPluginManager = get(),
             onApiKeyChanged = { llmClientProvider.reloadApiKeys() },
-            onPluginToggled = { id, enabled -> pluginCoordinator.setPluginEnabled(id, enabled) }
+            onPluginToggled = { id, enabled -> pluginCoordinator.setPluginEnabled(id, enabled) },
+            googleAuthProvider = get<GoogleAuthProvider>()
         )
     }
 

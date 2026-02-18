@@ -2,10 +2,14 @@ package com.tomandy.palmclaw.ui.chat
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -26,15 +30,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SaveAlt
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,11 +64,12 @@ import com.tomandy.palmclaw.llm.NetworkConfig
 import androidx.compose.ui.text.style.TextOverflow
 import com.tomandy.palmclaw.llm.ToolCall
 import com.tomandy.palmclaw.util.formatTimestamp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.File
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -250,6 +262,7 @@ fun MessageBubble(
 @Composable
 private fun MessageImageThumbnail(filePath: String) {
     var bitmap by remember(filePath) { mutableStateOf<ImageBitmap?>(null) }
+    var showActionSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(filePath) {
         bitmap = withContext(Dispatchers.IO) {
@@ -270,7 +283,104 @@ private fun MessageImageThumbnail(filePath: String) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
+                .clickable { showActionSheet = true }
         )
+    }
+
+    if (showActionSheet) {
+        ImageActionSheet(
+            filePath = filePath,
+            onDismiss = { showActionSheet = false }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ImageActionSheet(
+    filePath: String,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        ListItem(
+            headlineContent = { Text("Save to Gallery") },
+            leadingContent = {
+                Icon(Icons.Default.SaveAlt, contentDescription = null)
+            },
+            modifier = Modifier.clickable {
+                scope.launch {
+                    val saved = withContext(Dispatchers.IO) {
+                        saveImageToGallery(context, File(filePath))
+                    }
+                    if (saved) {
+                        Toast.makeText(context, "Saved to gallery", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Failed to save image", Toast.LENGTH_SHORT).show()
+                    }
+                    onDismiss()
+                }
+            }
+        )
+        ListItem(
+            headlineContent = { Text("Share") },
+            leadingContent = {
+                Icon(Icons.Default.Share, contentDescription = null)
+            },
+            modifier = Modifier.clickable {
+                try {
+                    val file = File(filePath)
+                    val uri = FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        file
+                    )
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "image/*"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(Intent.createChooser(intent, null))
+                } catch (_: Exception) {
+                    Toast.makeText(context, "Failed to share image", Toast.LENGTH_SHORT).show()
+                }
+                onDismiss()
+            }
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+private fun saveImageToGallery(context: Context, file: File): Boolean {
+    return try {
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, file.name)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/PalmClaw")
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
+        }
+        val uri = context.contentResolver.insert(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+        ) ?: return false
+        context.contentResolver.openOutputStream(uri)?.use { out ->
+            file.inputStream().use { it.copyTo(out) }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            values.clear()
+            values.put(MediaStore.Images.Media.IS_PENDING, 0)
+            context.contentResolver.update(uri, values, null, null)
+        }
+        true
+    } catch (_: Exception) {
+        false
     }
 }
 

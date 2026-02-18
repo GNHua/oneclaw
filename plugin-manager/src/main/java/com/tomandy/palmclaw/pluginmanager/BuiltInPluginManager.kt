@@ -22,6 +22,12 @@ class BuiltInPluginManager(
     companion object {
         private const val TAG = "BuiltInPluginManager"
 
+        private val GOOGLE_PLUGIN_IDS = setOf(
+            "google-gmail", "google-gmail-settings", "google-calendar",
+            "google-tasks", "google-contacts", "google-drive",
+            "google-docs", "google-sheets", "google-slides", "google-forms"
+        )
+
         private val BUILT_IN_PLUGIN_PATHS = listOf(
             "plugins/calculator",
             "plugins/time",
@@ -56,6 +62,24 @@ class BuiltInPluginManager(
             val pluginContext = PluginContext(context, pluginId, credentialVault, googleAuthProvider)
             pluginEngine.loadFromAssets(path, pluginContext)
                 .onSuccess { loadedPlugin ->
+                    // Auto-disable image-gen if OpenAI API key is not configured
+                    if (loadedPlugin.metadata.id == "image-gen") {
+                        val hasOpenAiKey = !credentialVault.getApiKey("OpenAI").isNullOrBlank()
+                        if (!hasOpenAiKey && pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {
+                            pluginPreferences.setPluginEnabled(loadedPlugin.metadata.id, false)
+                            Log.i(TAG, "Auto-disabled image-gen: OpenAI API key not configured")
+                        }
+                    }
+
+                    // Auto-disable Google plugins if not signed in
+                    if (loadedPlugin.metadata.id in GOOGLE_PLUGIN_IDS) {
+                        val signedIn = googleAuthProvider?.isSignedIn() == true
+                        if (!signedIn && pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {
+                            pluginPreferences.setPluginEnabled(loadedPlugin.metadata.id, false)
+                            Log.i(TAG, "Auto-disabled ${loadedPlugin.metadata.id}: Google sign-in required")
+                        }
+                    }
+
                     if (pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {
                         toolRegistry.registerPlugin(loadedPlugin)
                     }

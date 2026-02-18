@@ -80,6 +80,20 @@ class OAuthGoogleAuthManager(
     }
 
     /**
+     * Return the stored OAuth client ID, or null if not configured.
+     */
+    suspend fun getClientId(): String? {
+        return credentialVault.getApiKey(KEY_CLIENT_ID)
+    }
+
+    /**
+     * Return the stored OAuth client secret, or null if not configured.
+     */
+    suspend fun getClientSecret(): String? {
+        return credentialVault.getApiKey(KEY_CLIENT_SECRET)
+    }
+
+    /**
      * Check if OAuth client credentials have been configured.
      */
     suspend fun hasOAuthCredentials(): Boolean {

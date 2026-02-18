@@ -1,6 +1,7 @@
 package com.tomandy.oneclaw.di
 
 import com.tomandy.oneclaw.backup.BackupViewModel
+import com.tomandy.oneclaw.engine.GoogleAuthProvider
 import com.tomandy.oneclaw.engine.PluginEngine
 import com.tomandy.oneclaw.llm.LlmClientProvider
 import com.tomandy.oneclaw.plugin.PluginCoordinator
@@ -40,7 +41,8 @@ val viewModelModule = module {
             loadedPlugins = get<PluginEngine>().getAllPlugins(),
             userPluginManager = get(),
             onApiKeyChanged = { llmClientProvider.reloadApiKeys() },
-            onPluginToggled = { id, enabled -> pluginCoordinator.setPluginEnabled(id, enabled) }
+            onPluginToggled = { id, enabled -> pluginCoordinator.setPluginEnabled(id, enabled) },
+            googleAuthProvider = get<GoogleAuthProvider>()
         )
     }
 

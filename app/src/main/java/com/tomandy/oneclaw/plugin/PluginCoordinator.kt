@@ -213,7 +213,15 @@ class PluginCoordinator(
                 metadata = WebPluginMetadata.get(),
                 instance = webPlugin
             )
-            toolRegistry.registerPlugin(webLoaded)
+            // Auto-disable if search API key is not configured
+            val searchProvider = credentialVault.getApiKey("plugin.web.search_provider") ?: "tavily"
+            val hasWebApiKey = !credentialVault.getApiKey("plugin.web.${searchProvider}_api_key").isNullOrBlank()
+            if (!hasWebApiKey && pluginPreferences.isPluginEnabled("web")) {
+                pluginPreferences.setPluginEnabled("web", false)
+            }
+            if (pluginPreferences.isPluginEnabled("web")) {
+                toolRegistry.registerPlugin(webLoaded)
+            }
             pluginEngine.registerLoadedPlugin(webLoaded)
         } catch (e: Exception) {
             e.printStackTrace()

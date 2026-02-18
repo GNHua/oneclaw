@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun GoogleAccountScreen(
     googleAuthManager: OAuthGoogleAuthManager,
+    onSignInChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -69,6 +70,7 @@ fun GoogleAccountScreen(
                     isSignedIn = true
                     email = googleAuthManager.getAccountEmail()
                     errorMessage = null
+                    onSignInChanged(true)
                 } else {
                     errorMessage = "Authorization failed. Check your Client ID and Secret."
                 }
@@ -123,6 +125,7 @@ fun GoogleAccountScreen(
                             googleAuthManager.signOut()
                             isSignedIn = false
                             email = null
+                            onSignInChanged(false)
                         } catch (e: Exception) {
                             errorMessage = "Sign-out failed: ${e.message}"
                         }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
@@ -40,12 +41,13 @@ class JsPlugin(
     private val metadata: PluginMetadata
 ) : Plugin {
     private var quickJs: QuickJs? = null
+    private lateinit var workspaceRoot: File
 
     override suspend fun onLoad(context: PluginContext) {
         quickJs = QuickJs.create(Dispatchers.Default)
         val js = quickJs!!
 
-        val workspaceRoot = File(
+        workspaceRoot = File(
             context.getApplicationContext().filesDir, "workspace"
         ).also { it.mkdirs() }
 
@@ -75,7 +77,14 @@ class JsPlugin(
                 ToolResult.Failure(error)
             } else {
                 val output = resultObj["output"]?.jsonPrimitive?.content ?: resultJson
-                ToolResult.Success(output)
+                val imagePaths = resultObj["imagePaths"]?.jsonArray?.mapNotNull { elem ->
+                    val relativePath = elem.jsonPrimitive.content
+                    val resolved = File(workspaceRoot, relativePath).canonicalFile
+                    if (resolved.path.startsWith(workspaceRoot.canonicalPath) && resolved.exists()) {
+                        resolved.absolutePath
+                    } else null
+                } ?: emptyList()
+                ToolResult.Success(output, imagePaths = imagePaths)
             }
         } catch (e: Exception) {
             ToolResult.Failure("JS execution error: ${e.message}", e)

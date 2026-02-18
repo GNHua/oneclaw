@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.tomandy.oneclaw.data.ModelPreferences
 import com.tomandy.oneclaw.pluginmanager.PluginPreferences
 import com.tomandy.oneclaw.pluginmanager.UserPluginManager
+import com.tomandy.oneclaw.engine.GoogleAuthProvider
 import com.tomandy.oneclaw.engine.LoadedPlugin
 import com.tomandy.oneclaw.engine.PluginMetadata
 import com.tomandy.oneclaw.llm.LlmProvider
@@ -26,8 +27,19 @@ class SettingsViewModel(
     private val loadedPlugins: List<LoadedPlugin>,
     private val userPluginManager: UserPluginManager,
     private val onApiKeyChanged: suspend () -> Unit,
-    private val onPluginToggled: (String, Boolean) -> Unit
+    private val onPluginToggled: (String, Boolean) -> Unit,
+    private val googleAuthProvider: GoogleAuthProvider
 ) : ViewModel() {
+
+    companion object {
+        private val GOOGLE_PLUGIN_IDS = setOf(
+            "google-gmail", "google-gmail-settings", "google-calendar",
+            "google-tasks", "google-contacts", "google-drive",
+            "google-docs", "google-sheets", "google-slides", "google-forms"
+        )
+
+        private val PLUGIN_CREDENTIAL_IDS = setOf("web", "smart-home", "notion")
+    }
 
     private val _providers = MutableStateFlow<List<String>>(emptyList())
     val providers: StateFlow<List<String>> = _providers.asStateFlow()
@@ -58,12 +70,68 @@ class SettingsViewModel(
                 isUserPlugin = loaded.metadata.id in userPluginIds
             )
         }
+        viewModelScope.launch { refreshPluginStates() }
+    }
+
+    private suspend fun refreshPluginStates() {
+        val hasOpenAiKey = !credentialVault.getApiKey("OpenAI").isNullOrBlank()
+        val googleSignedIn = googleAuthProvider.isSignedIn()
+
+        _plugins.value = _plugins.value.map { state ->
+            when {
+                state.metadata.id == "image-gen" && !hasOpenAiKey -> state.copy(
+                    toggleable = false,
+                    toggleDisabledReason = "Requires OpenAI API key"
+                )
+                state.metadata.id in GOOGLE_PLUGIN_IDS && !googleSignedIn -> state.copy(
+                    toggleable = false,
+                    toggleDisabledReason = "Requires Google sign-in"
+                )
+                state.metadata.id in PLUGIN_CREDENTIAL_IDS &&
+                    isPluginMissingCredentials(state) -> state.copy(
+                    toggleable = false,
+                    toggleDisabledReason = "Requires API key configuration"
+                )
+                else -> state.copy(toggleable = true, toggleDisabledReason = null)
+            }
+        }
+    }
+
+    private suspend fun isPluginMissingCredentials(state: PluginUiState): Boolean {
+        val creds = state.metadata.credentials
+        if (creds.isEmpty()) return false
+        val pluginId = state.metadata.id
+        // Resolve dropdown/scope values first
+        val scopeValues = mutableMapOf<String, String>()
+        creds.filter { it.options.isNotEmpty() }.forEach { cred ->
+            scopeValues[cred.key] =
+                credentialVault.getApiKey("plugin.$pluginId.${cred.key}") ?: ""
+        }
+        // Check non-dropdown credentials using scoped storage keys
+        return creds.filter { it.options.isEmpty() }.any { cred ->
+            val storageKey = if (cred.scopedBy.isNotEmpty()) {
+                val scope = scopeValues[cred.scopedBy] ?: ""
+                if (scope.isNotEmpty()) "${scope}_${cred.key}" else cred.key
+            } else {
+                cred.key
+            }
+            credentialVault.getApiKey("plugin.$pluginId.$storageKey").isNullOrBlank()
+        }
     }
 
     fun togglePlugin(pluginId: String, enabled: Boolean) {
         onPluginToggled(pluginId, enabled)
         _plugins.value = _plugins.value.map { state ->
             if (state.metadata.id == pluginId) state.copy(enabled = enabled) else state
+        }
+    }
+
+    fun onGoogleSignInChanged(signedIn: Boolean) {
+        viewModelScope.launch {
+            GOOGLE_PLUGIN_IDS.forEach { id ->
+                togglePlugin(id, signedIn)
+            }
+            refreshPluginStates()
         }
     }
 
@@ -166,6 +234,12 @@ class SettingsViewModel(
                 // Notify app that API key changed
                 onApiKeyChanged()
 
+                // Auto-enable image-gen when OpenAI key is added
+                if (provider == "OpenAI") {
+                    togglePlugin("image-gen", true)
+                    refreshPluginStates()
+                }
+
                 // Reset status after a delay
                 kotlinx.coroutines.delay(2000)
                 _saveStatus.value = SaveStatus.Idle
@@ -192,6 +266,12 @@ class SettingsViewModel(
 
                 // Reload providers list to remove deleted provider
                 loadProviders()
+
+                // Auto-disable image-gen when OpenAI key is removed
+                if (provider == "OpenAI") {
+                    togglePlugin("image-gen", false)
+                    refreshPluginStates()
+                }
 
                 // Reset status after a delay
                 kotlinx.coroutines.delay(1500)
@@ -251,6 +331,14 @@ class SettingsViewModel(
             } else {
                 credentialVault.saveApiKey(fullKey, value)
             }
+            if (pluginId in PLUGIN_CREDENTIAL_IDS) {
+                val pluginState = _plugins.value.find { it.metadata.id == pluginId }
+                if (pluginState != null) {
+                    val missing = isPluginMissingCredentials(pluginState)
+                    togglePlugin(pluginId, !missing)
+                }
+                refreshPluginStates()
+            }
         }
     }
 
@@ -306,5 +394,7 @@ sealed class ImportStatus {
 data class PluginUiState(
     val metadata: PluginMetadata,
     val enabled: Boolean,
-    val isUserPlugin: Boolean = false
+    val isUserPlugin: Boolean = false,
+    val toggleable: Boolean = true,
+    val toggleDisabledReason: String? = null
 )

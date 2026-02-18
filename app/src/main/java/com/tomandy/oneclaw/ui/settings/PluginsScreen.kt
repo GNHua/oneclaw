@@ -288,6 +288,13 @@ private fun PluginCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (!pluginState.toggleable && pluginState.toggleDisabledReason != null) {
+                    Text(
+                        text = pluginState.toggleDisabledReason,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
 
             Row(
@@ -304,7 +311,8 @@ private fun PluginCard(
                 }
                 Switch(
                     checked = pluginState.enabled,
-                    onCheckedChange = onToggle
+                    onCheckedChange = onToggle,
+                    enabled = pluginState.toggleable
                 )
             }
         }

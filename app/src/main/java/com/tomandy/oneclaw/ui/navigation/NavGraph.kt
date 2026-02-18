@@ -460,6 +460,9 @@ fun OneClawNavGraph(
                 ) { paddingValues ->
                     GoogleAccountScreen(
                         googleAuthManager = googleAuthManager,
+                        onSignInChanged = { signedIn ->
+                            settingsViewModel.onGoogleSignInChanged(signedIn)
+                        },
                         modifier = Modifier.padding(paddingValues)
                     )
                 }

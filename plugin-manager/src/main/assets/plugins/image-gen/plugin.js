@@ -73,5 +73,5 @@ async function generateImage(args) {
         output += "Revised prompt: " + revisedPrompt;
     }
 
-    return { output: output };
+    return { output: output, imagePaths: [filename] };
 }

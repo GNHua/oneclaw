@@ -13,12 +13,14 @@ import com.tomandy.oneclaw.engine.ToolResult
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import android.util.Log
 import java.net.URLEncoder
 import java.util.Locale
 
 class LocationPlugin : Plugin {
 
     private lateinit var pluginContext: PluginContext
+    var permissionCallback: LocationPermissionCallback? = null
 
     override suspend fun onLoad(context: PluginContext) {
         pluginContext = context
@@ -36,8 +38,10 @@ class LocationPlugin : Plugin {
 
     private suspend fun getLocation(arguments: JsonObject): ToolResult {
         if (!hasLocationPermission()) {
+            Log.d("LocationPlugin", "Permission not granted, invoking callback (callback=${permissionCallback != null})")
+            permissionCallback?.onLocationPermissionNeeded()
             return ToolResult.Failure(
-                "Location permission not granted. Please grant location permission in app settings."
+                "Location permission not granted. The user has been prompted to grant permission. Please try again after permission is granted."
             )
         }
 

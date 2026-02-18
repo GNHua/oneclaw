@@ -238,6 +238,12 @@ class PluginCoordinator(
                 credentialVault = credentialVault
             )
             locationPlugin.onLoad(locationContext)
+            locationPlugin.permissionCallback = object : com.tomandy.oneclaw.location.LocationPermissionCallback {
+                override fun onLocationPermissionNeeded() {
+                    android.util.Log.d("PluginCoordinator", "Location permission needed, emitting UI event")
+                    ChatExecutionTracker.emitEvent(ChatExecutionTracker.UiEvent.LocationPermissionNeeded)
+                }
+            }
             val locationLoaded = LoadedPlugin(
                 metadata = com.tomandy.oneclaw.location.LocationPluginMetadata.get(),
                 instance = locationPlugin

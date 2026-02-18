@@ -1,7 +1,10 @@
 package com.tomandy.oneclaw.ui.chat
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.provider.Settings
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -248,6 +251,29 @@ fun ChatScreen(
         }
     }
 
+    // Location permission launcher (triggered when LLM tool needs location)
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions.any { it.value }
+        if (!granted) {
+            scope.launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = "Location permission denied. Grant in app settings.",
+                    actionLabel = "Open Settings",
+                    duration = SnackbarDuration.Long
+                )
+                if (result == SnackbarResult.ActionPerformed) {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                }
+            }
+        }
+    }
+
     // Media picker launcher (images + videos)
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 4)
@@ -339,6 +365,22 @@ fun ChatScreen(
                     )
                     if (result == SnackbarResult.ActionPerformed) {
                         NotificationMediaServiceManager.openNotificationListenerSettings(context)
+                    }
+                }
+                is ChatExecutionTracker.UiEvent.LocationPermissionNeeded -> {
+                    Log.d("ChatScreen", "LocationPermissionNeeded event received")
+                    val result = snackbarHostState.showSnackbar(
+                        message = "Location permission required for location tools",
+                        actionLabel = "Grant",
+                        duration = SnackbarDuration.Long
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        locationPermissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
+                        )
                     }
                 }
             }

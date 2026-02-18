@@ -29,7 +29,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -235,8 +240,27 @@ fun GoogleAccountScreen(
                         style = MaterialTheme.typography.titleSmall
                     )
                     Spacer(Modifier.height(8.dp))
+                    val textColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    val linkColor = MaterialTheme.colorScheme.primary
+                    val bodySmall = MaterialTheme.typography.bodySmall
+                    val step1 = buildAnnotatedString {
+                        withStyle(SpanStyle(color = textColor)) {
+                            append("1. Go to ")
+                        }
+                        pushLink(LinkAnnotation.Url("https://console.cloud.google.com"))
+                        withStyle(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)) {
+                            append("console.cloud.google.com")
+                        }
+                        pop()
+                        withStyle(SpanStyle(color = textColor)) {
+                            append(" and create a project")
+                        }
+                    }
+                    Text(
+                        text = step1,
+                        style = bodySmall
+                    )
                     val steps = listOf(
-                        "1. Go to console.cloud.google.com and create a project",
                         "2. Enable the APIs you need (Gmail, Calendar, Drive, etc.)",
                         "3. Configure the OAuth consent screen (External, Testing mode)",
                         "4. Add your Google account as a test user",
@@ -247,8 +271,8 @@ fun GoogleAccountScreen(
                     steps.forEach { step ->
                         Text(
                             text = step,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = bodySmall,
+                            color = textColor
                         )
                     }
                 }

@@ -24,7 +24,7 @@ import com.tomandy.palmclaw.pluginmanager.UserPluginManager
 import com.tomandy.palmclaw.scheduler.AgentExecutor
 import com.tomandy.palmclaw.scheduler.CronjobManager
 import com.tomandy.palmclaw.scheduler.data.CronjobDatabase
-import com.tomandy.palmclaw.google.GoogleAuthManager
+import com.tomandy.palmclaw.google.OAuthGoogleAuthManager
 import com.tomandy.palmclaw.security.CredentialVaultImpl
 import com.tomandy.palmclaw.skill.SkillLoader
 import com.tomandy.palmclaw.skill.SkillPreferences
@@ -55,9 +55,9 @@ val appModule = module {
     single<AppCredentialVault> { CredentialVaultImpl(androidContext()) }
     single<EngineCredentialVault> { get<AppCredentialVault>() }
 
-    // Google OAuth
-    single { GoogleAuthManager(androidContext()) }
-    single<GoogleAuthProvider> { get<GoogleAuthManager>() }
+    // Google OAuth (BYOK via AppAuth)
+    single { OAuthGoogleAuthManager(androidContext(), get<AppCredentialVault>()) }
+    single<GoogleAuthProvider> { get<OAuthGoogleAuthManager>() }
 
     // Preferences
     single { ModelPreferences(androidContext()) }

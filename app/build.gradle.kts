@@ -115,7 +115,8 @@ dependencies {
     // Security
     implementation(libs.androidx.security.crypto)
 
-    // Google Sign-In
+    // Google Auth
+    implementation(libs.appauth)
     implementation(libs.play.services.auth)
 
     // Room

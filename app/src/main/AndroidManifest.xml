@@ -57,6 +57,19 @@
             android:foregroundServiceType="dataSync"
             tools:node="merge" />
 
+        <!-- AppAuth redirect handler for BYOK Google OAuth -->
+        <activity
+            android:name="net.openid.appauth.RedirectUriReceiverActivity"
+            android:exported="true"
+            tools:node="replace">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.tomandy.palmclaw" android:path="/oauth2callback" />
+            </intent-filter>
+        </activity>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

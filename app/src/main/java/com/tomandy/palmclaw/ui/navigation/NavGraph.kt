@@ -46,7 +46,7 @@ import com.tomandy.palmclaw.ui.settings.AgentProfilesViewModel
 import com.tomandy.palmclaw.ui.settings.GoogleAccountScreen
 import com.tomandy.palmclaw.ui.settings.SkillsScreen
 import com.tomandy.palmclaw.ui.settings.SkillsViewModel
-import com.tomandy.palmclaw.google.GoogleAuthManager
+import com.tomandy.palmclaw.google.OAuthGoogleAuthManager
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -444,7 +444,7 @@ fun PalmClawNavGraph(
             }
 
             composable(Screen.GoogleAccount.route) {
-                val googleAuthManager: GoogleAuthManager = koinInject()
+                val googleAuthManager: OAuthGoogleAuthManager = koinInject()
 
                 Scaffold(
                     topBar = {

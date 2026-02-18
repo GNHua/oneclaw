@@ -19,7 +19,7 @@
 
 ## What is OneClaw?
 
-OneClaw is a **local-first, BYOK (Bring Your Own Key)** AI assistant for Android. It goes beyond simple chat -- the agent can call tools, run plugins, schedule tasks, manage persistent memory, and automate your device through an extensible plugin system.
+OneClaw is a **local-first, BYOK (Bring Your Own Key)** AI assistant for Android. No root access required. It goes beyond simple chat -- the agent can call tools, run plugins, schedule tasks, manage persistent memory, and automate your device through an extensible plugin system.
 
 All data stays on your device. You provide your own API keys. Nothing is collected.
 

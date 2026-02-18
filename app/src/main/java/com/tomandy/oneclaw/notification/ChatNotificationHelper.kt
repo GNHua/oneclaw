@@ -1,14 +1,16 @@
 package com.tomandy.oneclaw.notification
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
+import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.tomandy.oneclaw.MainActivity
 
 object ChatNotificationHelper {
@@ -60,7 +62,11 @@ object ChatNotificationHelper {
 
         val mgr = NotificationManagerCompat.from(context)
         Log.d(TAG, "Posting notification: enabled=${mgr.areNotificationsEnabled()}, id=${conversationId.hashCode()}")
-        mgr.notify(conversationId.hashCode(), notification)
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+            mgr.notify(conversationId.hashCode(), notification)
+        } else {
+            Log.w(TAG, "POST_NOTIFICATIONS permission not granted, skipping notification")
+        }
     }
 
     fun dismiss(context: Context, conversationId: String) {
@@ -68,18 +74,16 @@ object ChatNotificationHelper {
     }
 
     private fun ensureChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = CHANNEL_DESCRIPTION
-                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
-            }
-            val mgr = context.getSystemService(NotificationManager::class.java)
-            mgr.deleteNotificationChannel("chat_response_channel") // cleanup old channel
-            mgr.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            CHANNEL_NAME,
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = CHANNEL_DESCRIPTION
+            lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
         }
+        val mgr = context.getSystemService(NotificationManager::class.java)
+        mgr.deleteNotificationChannel("chat_response_channel") // cleanup old channel
+        mgr.createNotificationChannel(channel)
     }
 }

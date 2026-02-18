@@ -520,17 +520,15 @@ class ChatExecutionService : Service(), KoinComponent {
             .also { ensureChannel() }
 
     private fun ensureChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Chat Processing",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Shown while a chat message is being processed"
-            }
-            getSystemService(NotificationManager::class.java)
-                .createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "Chat Processing",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Shown while a chat message is being processed"
         }
+        getSystemService(NotificationManager::class.java)
+            .createNotificationChannel(channel)
     }
 
     // -- Memory flush ---------------------------------------------------------
@@ -651,11 +649,7 @@ class ChatExecutionService : Service(), KoinComponent {
                     putStringArrayListExtra(EXTRA_DOCUMENT_MIMETYPES, ArrayList(documentMimeTypes))
                 }
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            context.startForegroundService(intent)
         }
 
         fun cancelExecution(context: Context, conversationId: String) {
@@ -671,11 +665,7 @@ class ChatExecutionService : Service(), KoinComponent {
                 action = ACTION_SUMMARIZE
                 putExtra(EXTRA_CONVERSATION_ID, conversationId)
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            context.startForegroundService(intent)
         }
 
         fun injectMessage(context: Context, conversationId: String, message: String) {

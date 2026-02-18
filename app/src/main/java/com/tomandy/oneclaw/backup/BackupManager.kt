@@ -2,6 +2,7 @@ package com.tomandy.oneclaw.backup
 
 import android.content.Context
 import android.net.Uri
+import androidx.core.content.pm.PackageInfoCompat
 import androidx.room.withTransaction
 import com.tomandy.oneclaw.data.AppDatabase
 import com.tomandy.oneclaw.data.ModelPreferences
@@ -94,9 +95,8 @@ class BackupManager(
 
             // 4. Write manifest
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            @Suppress("DEPRECATION")
             val manifest = BackupManifest(
-                appVersionCode = packageInfo.longVersionCode.toInt(),
+                appVersionCode = PackageInfoCompat.getLongVersionCode(packageInfo).toInt(),
                 appVersionName = packageInfo.versionName ?: "",
                 exportTimestamp = System.currentTimeMillis(),
                 includesMedia = includeMedia,

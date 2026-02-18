@@ -97,6 +97,7 @@ fun ChatScreen(
     val sttProvider: AndroidSttProvider = koinInject()
     val llmClientProvider: LlmClientProvider = koinInject()
     val audioState by audioInputController.state.collectAsState()
+    val selectedProvider by llmClientProvider.selectedProvider.collectAsState()
 
     // Track whether this screen is visible and dismiss any pending notification.
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -539,7 +540,7 @@ fun ChatScreen(
                 },
                 isProcessing = isProcessing,
                 isRecording = audioState == AudioState.RECORDING || audioState == AudioState.LISTENING,
-                micAvailable = audioInputController.isMicAvailable(llmClientProvider.selectedProvider.value),
+                micAvailable = audioInputController.isMicAvailable(selectedProvider),
                 attachedImages = attachedImages,
                 attachedAudios = attachedAudios,
                 attachedVideos = attachedVideos,

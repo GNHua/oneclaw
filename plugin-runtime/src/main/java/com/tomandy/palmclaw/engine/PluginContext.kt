@@ -130,7 +130,7 @@ class PluginContext(
      * ```
      */
     suspend fun getCredential(key: String): String? {
-        return credentialVault.getApiKey("${pluginId}_$key")
+        return credentialVault.getApiKey("plugin.${pluginId}.$key")
     }
 
     /**
@@ -147,7 +147,7 @@ class PluginContext(
      * ```
      */
     suspend fun saveCredential(key: String, value: String) {
-        credentialVault.saveApiKey("${pluginId}_$key", value)
+        credentialVault.saveApiKey("plugin.${pluginId}.$key", value)
     }
 
     /**
@@ -156,7 +156,7 @@ class PluginContext(
      * @param key The credential key to delete
      */
     suspend fun deleteCredential(key: String) {
-        credentialVault.deleteApiKey("${pluginId}_$key")
+        credentialVault.deleteApiKey("plugin.${pluginId}.$key")
     }
 
     /**

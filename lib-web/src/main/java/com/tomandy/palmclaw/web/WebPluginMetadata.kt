@@ -1,5 +1,6 @@
 package com.tomandy.palmclaw.web
 
+import com.tomandy.palmclaw.engine.CredentialDefinition
 import com.tomandy.palmclaw.engine.PluginMetadata
 import com.tomandy.palmclaw.engine.ToolDefinition
 import kotlinx.serialization.json.JsonPrimitive
@@ -21,7 +22,21 @@ object WebPluginMetadata {
                 webSearchTool(),
                 webFetchTool()
             ),
-            category = "web"
+            category = "web",
+            credentials = listOf(
+                CredentialDefinition(
+                    key = "search_provider",
+                    label = "Search Provider",
+                    description = "Defaults to tavily",
+                    options = listOf("tavily", "brave")
+                ),
+                CredentialDefinition(
+                    key = "api_key",
+                    label = "API Key",
+                    description = "API key for the selected search provider",
+                    scopedBy = "search_provider"
+                )
+            )
         )
     }
 

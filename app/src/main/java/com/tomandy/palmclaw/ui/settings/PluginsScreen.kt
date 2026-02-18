@@ -118,6 +118,7 @@ fun PluginsScreen(
     selectedPlugin?.let { plugin ->
         PluginDetailSheet(
             pluginState = plugin,
+            viewModel = viewModel,
             onDismiss = { selectedPlugin = null }
         )
     }

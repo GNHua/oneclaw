@@ -8,6 +8,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -124,10 +126,11 @@ fun ProvidersScreen(
                             PasswordVisualTransformation()
                         },
                         trailingIcon = {
-                            TextButton(onClick = { isApiKeyVisible = !isApiKeyVisible }) {
-                                Text(
-                                    text = if (isApiKeyVisible) "Hide" else "Show",
-                                    style = MaterialTheme.typography.bodySmall
+                            IconButton(onClick = { isApiKeyVisible = !isApiKeyVisible }) {
+                                Icon(
+                                    imageVector = if (isApiKeyVisible) Icons.Default.VisibilityOff
+                                        else Icons.Default.Visibility,
+                                    contentDescription = if (isApiKeyVisible) "Hide" else "Show"
                                 )
                             }
                         },

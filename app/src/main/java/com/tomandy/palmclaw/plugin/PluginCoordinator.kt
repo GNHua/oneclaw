@@ -203,12 +203,12 @@ class PluginCoordinator(
                 credentialVault = credentialVault
             )
             webPlugin.onLoad(webContext)
-            toolRegistry.registerPlugin(
-                LoadedPlugin(
-                    metadata = WebPluginMetadata.get(),
-                    instance = webPlugin
-                )
+            val webLoaded = LoadedPlugin(
+                metadata = WebPluginMetadata.get(),
+                instance = webPlugin
             )
+            toolRegistry.registerPlugin(webLoaded)
+            pluginEngine.registerLoadedPlugin(webLoaded)
         } catch (e: Exception) {
             e.printStackTrace()
         }

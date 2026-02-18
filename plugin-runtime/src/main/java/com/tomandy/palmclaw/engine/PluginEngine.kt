@@ -129,6 +129,14 @@ class PluginEngine(
     }
 
     /**
+     * Manually register a pre-built LoadedPlugin (e.g., a built-in Kotlin plugin)
+     * so it appears in [getAllPlugins].
+     */
+    fun registerLoadedPlugin(plugin: LoadedPlugin) {
+        loadedPlugins[plugin.metadata.id] = plugin
+    }
+
+    /**
      * Get a loaded plugin.
      */
     fun getLoadedPlugin(pluginId: String): LoadedPlugin? {

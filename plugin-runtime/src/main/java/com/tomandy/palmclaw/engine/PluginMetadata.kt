@@ -82,7 +82,26 @@ data class PluginMetadata(
      * "calendar") are only loaded when the LLM calls activate_tools.
      * Defaults to "core" so existing plugins work without changes.
      */
-    val category: String = "core"
+    val category: String = "core",
+
+    /**
+     * Credential definitions for plugin-specific configuration.
+     * Each entry describes a credential the user can configure in Settings.
+     */
+    @kotlinx.serialization.Transient
+    val credentials: List<CredentialDefinition> = emptyList()
+)
+
+/**
+ * Describes a configurable credential for a plugin.
+ */
+data class CredentialDefinition(
+    val key: String,
+    val label: String,
+    val description: String = "",
+    val options: List<String> = emptyList(),
+    /** When set, this credential's storage key is prefixed by the current value of the referenced dropdown credential. */
+    val scopedBy: String = ""
 )
 
 /**

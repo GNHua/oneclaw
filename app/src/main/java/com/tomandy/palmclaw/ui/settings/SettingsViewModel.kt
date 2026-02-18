@@ -241,6 +241,22 @@ class SettingsViewModel(
     }
 
     /**
+     * Saves a plugin-specific credential.
+     */
+    fun savePluginCredential(pluginId: String, key: String, value: String) {
+        viewModelScope.launch {
+            credentialVault.saveApiKey("plugin.${pluginId}.${key}", value)
+        }
+    }
+
+    /**
+     * Retrieves a plugin-specific credential.
+     */
+    suspend fun getPluginCredential(pluginId: String, key: String): String {
+        return credentialVault.getApiKey("plugin.${pluginId}.${key}") ?: ""
+    }
+
+    /**
      * Save the selected model for a provider
      */
     fun saveModel(provider: LlmProvider, model: String) {

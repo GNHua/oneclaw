@@ -6,10 +6,10 @@ object WebSearchProviderFactory {
 
     suspend fun create(context: PluginContext): WebSearchProvider {
         val provider = context.getCredential("search_provider") ?: "tavily"
-        val apiKey = context.getCredential("api_key")
+        val apiKey = context.getCredential("${provider}_api_key")
             ?: throw IllegalStateException(
-                "Web search API key not configured. " +
-                    "Set the 'web_api_key' credential in Settings."
+                "API key for $provider not configured. " +
+                    "Set it in Settings > Plugins > Web Search & Fetch."
             )
 
         return when (provider.lowercase()) {

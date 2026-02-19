@@ -2,9 +2,8 @@ package com.tomandy.oneclaw.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -13,8 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.tomandy.oneclaw.ui.drawScrollbar
-import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
+import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.Dimens
 import com.tomandy.oneclaw.skill.SkillEntry
 import com.tomandy.oneclaw.skill.SkillSource
@@ -51,20 +49,19 @@ fun SkillsScreen(
                 )
             }
         } else {
-            val listState = rememberLazyListState()
+            val scrollState = rememberScrollState()
             val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            val heightCache = rememberLazyListHeightCache()
 
-            LazyColumn(
-                state = listState,
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .drawScrollbar(listState, scrollbarColor, heightCache)
-                    .padding(horizontal = Dimens.ScreenPadding),
-                verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
-                contentPadding = PaddingValues(top = Dimens.ScreenPadding, bottom = 80.dp)
+                    .drawColumnScrollbar(scrollState, scrollbarColor)
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = Dimens.ScreenPadding)
+                    .padding(top = Dimens.ScreenPadding, bottom = 80.dp),
+                verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing)
             ) {
-                items(skills, key = { it.metadata.name }) { skill ->
+                skills.forEach { skill ->
                     SkillCard(
                         skill = skill,
                         enabled = viewModel.isSkillEnabled(skill.metadata.name),

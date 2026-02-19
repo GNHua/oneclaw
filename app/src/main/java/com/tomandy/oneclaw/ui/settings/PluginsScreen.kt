@@ -3,12 +3,10 @@ package com.tomandy.oneclaw.ui.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -20,8 +18,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.tomandy.oneclaw.ui.drawScrollbar
-import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
+import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.Dimens
 
 private enum class PluginGroup(val label: String) {
@@ -64,7 +61,7 @@ private fun classifyPlugin(plugin: PluginUiState): PluginGroup {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PluginsScreen(
     viewModel: SettingsViewModel,
@@ -97,9 +94,8 @@ fun PluginsScreen(
                 )
             }
         } else {
-            val listState = rememberLazyListState()
+            val scrollState = rememberScrollState()
             val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            val heightCache = rememberLazyListHeightCache()
 
             val groupedPlugins by remember(plugins) {
                 derivedStateOf {
@@ -112,20 +108,18 @@ fun PluginsScreen(
                 }
             }
 
-            LazyColumn(
-                state = listState,
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .drawScrollbar(listState, scrollbarColor, heightCache)
-                    .padding(horizontal = Dimens.ScreenPadding),
-                verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
-                contentPadding = PaddingValues(top = Dimens.ScreenPadding, bottom = 80.dp)
+                    .drawColumnScrollbar(scrollState, scrollbarColor)
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = Dimens.ScreenPadding)
+                    .padding(top = Dimens.ScreenPadding, bottom = 80.dp),
+                verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing)
             ) {
                 groupedPlugins.forEach { (group, groupPlugins) ->
-                    stickyHeader(key = "header_${group.name}") {
-                        SectionHeader(title = group.label)
-                    }
-                    items(groupPlugins, key = { it.metadata.id }) { pluginState ->
+                    SectionHeader(title = group.label)
+                    groupPlugins.forEach { pluginState ->
                         PluginCard(
                             pluginState = pluginState,
                             onClick = { selectedPlugin = pluginState },

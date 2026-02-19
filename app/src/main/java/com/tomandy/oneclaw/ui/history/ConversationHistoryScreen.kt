@@ -1,6 +1,5 @@
 package com.tomandy.oneclaw.ui.history
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -173,14 +172,22 @@ fun ConversationHistoryScreen(
             ) { index ->
                 val conv = pagingItems[index] ?: return@items
                 val isActive = conv.id == activeId
-                val dismissState = rememberSwipeToDismissBoxState()
+                val dismissState = rememberSwipeToDismissBoxState(
+                    positionalThreshold = { it * 0.5f }
+                )
 
                 LaunchedEffect(dismissState.currentValue) {
                     if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart && !isActive) {
                         pendingDeleteId = conv.id
-                        dismissState.snapTo(SwipeToDismissBoxValue.Settled)
                     } else if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
                         dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+                    }
+                }
+
+                // Reset after dialog is dismissed (user cancelled)
+                LaunchedEffect(pendingDeleteId) {
+                    if (pendingDeleteId != conv.id && dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
+                        dismissState.reset()
                     }
                 }
 
@@ -189,18 +196,13 @@ fun ConversationHistoryScreen(
                     enableDismissFromStartToEnd = false,
                     enableDismissFromEndToStart = !isActive,
                     backgroundContent = {
-                        val color by animateColorAsState(
-                            targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
-                                MaterialTheme.colorScheme.errorContainer
-                            } else {
-                                MaterialTheme.colorScheme.surface
-                            },
-                            label = "swipe-bg"
-                        )
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(color)
+                                .background(
+                                    MaterialTheme.colorScheme.errorContainer,
+                                    RoundedCornerShape(16.dp)
+                                )
                                 .padding(end = 24.dp),
                             contentAlignment = Alignment.CenterEnd
                         ) {

@@ -100,6 +100,7 @@ class PluginCoordinator(
             )
 
             toolRegistry.registerPlugin(loadedPlugin)
+            pluginEngine.registerLoadedPlugin(loadedPlugin)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -113,12 +114,12 @@ class PluginCoordinator(
                 credentialVault = credentialVault
             )
             workspacePlugin.onLoad(workspaceContext)
-            toolRegistry.registerPlugin(
-                LoadedPlugin(
-                    metadata = WorkspacePluginMetadata.get(),
-                    instance = workspacePlugin
-                )
+            val workspaceLoaded = LoadedPlugin(
+                metadata = WorkspacePluginMetadata.get(),
+                instance = workspacePlugin
             )
+            toolRegistry.registerPlugin(workspaceLoaded)
+            pluginEngine.registerLoadedPlugin(workspaceLoaded)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -132,33 +133,33 @@ class PluginCoordinator(
                 credentialVault = credentialVault
             )
             memoryPlugin.onLoad(memoryContext)
-            toolRegistry.registerPlugin(
-                LoadedPlugin(
-                    metadata = MemoryPluginMetadata.get(),
-                    instance = memoryPlugin
-                )
+            val memoryLoaded = LoadedPlugin(
+                metadata = MemoryPluginMetadata.get(),
+                instance = memoryPlugin
             )
+            toolRegistry.registerPlugin(memoryLoaded)
+            pluginEngine.registerLoadedPlugin(memoryLoaded)
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
         // Register config plugin
         val configPlugin = ConfigPlugin(configRegistry)
-        toolRegistry.registerPlugin(
-            LoadedPlugin(
-                metadata = ConfigPluginMetadata.get(),
-                instance = configPlugin
-            )
+        val configLoaded = LoadedPlugin(
+            metadata = ConfigPluginMetadata.get(),
+            instance = configPlugin
         )
+        toolRegistry.registerPlugin(configLoaded)
+        pluginEngine.registerLoadedPlugin(configLoaded)
 
         // Register search plugin
         val searchPlugin = SearchPlugin(messageDao, conversationDao)
-        toolRegistry.registerPlugin(
-            LoadedPlugin(
-                metadata = SearchPluginMetadata.get(),
-                instance = searchPlugin
-            )
+        val searchLoaded = LoadedPlugin(
+            metadata = SearchPluginMetadata.get(),
+            instance = searchPlugin
         )
+        toolRegistry.registerPlugin(searchLoaded)
+        pluginEngine.registerLoadedPlugin(searchLoaded)
 
         // Register agent delegation plugin (only if there are non-main profiles)
         try {
@@ -176,12 +177,12 @@ class PluginCoordinator(
                     skillRepository = skillRepository,
                     filesDir = context.filesDir
                 )
-                toolRegistry.registerPlugin(
-                    LoadedPlugin(
-                        metadata = DelegateAgentPluginMetadata.get(profiles),
-                        instance = delegatePlugin
-                    )
+                val delegateLoaded = LoadedPlugin(
+                    metadata = DelegateAgentPluginMetadata.get(profiles),
+                    instance = delegatePlugin
                 )
+                toolRegistry.registerPlugin(delegateLoaded)
+                pluginEngine.registerLoadedPlugin(delegateLoaded)
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -444,5 +445,6 @@ class PluginCoordinator(
             instance = managementTool
         )
         toolRegistry.registerPlugin(loadedPlugin)
+        pluginEngine.registerLoadedPlugin(loadedPlugin)
     }
 }

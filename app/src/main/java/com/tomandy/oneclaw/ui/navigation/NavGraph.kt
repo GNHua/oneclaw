@@ -239,10 +239,11 @@ fun OneClawNavGraph(
             }
 
             composable(Screen.Plugins.route) {
+                val pluginsList by settingsViewModel.plugins.collectAsState()
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text("Plugins") },
+                            title = { Text("Plugins (${pluginsList.size})") },
                             navigationIcon = {
                                 IconButton(onClick = { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
@@ -260,11 +261,12 @@ fun OneClawNavGraph(
 
             composable(Screen.Skills.route) {
                 val skillsViewModel: SkillsViewModel = koinViewModel()
+                val skillsList by skillsViewModel.skills.collectAsState()
 
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text("Skills") },
+                            title = { Text("Skills (${skillsList.size})") },
                             navigationIcon = {
                                 IconButton(onClick = { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")

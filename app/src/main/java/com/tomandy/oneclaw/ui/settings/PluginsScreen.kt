@@ -36,7 +36,7 @@ private enum class PluginGroup(val label: String) {
 }
 
 private val DEVICE_MEDIA_IDS = setOf(
-    "device-control", "camera", "voice-memo", "media-control", "notifications"
+    "device_control", "camera", "voice_memo", "media_control", "notifications"
 )
 private val COMMUNICATION_IDS = setOf("sms-phone")
 private val PRODUCTIVITY_IDS = setOf("notion")
@@ -45,8 +45,8 @@ private val UTILITIES_IDS = setOf(
     "web", "web-fetch", "location", "search", "qrcode", "pdf-tools", "time", "image-gen"
 )
 private val SYSTEM_IDS = setOf(
-    "workspace", "memory", "scheduler", "config", "delegate-agent", "activate-tools",
-    "install-plugin"
+    "workspace", "memory", "scheduler", "config", "delegate_agent", "activate_tools",
+    "plugin_management"
 )
 
 private fun classifyPlugin(plugin: PluginUiState): PluginGroup {

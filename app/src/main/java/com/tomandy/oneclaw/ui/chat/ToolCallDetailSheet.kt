@@ -30,13 +30,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.data.entity.MessageEntity
 import com.tomandy.oneclaw.llm.ToolCall
 import com.tomandy.oneclaw.ui.HandleDismissBottomSheet
+import com.tomandy.oneclaw.ui.theme.SuccessGreen
 
 @Composable
 fun ToolCallDetailSheet(
@@ -103,7 +103,7 @@ private fun ToolCallDetailItem(
                     Icon(
                         imageVector = if (isError) Icons.Default.Close else Icons.Default.Check,
                         contentDescription = if (isError) "Error" else "Success",
-                        tint = if (isError) MaterialTheme.colorScheme.error else Color(0xFF4CAF50),
+                        tint = if (isError) MaterialTheme.colorScheme.error else SuccessGreen,
                         modifier = Modifier.size(16.dp)
                     )
                 }

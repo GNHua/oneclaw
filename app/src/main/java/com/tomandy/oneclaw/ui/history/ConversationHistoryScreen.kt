@@ -55,6 +55,7 @@ import com.tomandy.oneclaw.ui.chat.ToolCallGroupBubble
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.drawScrollbar
 import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
+import com.tomandy.oneclaw.ui.theme.Dimens
 import kotlinx.coroutines.flow.StateFlow
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -161,7 +162,7 @@ fun ConversationHistoryScreen(
             modifier = modifier
                 .fillMaxSize()
                 .drawScrollbar(listState, scrollbarColor, heightCache)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = Dimens.ScreenPadding),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item { Spacer(modifier = Modifier.height(8.dp)) }

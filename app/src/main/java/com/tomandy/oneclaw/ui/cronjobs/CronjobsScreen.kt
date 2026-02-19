@@ -49,13 +49,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.scheduler.data.CronjobEntity
 import com.tomandy.oneclaw.ui.drawScrollbar
 import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
+import com.tomandy.oneclaw.ui.theme.SuccessGreen
 import com.tomandy.oneclaw.scheduler.data.ExecutionLog
 import com.tomandy.oneclaw.scheduler.data.ExecutionStatus
 import com.tomandy.oneclaw.scheduler.data.ScheduleType
@@ -349,13 +349,13 @@ private fun HistoryCard(
             // Completed badge for disabled one-time tasks
             if (cronjob.scheduleType == ScheduleType.ONE_TIME && cronjob.executionCount > 0) {
                 Surface(
-                    color = Color(0xFF4CAF50).copy(alpha = 0.15f),
+                    color = SuccessGreen.copy(alpha = 0.15f),
                     shape = MaterialTheme.shapes.small
                 ) {
                     Text(
                         text = "Completed",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF4CAF50),
+                        color = SuccessGreen,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
@@ -551,7 +551,7 @@ private fun ExecutionLogItem(
     modifier: Modifier = Modifier
 ) {
     val (icon, tint) = when (log.status) {
-        ExecutionStatus.SUCCESS -> Icons.Default.Check to Color(0xFF4CAF50)
+        ExecutionStatus.SUCCESS -> Icons.Default.Check to SuccessGreen
         ExecutionStatus.FAILED -> Icons.Default.Close to MaterialTheme.colorScheme.error
         ExecutionStatus.CANCELLED -> Icons.Default.Close to MaterialTheme.colorScheme.onSurfaceVariant
     }

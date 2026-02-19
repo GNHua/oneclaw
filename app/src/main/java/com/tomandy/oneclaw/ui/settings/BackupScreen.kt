@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.tomandy.oneclaw.ui.theme.Dimens
 import com.tomandy.oneclaw.backup.BackupStatus
 import com.tomandy.oneclaw.backup.BackupViewModel
 import java.text.SimpleDateFormat
@@ -48,8 +49,8 @@ fun BackupScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(Dimens.ScreenPadding),
+        verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing)
     ) {
         // Info card
         Card(

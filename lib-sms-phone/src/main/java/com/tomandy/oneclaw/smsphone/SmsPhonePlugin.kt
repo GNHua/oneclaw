@@ -1,4 +1,4 @@
-package com.tomandy.oneclaw.plugin
+package com.tomandy.oneclaw.smsphone
 
 import android.Manifest
 import android.content.Intent

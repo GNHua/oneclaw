@@ -104,10 +104,14 @@ dependencies {
     // Notification & media control
     implementation(project(":lib-notification-media"))
 
-    // CameraX (headless capture)
-    implementation(libs.androidx.camera.core)
-    implementation(libs.androidx.camera.camera2)
-    implementation(libs.androidx.camera.lifecycle)
+    // Camera
+    implementation(project(":lib-camera"))
+
+    // SMS & Phone
+    implementation(project(":lib-sms-phone"))
+
+    // Voice Memo
+    implementation(project(":lib-voice-memo"))
 
     // PDF tools
     implementation(project(":lib-pdf"))

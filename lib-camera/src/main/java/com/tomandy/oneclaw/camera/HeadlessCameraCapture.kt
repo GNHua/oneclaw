@@ -1,4 +1,4 @@
-package com.tomandy.oneclaw.plugin.camera
+package com.tomandy.oneclaw.camera
 
 import android.content.Context
 import android.util.Log

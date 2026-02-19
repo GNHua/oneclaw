@@ -1,4 +1,4 @@
-package com.tomandy.oneclaw.plugin
+package com.tomandy.oneclaw.voicememo
 
 import com.tomandy.oneclaw.engine.PluginMetadata
 import com.tomandy.oneclaw.engine.ToolDefinition

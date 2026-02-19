@@ -1,4 +1,4 @@
-package com.tomandy.oneclaw.plugin
+package com.tomandy.oneclaw.camera
 
 import android.Manifest
 import android.content.Context
@@ -7,7 +7,6 @@ import androidx.core.content.ContextCompat
 import com.tomandy.oneclaw.engine.Plugin
 import com.tomandy.oneclaw.engine.PluginContext
 import com.tomandy.oneclaw.engine.ToolResult
-import com.tomandy.oneclaw.plugin.camera.HeadlessCameraCapture
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File

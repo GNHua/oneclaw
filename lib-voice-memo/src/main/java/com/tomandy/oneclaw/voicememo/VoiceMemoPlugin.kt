@@ -1,4 +1,4 @@
-package com.tomandy.oneclaw.plugin
+package com.tomandy.oneclaw.voicememo
 
 import android.Manifest
 import android.content.Context

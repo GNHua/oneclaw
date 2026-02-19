@@ -37,6 +37,12 @@ import com.tomandy.oneclaw.notificationmedia.NotificationListenerPromptCallback
 import com.tomandy.oneclaw.notificationmedia.NotificationMediaServiceManager
 import com.tomandy.oneclaw.notificationmedia.NotificationPlugin
 import com.tomandy.oneclaw.notificationmedia.NotificationPluginMetadata
+import com.tomandy.oneclaw.camera.CameraPlugin
+import com.tomandy.oneclaw.camera.CameraPluginMetadata
+import com.tomandy.oneclaw.smsphone.SmsPhonePlugin
+import com.tomandy.oneclaw.smsphone.SmsPhonePluginMetadata
+import com.tomandy.oneclaw.voicememo.VoiceMemoPlugin
+import com.tomandy.oneclaw.voicememo.VoiceMemoPluginMetadata
 import com.tomandy.oneclaw.service.ChatExecutionService
 import com.tomandy.oneclaw.service.ChatExecutionTracker
 

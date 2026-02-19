@@ -1,9 +1,5 @@
 package com.tomandy.oneclaw.ui.settings
 
-import android.app.Activity
-import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,7 +18,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,23 +44,17 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import com.tomandy.oneclaw.google.GoogleAuthManager
 import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
 import kotlinx.coroutines.launch
 
 @Composable
 fun GoogleAccountScreen(
-    playServicesAuthManager: GoogleAuthManager,
     oauthAuthManager: OAuthGoogleAuthManager,
     onSignInChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-
-    // Play Services state
-    var psSignedIn by remember { mutableStateOf(false) }
-    var psEmail by remember { mutableStateOf<String?>(null) }
 
     // BYOK state
     var hasCredentials by remember { mutableStateOf(false) }
@@ -82,15 +71,10 @@ fun GoogleAccountScreen(
     var editingCredentials by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        psSignedIn = playServicesAuthManager.isSignedIn()
-        psEmail = playServicesAuthManager.getAccountEmail()
         hasCredentials = oauthAuthManager.hasOAuthCredentials()
         byokSignedIn = oauthAuthManager.isSignedIn()
         byokEmail = oauthAuthManager.getAccountEmail()
     }
-
-    val isConnected = psSignedIn || byokSignedIn
-    val connectedEmail = if (byokSignedIn) byokEmail else psEmail
 
     Column(
         modifier = modifier
@@ -101,7 +85,7 @@ fun GoogleAccountScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Status card
-        if (isConnected) {
+        if (byokSignedIn) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -115,13 +99,12 @@ fun GoogleAccountScreen(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = if (connectedEmail != null) "Connected: $connectedEmail" else "Connected",
+                        text = if (byokEmail != null) "Connected: $byokEmail" else "Connected",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    val method = if (byokSignedIn) "Custom OAuth" else "Play Services"
                     Text(
-                        text = "Google Workspace plugins are available (via $method)",
+                        text = "Google Workspace plugins are available (via Custom OAuth)",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -148,7 +131,7 @@ fun GoogleAccountScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Optional. Only needed for Google Workspace plugins (Gmail, Calendar, Drive, Tasks, Contacts, Docs, Sheets, Slides, Forms). Only one sign-in method is needed.",
+                        text = "Optional. Only needed for Google Workspace plugins (Gmail, Calendar, Drive, Tasks, Contacts, Docs, Sheets, Slides, Forms).",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -156,7 +139,7 @@ fun GoogleAccountScreen(
             }
         }
 
-        // Unverified app warning (applies to both sign-in methods)
+        // Unverified app warning
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -179,38 +162,9 @@ fun GoogleAccountScreen(
             }
         }
 
-        // -- Play Services section --
+        // -- Custom OAuth section --
         Text(
-            text = "Option 1: Google Sign-In",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        PlayServicesCard(
-            authManager = playServicesAuthManager,
-            isSignedIn = psSignedIn,
-            email = psEmail,
-            errorMessage = errorMessage,
-            onError = { errorMessage = it },
-            onSignedIn = { email ->
-                psSignedIn = true
-                psEmail = email
-                errorMessage = null
-                onSignInChanged(true)
-            },
-            onSignedOut = {
-                psSignedIn = false
-                psEmail = null
-                if (!byokSignedIn) onSignInChanged(false)
-            }
-        )
-
-        // Divider between sections
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-        // -- BYOK OAuth section --
-        Text(
-            text = "Option 2: Custom OAuth (Advanced)",
+            text = "Custom OAuth",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -264,7 +218,7 @@ fun GoogleAccountScreen(
             onSignedOut = {
                 byokSignedIn = false
                 byokEmail = null
-                if (!psSignedIn) onSignInChanged(false)
+                onSignInChanged(false)
             }
         )
 
@@ -282,91 +236,6 @@ fun GoogleAccountScreen(
                     color = MaterialTheme.colorScheme.onErrorContainer,
                     style = MaterialTheme.typography.bodyMedium
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlayServicesCard(
-    authManager: GoogleAuthManager,
-    isSignedIn: Boolean,
-    email: String?,
-    errorMessage: String?,
-    onError: (String?) -> Unit,
-    onSignedIn: (String?) -> Unit,
-    onSignedOut: () -> Unit
-) {
-    val scope = rememberCoroutineScope()
-
-    val signInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            try {
-                authManager.handleSignInResult(result.data)
-                scope.launch {
-                    val accountEmail = authManager.getAccountEmail()
-                    onSignedIn(accountEmail)
-                }
-            } catch (e: Exception) {
-                Log.e("GoogleAccountScreen", "Play Services sign-in failed", e)
-                onError("Sign-in failed: ${e.message}")
-            }
-        } else {
-            onError("Sign-in was cancelled")
-        }
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            Text(
-                text = "Sign in with your Google account. No setup required.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "Note: This method has a limited daily sign-in quota shared across all users, and some Google plugins (e.g. Gmail) may not work due to scope restrictions. If sign-in fails or plugins return errors, use Custom OAuth below instead.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(8.dp))
-
-            if (isSignedIn) {
-                OutlinedButton(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                authManager.signOut()
-                                onSignedOut()
-                            } catch (e: Exception) {
-                                onError("Sign-out failed: ${e.message}")
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Disconnect Google Account")
-                }
-            } else {
-                Button(
-                    onClick = {
-                        onError(null)
-                        signInLauncher.launch(authManager.getSignInIntent())
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Sign in with Google")
-                }
             }
         }
     }

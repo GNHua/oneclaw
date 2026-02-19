@@ -46,7 +46,6 @@ import com.tomandy.oneclaw.ui.settings.AgentProfilesViewModel
 import com.tomandy.oneclaw.ui.settings.GoogleAccountScreen
 import com.tomandy.oneclaw.ui.settings.SkillsScreen
 import com.tomandy.oneclaw.ui.settings.SkillsViewModel
-import com.tomandy.oneclaw.google.GoogleAuthManager
 import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -447,7 +446,6 @@ fun OneClawNavGraph(
             }
 
             composable(Screen.GoogleAccount.route) {
-                val playServicesAuthManager: GoogleAuthManager = koinInject()
                 val oauthAuthManager: OAuthGoogleAuthManager = koinInject()
 
                 Scaffold(
@@ -463,7 +461,6 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     GoogleAccountScreen(
-                        playServicesAuthManager = playServicesAuthManager,
                         oauthAuthManager = oauthAuthManager,
                         onSignInChanged = { signedIn ->
                             settingsViewModel.onGoogleSignInChanged(signedIn)

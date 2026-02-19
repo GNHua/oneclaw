@@ -137,7 +137,6 @@ dependencies {
 
     // Google Auth
     implementation(libs.appauth)
-    implementation(libs.play.services.auth)
 
     // Room
     implementation(libs.androidx.room.runtime)

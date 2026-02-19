@@ -24,8 +24,6 @@ import com.tomandy.oneclaw.pluginmanager.UserPluginManager
 import com.tomandy.oneclaw.scheduler.AgentExecutor
 import com.tomandy.oneclaw.scheduler.CronjobManager
 import com.tomandy.oneclaw.scheduler.data.CronjobDatabase
-import com.tomandy.oneclaw.google.CompositeGoogleAuthProvider
-import com.tomandy.oneclaw.google.GoogleAuthManager
 import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
 import com.tomandy.oneclaw.security.CredentialVaultImpl
 import com.tomandy.oneclaw.skill.SkillLoader
@@ -57,15 +55,9 @@ val appModule = module {
     single<AppCredentialVault> { CredentialVaultImpl(androidContext()) }
     single<EngineCredentialVault> { get<AppCredentialVault>() }
 
-    // Google Auth: Play Services + BYOK OAuth
-    single { GoogleAuthManager(androidContext()) }
+    // Google Auth: BYOK OAuth only
     single { OAuthGoogleAuthManager(androidContext(), get<AppCredentialVault>()) }
-    single<GoogleAuthProvider> {
-        CompositeGoogleAuthProvider(
-            playServices = get<GoogleAuthManager>(),
-            byok = get<OAuthGoogleAuthManager>()
-        )
-    }
+    single<GoogleAuthProvider> { get<OAuthGoogleAuthManager>() }
 
     // Preferences
     single { ModelPreferences(androidContext()) }

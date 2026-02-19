@@ -2,7 +2,7 @@
 name: release
 description: Build a signed release APK and publish it as a GitHub release
 disable-model-invocation: true
-allowed-tools: Bash(git *), Bash(./gradlew *), Bash(gh *), Bash(du *)
+allowed-tools: Bash(git *), Bash(./gradlew *), Bash(gh *), Bash(du *), Bash(cp *)
 ---
 
 # Release
@@ -13,7 +13,7 @@ Usage: `/release <version>` (e.g., `/release 1.0.2`)
 
 ## Prerequisites
 
-- `signing.properties` and `release.jks` in project root
+- `signing.properties` and `release.jks` in the parent directory (`../`)
 - `gh` CLI installed and authenticated
 
 ## Branch strategy
@@ -42,36 +42,42 @@ Usage: `/release <version>` (e.g., `/release 1.0.2`)
      git merge main
      ```
 
-3. **Preflight checks** -- abort if any fail:
+3. **Copy signing files** from parent directory into project root (they are gitignored):
+   ```bash
+   cp ../signing.properties signing.properties
+   cp ../release.jks release.jks
+   ```
+
+4. **Preflight checks** -- abort if any fail:
    - Current branch is `release/apk`
    - Working tree is clean (`git status --porcelain` is empty)
-   - `signing.properties` exists
-   - `release.jks` exists
+   - `signing.properties` exists in project root
+   - `release.jks` exists in project root
    - `gh auth status` succeeds
    - Tag `v<VERSION>` does not already exist
 
-4. **Build the release APK**:
+5. **Build the release APK**:
    ```bash
    ./gradlew assembleRelease
    ```
    Verify `app/build/outputs/apk/release/app-release.apk` exists.
 
-5. **Generate release notes** from commits since the previous tag:
+6. **Generate release notes** from commits since the previous tag:
    ```bash
    PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null)
    git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" | grep -v "^- chore:"
    ```
 
-6. **Show the user** the version, commit list, and generated notes. Ask for confirmation before proceeding.
+7. **Show the user** the version, commit list, and generated notes. Ask for confirmation before proceeding.
 
-7. **Tag and push**:
+8. **Tag and push**:
    ```bash
    git tag v<VERSION>
    git push origin release/apk
    git push origin v<VERSION>
    ```
 
-8. **Create the GitHub release** with the APK attached:
+9. **Create the GitHub release** with the APK attached:
    ```bash
    gh release create v<VERSION> \
      app/build/outputs/apk/release/app-release.apk \
@@ -79,9 +85,9 @@ Usage: `/release <version>` (e.g., `/release 1.0.2`)
      --notes "<NOTES>"
    ```
 
-9. Print the release URL.
+10. Print the release URL.
 
-10. **Return to main**:
+11. **Return to main**:
     ```bash
     git checkout main
     ```

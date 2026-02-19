@@ -60,7 +60,10 @@ Usage: `/release <version>` (e.g., `/release 1.0.2`)
    ```bash
    ./gradlew assembleRelease
    ```
-   Verify `app/build/outputs/apk/release/app-release.apk` exists.
+   Verify `app/build/outputs/apk/release/app-release.apk` exists, then rename it:
+   ```bash
+   cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/oneclaw-<VERSION>.apk
+   ```
 
 6. **Generate release notes** from commits since the previous tag:
    ```bash
@@ -80,7 +83,7 @@ Usage: `/release <version>` (e.g., `/release 1.0.2`)
 9. **Create the GitHub release** with the APK attached:
    ```bash
    gh release create v<VERSION> \
-     app/build/outputs/apk/release/app-release.apk \
+     app/build/outputs/apk/release/oneclaw-<VERSION>.apk \
      --title "v<VERSION>" \
      --notes "<NOTES>"
    ```

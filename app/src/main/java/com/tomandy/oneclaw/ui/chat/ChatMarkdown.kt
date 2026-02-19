@@ -42,7 +42,7 @@ fun ChatMarkdown(
                     MarkdownText(
                         markdown = block.content,
                         color = textColor,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

@@ -11,9 +11,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.rememberNavController
+import com.tomandy.oneclaw.data.ModelPreferences
 import com.tomandy.oneclaw.navigation.NavigationState
 import com.tomandy.oneclaw.notification.ChatNotificationHelper
 import com.tomandy.oneclaw.ui.navigation.OneClawNavGraph
@@ -23,6 +25,9 @@ import org.koin.android.ext.android.inject
 class MainActivity : ComponentActivity() {
 
     private val navigationState: NavigationState by inject()
+    private val modelPreferences: ModelPreferences by inject()
+
+    val themeMode = mutableStateOf(ModelPreferences.ThemeMode.SYSTEM)
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -33,9 +38,15 @@ class MainActivity : ComponentActivity() {
 
         requestNotificationPermission()
         handleIntent(intent)
+        themeMode.value = modelPreferences.getThemeMode()
 
         setContent {
-            OneClawTheme {
+            val darkTheme: Boolean? = when (themeMode.value) {
+                ModelPreferences.ThemeMode.LIGHT -> false
+                ModelPreferences.ThemeMode.DARK -> true
+                ModelPreferences.ThemeMode.SYSTEM -> null
+            }
+            OneClawTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

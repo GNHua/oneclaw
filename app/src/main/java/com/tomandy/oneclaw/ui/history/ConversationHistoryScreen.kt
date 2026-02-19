@@ -344,7 +344,6 @@ private fun ConversationPreviewSheet(
                     .weight(1f, fill = false)
                     .drawColumnScrollbar(scrollState, scrollbarColor)
                     .verticalScroll(scrollState)
-                    .padding(horizontal = 16.dp)
             ) {
                 displayItems.forEach { (msgs, isToolGroup) ->
                     if (isToolGroup) {

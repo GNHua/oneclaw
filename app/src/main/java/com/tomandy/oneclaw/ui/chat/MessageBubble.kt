@@ -160,7 +160,7 @@ fun MessageBubble(
                 MaterialTheme.colorScheme.surfaceVariant
             },
             modifier = Modifier
-                .widthIn(max = 280.dp)
+                .widthIn(max = 340.dp)
                 .combinedClickable(
                     onClick = {},
                     onLongClick = {

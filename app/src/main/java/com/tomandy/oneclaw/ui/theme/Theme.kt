@@ -62,10 +62,11 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun OneClawTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean? = null,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val isDark = darkTheme ?: isSystemInDarkTheme()
+    val colorScheme = if (isDark) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

@@ -77,6 +77,23 @@ class ModelPreferences(context: Context) {
             .apply()
     }
 
+    enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
+    fun getThemeMode(): ThemeMode {
+        val value = prefs.getString("theme_mode", ThemeMode.SYSTEM.name)
+        return try {
+            ThemeMode.valueOf(value ?: ThemeMode.SYSTEM.name)
+        } catch (_: Exception) {
+            ThemeMode.SYSTEM
+        }
+    }
+
+    fun saveThemeMode(mode: ThemeMode) {
+        prefs.edit()
+            .putString("theme_mode", mode.name)
+            .apply()
+    }
+
     enum class AudioInputMode { ALWAYS_TRANSCRIBE, NATIVE_WHEN_SUPPORTED }
 
     fun getAudioInputMode(): AudioInputMode {

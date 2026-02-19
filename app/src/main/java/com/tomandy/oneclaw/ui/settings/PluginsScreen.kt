@@ -117,9 +117,9 @@ fun PluginsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .drawScrollbar(listState, scrollbarColor, heightCache)
-                    .padding(Dimens.ScreenPadding),
+                    .padding(horizontal = Dimens.ScreenPadding),
                 verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(top = Dimens.ScreenPadding, bottom = 80.dp)
             ) {
                 groupedPlugins.forEach { (group, groupPlugins) ->
                     stickyHeader(key = "header_${group.name}") {

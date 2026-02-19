@@ -187,12 +187,12 @@ fun MessageBubble(
                             accentColor = if (isUser) {
                                 MaterialTheme.colorScheme.onPrimaryContainer
                             } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                                MaterialTheme.colorScheme.onSurface
                             },
                             textColor = if (isUser) {
                                 MaterialTheme.colorScheme.onPrimaryContainer
                             } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                                MaterialTheme.colorScheme.onSurface
                             }
                         )
                         Spacer(modifier = Modifier.height(4.dp))
@@ -217,7 +217,7 @@ fun MessageBubble(
                             tintColor = if (isUser) {
                                 MaterialTheme.colorScheme.onPrimaryContainer
                             } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                                MaterialTheme.colorScheme.onSurface
                             }
                         )
                         Spacer(modifier = Modifier.height(4.dp))
@@ -237,7 +237,7 @@ fun MessageBubble(
                         textColor = if (isUser) {
                             MaterialTheme.colorScheme.onPrimaryContainer
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            MaterialTheme.colorScheme.onSurface
                         }
                     )
                 }
@@ -251,7 +251,7 @@ fun MessageBubble(
                     color = if (isUser) {
                         MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     }
                 )
             }

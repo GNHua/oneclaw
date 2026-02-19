@@ -60,9 +60,9 @@ fun SkillsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .drawScrollbar(listState, scrollbarColor, heightCache)
-                    .padding(Dimens.ScreenPadding),
+                    .padding(horizontal = Dimens.ScreenPadding),
                 verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(top = Dimens.ScreenPadding, bottom = 80.dp)
             ) {
                 items(skills, key = { it.metadata.name }) { skill ->
                     SkillCard(

@@ -7,5 +7,5 @@ object Dimens {
     val CardSpacing = 16.dp
     val CardInnerPadding = 16.dp
     val SectionSpacing = 24.dp
-    val CardElevation = 0.5.dp
+    val CardElevation = 0.dp
 }

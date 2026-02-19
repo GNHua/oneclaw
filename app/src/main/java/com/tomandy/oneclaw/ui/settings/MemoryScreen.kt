@@ -48,8 +48,9 @@ fun MemoryScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .drawScrollbar(listState, scrollbarColor, heightCache)
-                    .padding(Dimens.ScreenPadding),
-                verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing)
+                    .padding(horizontal = Dimens.ScreenPadding),
+                verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
+                contentPadding = PaddingValues(top = Dimens.ScreenPadding, bottom = Dimens.ScreenPadding)
             ) {
                 items(files, key = { it.relativePath }) { entry ->
                     MemoryFileCard(

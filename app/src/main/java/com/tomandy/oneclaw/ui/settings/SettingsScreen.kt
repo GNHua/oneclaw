@@ -14,6 +14,7 @@ import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,8 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalContext
-import com.tomandy.oneclaw.MainActivity
 import com.tomandy.oneclaw.data.ModelPreferences
 import com.tomandy.oneclaw.llm.LlmProvider
 import com.tomandy.oneclaw.ui.theme.Dimens
@@ -37,6 +36,7 @@ fun SettingsScreen(
     onNavigateToBackup: () -> Unit,
     onNavigateToAgentProfiles: () -> Unit,
     onNavigateToGoogleAccount: () -> Unit,
+    onNavigateToAppearance: () -> Unit,
     modelPreferences: ModelPreferences,
     availableModels: List<Pair<String, LlmProvider>>,
     selectedModel: String,
@@ -121,9 +121,6 @@ fun SettingsScreen(
             }
         }
 
-        // Theme selector
-        ThemeModeCard(modelPreferences = modelPreferences)
-
         SettingsMenuItem(
             icon = Icons.Outlined.Key,
             title = "Providers",
@@ -165,6 +162,12 @@ fun SettingsScreen(
             title = "Agent Profiles",
             subtitle = "Create and manage agent personas",
             onClick = onNavigateToAgentProfiles
+        )
+        SettingsMenuItem(
+            icon = Icons.Outlined.Palette,
+            title = "Appearance",
+            subtitle = "Theme and display settings",
+            onClick = onNavigateToAppearance
         )
 
         // Audio Input Mode
@@ -306,63 +309,6 @@ private fun AudioInputModeCard(modelPreferences: ModelPreferences) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ThemeModeCard(modelPreferences: ModelPreferences) {
-    val activity = LocalContext.current as? MainActivity
-    var themeMode by remember { mutableStateOf(modelPreferences.getThemeMode()) }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.CardElevation)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimens.CardInnerPadding)
-        ) {
-            Text(
-                text = "Theme",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = "Choose light or dark appearance",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                val options = ModelPreferences.ThemeMode.entries
-                options.forEachIndexed { index, mode ->
-                    SegmentedButton(
-                        selected = themeMode == mode,
-                        onClick = {
-                            themeMode = mode
-                            modelPreferences.saveThemeMode(mode)
-                            activity?.themeMode?.value = mode
-                        },
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = options.size
-                        )
-                    ) {
-                        Text(
-                            when (mode) {
-                                ModelPreferences.ThemeMode.SYSTEM -> "System"
-                                ModelPreferences.ThemeMode.LIGHT -> "Light"
-                                ModelPreferences.ThemeMode.DARK -> "Dark"
-                            }
-                        )
-                    }
                 }
             }
         }

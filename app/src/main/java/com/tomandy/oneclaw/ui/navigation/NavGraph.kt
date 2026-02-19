@@ -40,6 +40,7 @@ import com.tomandy.oneclaw.ui.settings.ProvidersScreen
 import com.tomandy.oneclaw.ui.settings.SettingsScreen
 import com.tomandy.oneclaw.ui.settings.SettingsViewModel
 import com.tomandy.oneclaw.ui.settings.SkillEditorScreen
+import com.tomandy.oneclaw.ui.settings.AppearanceScreen
 import com.tomandy.oneclaw.ui.settings.AgentProfileEditorScreen
 import com.tomandy.oneclaw.ui.settings.AgentProfilesScreen
 import com.tomandy.oneclaw.ui.settings.AgentProfilesViewModel
@@ -70,6 +71,7 @@ enum class Screen(val route: String) {
     AgentProfiles("settings/agents"),
     AgentProfileEditor("settings/agents/editor"),
     GoogleAccount("settings/google-account"),
+    Appearance("settings/appearance"),
     Cronjobs("cronjobs"),
     History("history")
 }
@@ -200,6 +202,9 @@ fun OneClawNavGraph(
                         },
                         onNavigateToGoogleAccount = {
                             navController.navigate(Screen.GoogleAccount.route) { launchSingleTop = true }
+                        },
+                        onNavigateToAppearance = {
+                            navController.navigate(Screen.Appearance.route) { launchSingleTop = true }
                         },
                         modelPreferences = modelPreferences,
                         availableModels = availableModels,
@@ -468,6 +473,26 @@ fun OneClawNavGraph(
                         onSignInChanged = { signedIn ->
                             settingsViewModel.onGoogleSignInChanged(signedIn)
                         },
+                        modifier = Modifier.padding(paddingValues)
+                    )
+                }
+            }
+
+            composable(Screen.Appearance.route) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Appearance") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
+                            }
+                        )
+                    }
+                ) { paddingValues ->
+                    AppearanceScreen(
+                        modelPreferences = modelPreferences,
                         modifier = Modifier.padding(paddingValues)
                     )
                 }

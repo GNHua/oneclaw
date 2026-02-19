@@ -23,10 +23,13 @@ Usage: `/release <version>` (e.g., `/release 1.0.2`)
 
 ## Steps
 
-1. **Update docs** -- before building, review and update:
+1. **Update docs** -- before building, review and update based on changes since the last release:
    - `README.md` -- ensure feature list, install instructions, and screenshots reflect the current state
-   - `docs/` -- update the GitHub Pages site (e.g., feature descriptions, install links pointing to the new version)
-   - Commit any doc changes before proceeding.
+   - `docs/index.md` -- landing page (install instructions, provider list, screenshots, doc links)
+   - `docs/reference.md` -- plugin & skill reference (add new plugins/tools, update counts, fix categories)
+   - `docs/memory.md` -- memory system (character limits, search algorithm, flush behavior)
+   - `docs/skill-loading.md` -- skill loading architecture (frontmatter fields, filtering, XML format)
+   - Commit any doc changes on `main` before proceeding to the release branch.
 
 2. **Prepare the `release/apk` branch**:
    - If the branch does not exist yet, create it from `main`:

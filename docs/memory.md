@@ -108,7 +108,7 @@ Context tokens exceed 80% of the context window.
 
 1. Only runs if conversation history has more than 2 messages
 2. Prompts the LLM to review the conversation and save important information (decisions, preferences, facts, pending tasks) to memory files
-3. Runs a separate short ReAct loop (max 5 iterations, temperature 0.3)
+3. Runs a separate short ReAct loop (max 20 iterations, temperature 0.3)
 4. Has access to `write_file` and `edit_file` tools during flush
 
 Also triggered explicitly via `/summarize` command or `summarize_conversation` tool.

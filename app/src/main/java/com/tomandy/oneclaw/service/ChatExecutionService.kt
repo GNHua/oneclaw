@@ -14,36 +14,37 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.tomandy.oneclaw.agent.AgentCoordinator
 import com.tomandy.oneclaw.agent.MessageStore
+import com.tomandy.oneclaw.agent.ReActLoop
 import com.tomandy.oneclaw.agent.ToolExecutor
 import com.tomandy.oneclaw.agent.ToolRegistry
+import com.tomandy.oneclaw.agent.profile.AgentProfileEntry
+import com.tomandy.oneclaw.agent.profile.AgentProfileRepository
 import com.tomandy.oneclaw.data.AppDatabase
 import com.tomandy.oneclaw.data.ModelPreferences
 import com.tomandy.oneclaw.data.entity.MessageEntity
-import com.tomandy.oneclaw.llm.MediaData
 import com.tomandy.oneclaw.llm.LlmClientProvider
-import com.tomandy.oneclaw.llm.NetworkConfig
-import kotlinx.serialization.json.jsonArray
 import com.tomandy.oneclaw.llm.LlmProvider
+import com.tomandy.oneclaw.llm.MediaData
 import com.tomandy.oneclaw.llm.Message
+import com.tomandy.oneclaw.llm.NetworkConfig
 import com.tomandy.oneclaw.notification.ChatNotificationHelper
-import com.tomandy.oneclaw.agent.profile.AgentProfileEntry
-import com.tomandy.oneclaw.agent.profile.AgentProfileRepository
 import com.tomandy.oneclaw.skill.SkillRepository
 import com.tomandy.oneclaw.skill.SystemPromptBuilder
 import com.tomandy.oneclaw.util.DocumentStorageHelper
 import com.tomandy.oneclaw.util.ImageStorageHelper
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
+import kotlinx.serialization.json.jsonArray
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.io.File
 import java.util.UUID
 
 class ChatExecutionService : Service(), KoinComponent {
@@ -562,7 +563,7 @@ class ChatExecutionService : Service(), KoinComponent {
             addAll(conversationHistory)
         }
 
-        val flushLoop = com.tomandy.oneclaw.agent.ReActLoop(
+        val flushLoop = ReActLoop(
             llmClient = clientProvider(),
             toolExecutor = toolExecutor,
             messageStore = messageStore
@@ -572,7 +573,7 @@ class ChatExecutionService : Service(), KoinComponent {
             toolsProvider = { toolRegistry.getToolDefinitions() },
             conversationId = conversationId,
             model = model,
-            maxIterations = 5,
+            maxIterations = 20,
             temperature = 0.3f
         )
     }

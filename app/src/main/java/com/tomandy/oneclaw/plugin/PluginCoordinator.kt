@@ -39,8 +39,6 @@ import com.tomandy.oneclaw.notificationmedia.NotificationPlugin
 import com.tomandy.oneclaw.notificationmedia.NotificationPluginMetadata
 import com.tomandy.oneclaw.camera.CameraPlugin
 import com.tomandy.oneclaw.camera.CameraPluginMetadata
-import com.tomandy.oneclaw.smsphone.SmsPhonePlugin
-import com.tomandy.oneclaw.smsphone.SmsPhonePluginMetadata
 import com.tomandy.oneclaw.voicememo.VoiceMemoPlugin
 import com.tomandy.oneclaw.voicememo.VoiceMemoPluginMetadata
 import com.tomandy.oneclaw.service.ChatExecutionService
@@ -284,26 +282,7 @@ class PluginCoordinator(
             e.printStackTrace()
         }
 
-        // Register SmsPhonePlugin
-        try {
-            val smsPhonePlugin = SmsPhonePlugin()
-            val smsPhoneContext = PluginContext.create(
-                androidContext = context,
-                pluginId = "sms-phone",
-                credentialVault = credentialVault
-            )
-            smsPhonePlugin.onLoad(smsPhoneContext)
-            val smsPhoneLoaded = LoadedPlugin(
-                metadata = SmsPhonePluginMetadata.get(),
-                instance = smsPhonePlugin
-            )
-            if (pluginPreferences.isPluginEnabled("sms-phone")) {
-                toolRegistry.registerPlugin(smsPhoneLoaded)
-            }
-            pluginEngine.registerLoadedPlugin(smsPhoneLoaded)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        // SmsPhonePlugin disabled for Play Store (requires SMS/Call Log permissions)
 
         // Register PdfToolsPlugin
         try {

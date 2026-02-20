@@ -24,6 +24,8 @@ class DeviceControlPlugin : Plugin {
             )
         }
 
+        DeviceControlManager.showAbortInstructions()
+
         return when (toolName) {
             "observe_screen" -> observeScreen()
             "tap" -> tap(arguments)

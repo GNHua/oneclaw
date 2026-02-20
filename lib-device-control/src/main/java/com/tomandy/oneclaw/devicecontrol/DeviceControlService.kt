@@ -14,10 +14,11 @@ class DeviceControlService : AccessibilityService() {
 
     companion object {
         private const val TAG = "DeviceControlService"
-        private const val ABORT_HOLD_MS = 1500L
+        private const val DOUBLE_CLICK_WINDOW_MS = 400L
     }
 
-    private var volumeDownPressTime = 0L
+    private var lastVolumeDownUpTime = 0L
+    private var pendingAbort = false
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -42,19 +43,22 @@ class DeviceControlService : AccessibilityService() {
         if (event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
             when (event.action) {
                 KeyEvent.ACTION_DOWN -> {
-                    if (volumeDownPressTime == 0L) {
-                        volumeDownPressTime = event.eventTime
-                    }
-                    val held = event.eventTime - volumeDownPressTime
-                    if (held >= ABORT_HOLD_MS) {
-                        volumeDownPressTime = 0L
-                        DeviceControlManager.abortAllExecutions()
-                        performGlobalAction(GLOBAL_ACTION_HOME)
+                    if (lastVolumeDownUpTime > 0 &&
+                        event.eventTime - lastVolumeDownUpTime <= DOUBLE_CLICK_WINDOW_MS
+                    ) {
+                        pendingAbort = true
                         return true
                     }
                 }
                 KeyEvent.ACTION_UP -> {
-                    volumeDownPressTime = 0L
+                    if (pendingAbort) {
+                        pendingAbort = false
+                        lastVolumeDownUpTime = 0L
+                        DeviceControlManager.abortAllExecutions()
+                        performGlobalAction(GLOBAL_ACTION_HOME)
+                        return true
+                    }
+                    lastVolumeDownUpTime = event.eventTime
                 }
             }
         }

@@ -196,6 +196,15 @@ fun ChatInput(
                                     )
                                 }
                             }
+                        } else {
+                            IconButton(onClick = { menuExpanded = !menuExpanded }, modifier = Modifier.size(36.dp)) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Attach",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -266,15 +275,22 @@ fun ChatInput(
                             color = MaterialTheme.colorScheme.surfaceContainer
                         ) {
                             Column(modifier = Modifier.width(IntrinsicSize.Max).padding(vertical = 4.dp)) {
-                                DropdownMenuItem(
-                                    text = { Text("Gallery") },
-                                    onClick = { menuExpanded = false; onPickFromGallery() },
-                                    leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) }
-                                )
+                                if (canSend) {
+                                    DropdownMenuItem(
+                                        text = { Text("Take Photo") },
+                                        onClick = { menuExpanded = false; onTakePhoto() },
+                                        leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) }
+                                    )
+                                }
                                 DropdownMenuItem(
                                     text = { Text("Take Video") },
                                     onClick = { menuExpanded = false; onTakeVideo() },
                                     leadingIcon = { Icon(Icons.Default.Videocam, contentDescription = null) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Gallery") },
+                                    onClick = { menuExpanded = false; onPickFromGallery() },
+                                    leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) }
                                 )
                                 DropdownMenuItem(
                                     text = { Text("File") },

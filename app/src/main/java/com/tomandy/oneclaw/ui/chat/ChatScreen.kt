@@ -466,6 +466,7 @@ fun ChatScreen(
                 .consumeWindowInsets(paddingValues)
                 .imePadding()
         ) {
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
             // Message list
             Box(modifier = Modifier.weight(1f)) {
                 if (messages.isEmpty() && !isProcessing) {

@@ -117,8 +117,8 @@ fun PluginsScreen(
                     .padding(top = Dimens.ScreenPadding, bottom = 80.dp),
                 verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing)
             ) {
-                groupedPlugins.forEach { (group, groupPlugins) ->
-                    SectionHeader(title = group.label)
+                groupedPlugins.entries.forEachIndexed { index, (group, groupPlugins) ->
+                    SectionHeader(title = group.label, showDivider = index > 0)
                     groupPlugins.forEach { pluginState ->
                         PluginCard(
                             pluginState = pluginState,
@@ -393,16 +393,18 @@ private fun PluginCard(
 }
 
 @Composable
-private fun SectionHeader(title: String) {
+private fun SectionHeader(title: String, showDivider: Boolean = true) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant,
-            modifier = Modifier.padding(vertical = 4.dp)
-        )
+        if (showDivider) {
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+        }
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,

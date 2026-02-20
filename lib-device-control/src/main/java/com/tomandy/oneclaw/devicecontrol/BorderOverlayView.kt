@@ -19,9 +19,9 @@ class BorderOverlayView(context: Context) : View(context) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     private val labelText = "Vol Down \u00D72 to stop"
-    private val labelTextSize = 11 * density
-    private val labelPaddingH = 10 * density
-    private val labelPaddingV = 5 * density
+    private val labelTextSize = 14 * density
+    private val labelPaddingH = 14 * density
+    private val labelPaddingV = 7 * density
     private val labelRadius = 12 * density
     private val labelMarginTop = 36 * density
 

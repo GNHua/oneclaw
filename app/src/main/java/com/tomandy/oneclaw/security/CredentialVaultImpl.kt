@@ -2,10 +2,13 @@ package com.tomandy.oneclaw.security
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.security.KeyStore
 
 /**
  * Implementation of CredentialVault using Android KeyStore and EncryptedSharedPreferences.
@@ -14,22 +17,51 @@ import kotlinx.coroutines.withContext
 class CredentialVaultImpl(context: Context) : CredentialVault {
 
     companion object {
+        private const val TAG = "CredentialVaultImpl"
         private const val PREFS_FILE_NAME = "oneclaw_credentials"
         private const val API_KEY_PREFIX = "api_key_"
+        private const val MASTER_KEY_ALIAS = "_androidx_security_master_key_"
     }
 
-    private val masterKey: MasterKey = MasterKey.Builder(context.applicationContext)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
+    private val appContext = context.applicationContext
 
     private val prefs: SharedPreferences by lazy {
-        EncryptedSharedPreferences.create(
-            context.applicationContext,
+        try {
+            createEncryptedPrefs()
+        } catch (e: Exception) {
+            Log.w(TAG, "EncryptedSharedPreferences corrupted, resetting", e)
+            clearCorruptedPrefs()
+            createEncryptedPrefs()
+        }
+    }
+
+    private fun createEncryptedPrefs(): SharedPreferences {
+        val masterKey = MasterKey.Builder(appContext)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        return EncryptedSharedPreferences.create(
+            appContext,
             PREFS_FILE_NAME,
             masterKey,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
+    }
+
+    private fun clearCorruptedPrefs() {
+        // Delete the corrupted prefs file
+        val prefsFile = File(appContext.filesDir.parent, "shared_prefs/${PREFS_FILE_NAME}.xml")
+        if (prefsFile.exists()) {
+            prefsFile.delete()
+        }
+        // Remove the master key from Android KeyStore so it can be recreated
+        try {
+            val keyStore = KeyStore.getInstance("AndroidKeyStore")
+            keyStore.load(null)
+            keyStore.deleteEntry(MASTER_KEY_ALIAS)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to remove master key from KeyStore", e)
+        }
     }
 
     override suspend fun saveApiKey(provider: String, key: String) = withContext(Dispatchers.IO) {

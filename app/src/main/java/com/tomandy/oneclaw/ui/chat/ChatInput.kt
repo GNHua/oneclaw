@@ -2,6 +2,7 @@ package com.tomandy.oneclaw.ui.chat
 
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -225,7 +226,7 @@ fun ChatInput(
                     }
                 } else {
                     FilledIconButton(
-                        onClick = { menuExpanded = true },
+                        onClick = { menuExpanded = !menuExpanded },
                         modifier = Modifier.size(40.dp),
                         shape = CircleShape,
                         colors = IconButtonDefaults.filledIconButtonColors(
@@ -241,6 +242,7 @@ fun ChatInput(
                     }
                 }
                 if (menuExpanded) {
+                    BackHandler { menuExpanded = false }
                     Popup(
                         onDismissRequest = { menuExpanded = false },
                         popupPositionProvider = object : PopupPositionProvider {
@@ -255,7 +257,7 @@ fun ChatInput(
                                 return IntOffset(x, y)
                             }
                         },
-                        properties = PopupProperties(focusable = true)
+                        properties = PopupProperties(focusable = false)
                     ) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),

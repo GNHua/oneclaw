@@ -13,6 +13,12 @@ import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
+private var exactAlarmCallback: ExactAlarmCallback? = null
+
+fun setExactAlarmCallback(callback: ExactAlarmCallback) {
+    exactAlarmCallback = callback
+}
+
 /**
  * Main API for scheduling and managing cronjobs
  *
@@ -225,6 +231,7 @@ class CronjobManager(
                 cronjob.executeAt,
                 pendingIntent
             )
+            exactAlarmCallback?.onExactAlarmPermissionNeeded()
         }
     }
 

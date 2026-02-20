@@ -343,6 +343,13 @@ class PluginCoordinator(
             }
         })
 
+        // Wire exact alarm permission callback
+        com.tomandy.oneclaw.scheduler.setExactAlarmCallback(object : com.tomandy.oneclaw.scheduler.ExactAlarmCallback {
+            override fun onExactAlarmPermissionNeeded() {
+                ChatExecutionTracker.emitEvent(ChatExecutionTracker.UiEvent.ExactAlarmPermissionNeeded)
+            }
+        })
+
         // Register NotificationPlugin
         try {
             val notificationPlugin = NotificationPlugin()

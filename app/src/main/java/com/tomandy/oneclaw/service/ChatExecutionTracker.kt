@@ -19,6 +19,7 @@ object ChatExecutionTracker {
         object AccessibilityServiceNeeded : UiEvent
         object NotificationListenerServiceNeeded : UiEvent
         object LocationPermissionNeeded : UiEvent
+        object ExactAlarmPermissionNeeded : UiEvent
     }
 
     private val _uiEvents = MutableSharedFlow<UiEvent>(

@@ -2,6 +2,7 @@ package com.tomandy.oneclaw.ui.chat
 
 import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.content.pm.PackageManager
 import android.provider.Settings
 import android.util.Log
@@ -139,6 +140,7 @@ fun ChatScreen(
     val currentProfileName = currentProfileId
     var showAgentPicker by remember { mutableStateOf(false) }
     var showAccessibilityDialog by remember { mutableStateOf(false) }
+    var showExactAlarmDialog by remember { mutableStateOf(false) }
 
     var inputText by remember { mutableStateOf("") }
 
@@ -363,6 +365,9 @@ fun ChatScreen(
                     if (result == SnackbarResult.ActionPerformed) {
                         NotificationMediaServiceManager.openNotificationListenerSettings(context)
                     }
+                }
+                is ChatExecutionTracker.UiEvent.ExactAlarmPermissionNeeded -> {
+                    showExactAlarmDialog = true
                 }
                 is ChatExecutionTracker.UiEvent.LocationPermissionNeeded -> {
                     Log.d("ChatScreen", "LocationPermissionNeeded event received")
@@ -626,6 +631,38 @@ fun ChatScreen(
             dismissButton = {
                 TextButton(onClick = { showAccessibilityDialog = false }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showExactAlarmDialog) {
+        AlertDialog(
+            onDismissRequest = { showExactAlarmDialog = false },
+            title = { Text("Exact Alarm Permission") },
+            text = {
+                Text(
+                    "OneClaw scheduled your task, but without exact alarm permission " +
+                        "it may not fire at the precise time.\n\n" +
+                        "Grant the \"Alarms & reminders\" permission to ensure tasks " +
+                        "run exactly when scheduled."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExactAlarmDialog = false
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        context.startActivity(
+                            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                        )
+                    }
+                }) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExactAlarmDialog = false }) {
+                    Text("Dismiss")
                 }
             }
         )

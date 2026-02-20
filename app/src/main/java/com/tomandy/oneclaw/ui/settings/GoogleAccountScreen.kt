@@ -387,9 +387,14 @@ private fun ByokSection(
                         "4. Under Branding: set an app name, user support email, and developer email",
                         "5. Under Audience: select External, then click Publish App",
                         "   (this keeps your refresh tokens valid indefinitely)",
-                        "6. Go to APIs & Services > Credentials > + Create Credentials > OAuth client ID",
-                        "7. Set Application type to \"Desktop app\", give it any name, click Create",
-                        "8. Copy the Client ID and Client Secret below"
+                        "6. Under Data Access: click Add or Remove Scopes, then add:",
+                        "   gmail.modify, gmail.settings.basic, calendar, tasks,",
+                        "   contacts, drive, documents, spreadsheets, presentations,",
+                        "   forms.body.readonly, forms.responses.readonly",
+                        "   (filter by the APIs you enabled in step 2 to find them)",
+                        "7. Go to APIs & Services > Credentials > + Create Credentials > OAuth client ID",
+                        "8. Set Application type to \"Desktop app\", give it any name, click Create",
+                        "9. Copy the Client ID and Client Secret below"
                     )
                     steps.forEach { step ->
                         Text(text = step, style = bodySmall, color = textColor)

@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.llm.LlmProvider
+import com.tomandy.oneclaw.ui.theme.Dimens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,27 +47,29 @@ fun ProvidersScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = Dimens.ScreenPadding),
+        verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
+        contentPadding = PaddingValues(top = Dimens.ScreenPadding, bottom = Dimens.ScreenPadding)
     ) {
         // Add new API key section
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = Dimens.CardElevation)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(Dimens.CardInnerPadding),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
                         text = "Add API Key",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     // Provider dropdown

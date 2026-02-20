@@ -8,13 +8,23 @@ import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.CloudUpload
+import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.data.ModelPreferences
 import com.tomandy.oneclaw.llm.LlmProvider
+import com.tomandy.oneclaw.ui.theme.Dimens
 import kotlin.math.roundToInt
 
 @Composable
@@ -26,6 +36,7 @@ fun SettingsScreen(
     onNavigateToBackup: () -> Unit,
     onNavigateToAgentProfiles: () -> Unit,
     onNavigateToGoogleAccount: () -> Unit,
+    onNavigateToAppearance: () -> Unit,
     modelPreferences: ModelPreferences,
     availableModels: List<Pair<String, LlmProvider>>,
     selectedModel: String,
@@ -45,20 +56,21 @@ fun SettingsScreen(
             .fillMaxSize()
             .drawColumnScrollbar(scrollState, scrollbarColor)
             .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(Dimens.ScreenPadding),
+        verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing)
     ) {
         // Model selector
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
-            )
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = Dimens.CardElevation)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(Dimens.CardInnerPadding)
             ) {
                 Text(
                     text = "Model",
@@ -110,59 +122,69 @@ fun SettingsScreen(
         }
 
         SettingsMenuItem(
+            icon = Icons.Outlined.Key,
             title = "Providers",
             subtitle = "Manage API keys and LLM providers",
             onClick = onNavigateToProviders
         )
         SettingsMenuItem(
+            icon = Icons.Outlined.Extension,
             title = "Plugins",
             subtitle = "Enable or disable plugins",
             onClick = onNavigateToPlugins
         )
         SettingsMenuItem(
+            icon = Icons.Outlined.AutoAwesome,
             title = "Skills",
             subtitle = "Manage skill slash commands",
             onClick = onNavigateToSkills
         )
         SettingsMenuItem(
+            icon = Icons.Outlined.Psychology,
             title = "Memory",
             subtitle = "View agent memories across conversations",
             onClick = onNavigateToMemory
         )
         SettingsMenuItem(
+            icon = Icons.Outlined.CloudUpload,
             title = "Backup & Restore",
             subtitle = "Export or import app data",
             onClick = onNavigateToBackup
         )
         SettingsMenuItem(
+            icon = Icons.Outlined.AccountCircle,
             title = "Google Account",
             subtitle = "Connect Google Workspace plugins",
             onClick = onNavigateToGoogleAccount
         )
         SettingsMenuItem(
+            icon = Icons.Outlined.Groups,
             title = "Agent Profiles",
             subtitle = "Create and manage agent personas",
             onClick = onNavigateToAgentProfiles
         )
-
-        Spacer(modifier = Modifier.height(8.dp))
+        SettingsMenuItem(
+            icon = Icons.Outlined.Palette,
+            title = "Appearance",
+            subtitle = "Theme and display settings",
+            onClick = onNavigateToAppearance
+        )
 
         // Audio Input Mode
         AudioInputModeCard(modelPreferences = modelPreferences)
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         // Max Iterations setting
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
-            )
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = Dimens.CardElevation)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(Dimens.CardInnerPadding)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -214,12 +236,13 @@ private fun AudioInputModeCard(modelPreferences: ModelPreferences) {
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.CardElevation)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(Dimens.CardInnerPadding)
         ) {
             Text(
                 text = "Voice Input",
@@ -294,6 +317,7 @@ private fun AudioInputModeCard(modelPreferences: ModelPreferences) {
 
 @Composable
 private fun SettingsMenuItem(
+    icon: ImageVector,
     title: String,
     subtitle: String,
     onClick: () -> Unit,
@@ -303,16 +327,24 @@ private fun SettingsMenuItem(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.CardElevation)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
-                .padding(16.dp),
+                .padding(Dimens.CardInnerPadding),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,

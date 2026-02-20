@@ -3,10 +3,14 @@ package com.tomandy.oneclaw.devicecontrol
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
+import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.KeyEvent
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 
@@ -14,10 +18,13 @@ class DeviceControlService : AccessibilityService() {
 
     companion object {
         private const val TAG = "DeviceControlService"
-        private const val ABORT_HOLD_MS = 1500L
+        private const val DOUBLE_CLICK_WINDOW_MS = 400L
     }
 
-    private var volumeDownPressTime = 0L
+    private var lastVolumeDownUpTime = 0L
+    private var pendingAbort = false
+    private var overlayView: BorderOverlayView? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -34,27 +41,60 @@ class DeviceControlService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        hideBorderOverlay()
         DeviceControlManager.unregisterService()
         super.onDestroy()
+    }
+
+    fun showBorderOverlay() {
+        mainHandler.post {
+            if (overlayView != null) return@post
+            val view = BorderOverlayView(this)
+            val params = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                    or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                    or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                    or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT
+            )
+            val wm = getSystemService(WINDOW_SERVICE) as WindowManager
+            wm.addView(view, params)
+            overlayView = view
+        }
+    }
+
+    fun hideBorderOverlay() {
+        mainHandler.post {
+            val view = overlayView ?: return@post
+            val wm = getSystemService(WINDOW_SERVICE) as WindowManager
+            wm.removeView(view)
+            overlayView = null
+        }
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
             when (event.action) {
                 KeyEvent.ACTION_DOWN -> {
-                    if (volumeDownPressTime == 0L) {
-                        volumeDownPressTime = event.eventTime
-                    }
-                    val held = event.eventTime - volumeDownPressTime
-                    if (held >= ABORT_HOLD_MS) {
-                        volumeDownPressTime = 0L
-                        DeviceControlManager.abortAllExecutions()
-                        performGlobalAction(GLOBAL_ACTION_HOME)
+                    if (lastVolumeDownUpTime > 0 &&
+                        event.eventTime - lastVolumeDownUpTime <= DOUBLE_CLICK_WINDOW_MS
+                    ) {
+                        pendingAbort = true
                         return true
                     }
                 }
                 KeyEvent.ACTION_UP -> {
-                    volumeDownPressTime = 0L
+                    if (pendingAbort) {
+                        pendingAbort = false
+                        lastVolumeDownUpTime = 0L
+                        DeviceControlManager.abortAllExecutions()
+                        performGlobalAction(GLOBAL_ACTION_HOME)
+                        return true
+                    }
+                    lastVolumeDownUpTime = event.eventTime
                 }
             }
         }

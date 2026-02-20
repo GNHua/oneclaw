@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.tomandy.oneclaw.ui.theme.Dimens
 import com.tomandy.oneclaw.skill.SkillFrontmatterParser
 import com.tomandy.oneclaw.skill.SkillSource
 
@@ -123,11 +124,12 @@ fun SkillEditorScreen(
         },
         modifier = modifier
     ) { paddingValues ->
+        Column(Modifier.fillMaxSize().padding(paddingValues)) {
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
+                .padding(Dimens.ScreenPadding)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -192,6 +194,7 @@ fun SkillEditorScreen(
                     )
                 }
             }
+        }
         }
     }
 }

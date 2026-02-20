@@ -44,6 +44,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.tomandy.oneclaw.ui.theme.Dimens
 import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
 import kotlinx.coroutines.launch
 
@@ -81,7 +82,7 @@ fun GoogleAccountScreen(
             .fillMaxSize()
             .imePadding()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(Dimens.ScreenPadding),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Status card

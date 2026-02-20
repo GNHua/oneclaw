@@ -49,6 +49,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `lib-location` | GPS location, nearby places search, directions URL; requires Maps API key for `search_nearby` |
 | `lib-notification-media` | Notification list/inspect/dismiss + media playback control; requires Notification Listener Service |
 | `lib-pdf` | PDF info, text extraction, page rendering tools |
+| `lib-camera` | Headless photo capture via CameraX |
+| `lib-sms-phone` | SMS send/list/search, phone dial, call log |
+| `lib-voice-memo` | Audio recording and transcription via OpenAI Whisper |
 
 ### Dependency Injection
 

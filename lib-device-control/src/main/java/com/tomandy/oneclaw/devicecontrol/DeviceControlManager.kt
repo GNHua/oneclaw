@@ -2,8 +2,11 @@ package com.tomandy.oneclaw.devicecontrol
 
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import android.widget.Toast
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,6 +19,7 @@ object DeviceControlManager {
     private var serviceRef: WeakReference<DeviceControlService>? = null
     private var abortCallback: AbortCallback? = null
     private var accessibilityPromptCallback: AccessibilityPromptCallback? = null
+    private var abortInstructionsShown = false
 
     private val _serviceConnected = MutableStateFlow(false)
     val serviceConnected: StateFlow<Boolean> = _serviceConnected.asStateFlow()
@@ -48,7 +52,30 @@ object DeviceControlManager {
 
     fun abortAllExecutions() {
         Log.w(TAG, "Abort triggered via hardware button")
+        abortInstructionsShown = false
+        hideBorderOverlay()
         abortCallback?.abortAllExecutions()
+    }
+
+    fun showBorderOverlay() {
+        serviceRef?.get()?.showBorderOverlay()
+    }
+
+    fun hideBorderOverlay() {
+        serviceRef?.get()?.hideBorderOverlay()
+    }
+
+    fun showAbortInstructions() {
+        if (abortInstructionsShown) return
+        val service = serviceRef?.get() ?: return
+        abortInstructionsShown = true
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(
+                service,
+                "Double-click Volume Down to stop device control",
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
     fun getScreenContent(): String {

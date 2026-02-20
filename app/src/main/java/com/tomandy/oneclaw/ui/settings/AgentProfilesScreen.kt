@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.ui.drawScrollbar
 import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
+import com.tomandy.oneclaw.ui.theme.Dimens
 import com.tomandy.oneclaw.agent.profile.AgentProfileEntry
 
 @Composable
@@ -49,9 +50,9 @@ fun AgentProfilesScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .drawScrollbar(listState, scrollbarColor, heightCache)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                    .padding(horizontal = Dimens.ScreenPadding),
+                verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
+                contentPadding = PaddingValues(top = Dimens.ScreenPadding, bottom = 80.dp)
             ) {
                 items(profiles, key = { it.name }) { profile ->
                     AgentProfileCard(

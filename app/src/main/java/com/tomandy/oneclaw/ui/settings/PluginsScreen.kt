@@ -3,12 +3,10 @@ package com.tomandy.oneclaw.ui.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -20,8 +18,8 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.tomandy.oneclaw.ui.drawScrollbar
-import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
+import com.tomandy.oneclaw.ui.drawColumnScrollbar
+import com.tomandy.oneclaw.ui.theme.Dimens
 
 private enum class PluginGroup(val label: String) {
     USER("User Plugins"),
@@ -35,7 +33,7 @@ private enum class PluginGroup(val label: String) {
 }
 
 private val DEVICE_MEDIA_IDS = setOf(
-    "device-control", "camera", "voice-memo", "media-control", "notifications"
+    "device_control", "camera", "voice_memo", "media_control", "notifications"
 )
 private val COMMUNICATION_IDS = setOf("sms-phone")
 private val PRODUCTIVITY_IDS = setOf("notion")
@@ -44,8 +42,8 @@ private val UTILITIES_IDS = setOf(
     "web", "web-fetch", "location", "search", "qrcode", "pdf-tools", "time", "image-gen"
 )
 private val SYSTEM_IDS = setOf(
-    "workspace", "memory", "scheduler", "config", "delegate-agent", "activate-tools",
-    "install-plugin"
+    "workspace", "memory", "scheduler", "config", "delegate_agent", "activate_tools",
+    "plugin_management"
 )
 
 private fun classifyPlugin(plugin: PluginUiState): PluginGroup {
@@ -63,7 +61,7 @@ private fun classifyPlugin(plugin: PluginUiState): PluginGroup {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PluginsScreen(
     viewModel: SettingsViewModel,
@@ -96,9 +94,8 @@ fun PluginsScreen(
                 )
             }
         } else {
-            val listState = rememberLazyListState()
+            val scrollState = rememberScrollState()
             val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            val heightCache = rememberLazyListHeightCache()
 
             val groupedPlugins by remember(plugins) {
                 derivedStateOf {
@@ -111,20 +108,18 @@ fun PluginsScreen(
                 }
             }
 
-            LazyColumn(
-                state = listState,
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .drawScrollbar(listState, scrollbarColor, heightCache)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                    .drawColumnScrollbar(scrollState, scrollbarColor)
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = Dimens.ScreenPadding)
+                    .padding(top = Dimens.ScreenPadding, bottom = 80.dp),
+                verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing)
             ) {
-                groupedPlugins.forEach { (group, groupPlugins) ->
-                    stickyHeader(key = "header_${group.name}") {
-                        SectionHeader(title = group.label)
-                    }
-                    items(groupPlugins, key = { it.metadata.id }) { pluginState ->
+                groupedPlugins.entries.forEachIndexed { index, (group, groupPlugins) ->
+                    SectionHeader(title = group.label, showDivider = index > 0)
+                    groupPlugins.forEach { pluginState ->
                         PluginCard(
                             pluginState = pluginState,
                             onClick = { selectedPlugin = pluginState },
@@ -398,16 +393,18 @@ private fun PluginCard(
 }
 
 @Composable
-private fun SectionHeader(title: String) {
+private fun SectionHeader(title: String, showDivider: Boolean = true) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant,
-            modifier = Modifier.padding(vertical = 4.dp)
-        )
+        if (showDivider) {
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+        }
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,

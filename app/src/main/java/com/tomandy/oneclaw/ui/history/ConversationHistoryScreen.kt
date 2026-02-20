@@ -1,6 +1,5 @@
 package com.tomandy.oneclaw.ui.history
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -55,6 +55,7 @@ import com.tomandy.oneclaw.ui.chat.ToolCallGroupBubble
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.drawScrollbar
 import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
+import com.tomandy.oneclaw.ui.theme.Dimens
 import kotlinx.coroutines.flow.StateFlow
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -161,7 +162,7 @@ fun ConversationHistoryScreen(
             modifier = modifier
                 .fillMaxSize()
                 .drawScrollbar(listState, scrollbarColor, heightCache)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = Dimens.ScreenPadding),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item { Spacer(modifier = Modifier.height(8.dp)) }
@@ -171,14 +172,22 @@ fun ConversationHistoryScreen(
             ) { index ->
                 val conv = pagingItems[index] ?: return@items
                 val isActive = conv.id == activeId
-                val dismissState = rememberSwipeToDismissBoxState()
+                val dismissState = rememberSwipeToDismissBoxState(
+                    positionalThreshold = { it * 0.5f }
+                )
 
                 LaunchedEffect(dismissState.currentValue) {
                     if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart && !isActive) {
                         pendingDeleteId = conv.id
-                        dismissState.snapTo(SwipeToDismissBoxValue.Settled)
                     } else if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
                         dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+                    }
+                }
+
+                // Reset after dialog is dismissed (user cancelled)
+                LaunchedEffect(pendingDeleteId) {
+                    if (pendingDeleteId != conv.id && dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
+                        dismissState.reset()
                     }
                 }
 
@@ -187,18 +196,13 @@ fun ConversationHistoryScreen(
                     enableDismissFromStartToEnd = false,
                     enableDismissFromEndToStart = !isActive,
                     backgroundContent = {
-                        val color by animateColorAsState(
-                            targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
-                                MaterialTheme.colorScheme.errorContainer
-                            } else {
-                                MaterialTheme.colorScheme.surface
-                            },
-                            label = "swipe-bg"
-                        )
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(color)
+                                .background(
+                                    MaterialTheme.colorScheme.errorContainer,
+                                    RoundedCornerShape(16.dp)
+                                )
                                 .padding(end = 24.dp),
                             contentAlignment = Alignment.CenterEnd
                         ) {
@@ -228,10 +232,22 @@ private fun ConversationListItem(
     isActive: Boolean,
     onClick: () -> Unit
 ) {
+    val contentColor = if (isActive) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val secondaryColor = if (isActive) {
+        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isActive) {
                 MaterialTheme.colorScheme.primaryContainer
@@ -239,7 +255,7 @@ private fun ConversationListItem(
                 MaterialTheme.colorScheme.surface
             }
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isActive) 2.dp else 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -252,6 +268,7 @@ private fun ConversationListItem(
                 Text(
                     text = conversation.title,
                     style = MaterialTheme.typography.titleSmall,
+                    color = contentColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
@@ -259,7 +276,7 @@ private fun ConversationListItem(
                 Text(
                     text = formatTimestamp(conversation.updatedAt),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = secondaryColor
                 )
             }
 
@@ -268,7 +285,7 @@ private fun ConversationListItem(
                 Text(
                     text = conversation.lastMessagePreview,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = secondaryColor,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -278,7 +295,7 @@ private fun ConversationListItem(
             Text(
                 text = "${conversation.messageCount} messages",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = secondaryColor
             )
         }
     }
@@ -343,7 +360,6 @@ private fun ConversationPreviewSheet(
                     .weight(1f, fill = false)
                     .drawColumnScrollbar(scrollState, scrollbarColor)
                     .verticalScroll(scrollState)
-                    .padding(horizontal = 16.dp)
             ) {
                 displayItems.forEach { (msgs, isToolGroup) ->
                     if (isToolGroup) {

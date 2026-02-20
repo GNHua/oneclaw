@@ -2,8 +2,12 @@ package com.tomandy.oneclaw.ui.navigation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +44,7 @@ import com.tomandy.oneclaw.ui.settings.ProvidersScreen
 import com.tomandy.oneclaw.ui.settings.SettingsScreen
 import com.tomandy.oneclaw.ui.settings.SettingsViewModel
 import com.tomandy.oneclaw.ui.settings.SkillEditorScreen
+import com.tomandy.oneclaw.ui.settings.AppearanceScreen
 import com.tomandy.oneclaw.ui.settings.AgentProfileEditorScreen
 import com.tomandy.oneclaw.ui.settings.AgentProfilesScreen
 import com.tomandy.oneclaw.ui.settings.AgentProfilesViewModel
@@ -69,6 +74,7 @@ enum class Screen(val route: String) {
     AgentProfiles("settings/agents"),
     AgentProfileEditor("settings/agents/editor"),
     GoogleAccount("settings/google-account"),
+    Appearance("settings/appearance"),
     Cronjobs("cronjobs"),
     History("history")
 }
@@ -178,37 +184,43 @@ fun OneClawNavGraph(
                         )
                     }
                 ) { paddingValues ->
-                    SettingsScreen(
-                        onNavigateToProviders = {
-                            navController.navigate(Screen.Providers.route) { launchSingleTop = true }
-                        },
-                        onNavigateToPlugins = {
-                            navController.navigate(Screen.Plugins.route) { launchSingleTop = true }
-                        },
-                        onNavigateToSkills = {
-                            navController.navigate(Screen.Skills.route) { launchSingleTop = true }
-                        },
-                        onNavigateToMemory = {
-                            navController.navigate(Screen.Memory.route) { launchSingleTop = true }
-                        },
-                        onNavigateToBackup = {
-                            navController.navigate(Screen.Backup.route) { launchSingleTop = true }
-                        },
-                        onNavigateToAgentProfiles = {
-                            navController.navigate(Screen.AgentProfiles.route) { launchSingleTop = true }
-                        },
-                        onNavigateToGoogleAccount = {
-                            navController.navigate(Screen.GoogleAccount.route) { launchSingleTop = true }
-                        },
-                        modelPreferences = modelPreferences,
-                        availableModels = availableModels,
-                        selectedModel = selectedModel,
-                        onModelSelected = { model ->
-                            selectedModel = model
-                            llmClientProvider.setModelAndProvider(model)
-                        },
-                        modifier = Modifier.padding(paddingValues)
-                    )
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        SettingsScreen(
+                            onNavigateToProviders = {
+                                navController.navigate(Screen.Providers.route) { launchSingleTop = true }
+                            },
+                            onNavigateToPlugins = {
+                                navController.navigate(Screen.Plugins.route) { launchSingleTop = true }
+                            },
+                            onNavigateToSkills = {
+                                navController.navigate(Screen.Skills.route) { launchSingleTop = true }
+                            },
+                            onNavigateToMemory = {
+                                navController.navigate(Screen.Memory.route) { launchSingleTop = true }
+                            },
+                            onNavigateToBackup = {
+                                navController.navigate(Screen.Backup.route) { launchSingleTop = true }
+                            },
+                            onNavigateToAgentProfiles = {
+                                navController.navigate(Screen.AgentProfiles.route) { launchSingleTop = true }
+                            },
+                            onNavigateToGoogleAccount = {
+                                navController.navigate(Screen.GoogleAccount.route) { launchSingleTop = true }
+                            },
+                            onNavigateToAppearance = {
+                                navController.navigate(Screen.Appearance.route) { launchSingleTop = true }
+                            },
+                            modelPreferences = modelPreferences,
+                            availableModels = availableModels,
+                            selectedModel = selectedModel,
+                            onModelSelected = { model ->
+                                selectedModel = model
+                                llmClientProvider.setModelAndProvider(model)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -225,18 +237,22 @@ fun OneClawNavGraph(
                         )
                     }
                 ) { paddingValues ->
-                    ProvidersScreen(
-                        viewModel = settingsViewModel,
-                        modifier = Modifier.padding(paddingValues)
-                    )
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        ProvidersScreen(
+                            viewModel = settingsViewModel,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
             composable(Screen.Plugins.route) {
+                val pluginsList by settingsViewModel.plugins.collectAsState()
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text("Plugins") },
+                            title = { Text("Plugins (${pluginsList.size})") },
                             navigationIcon = {
                                 IconButton(onClick = { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
@@ -245,20 +261,24 @@ fun OneClawNavGraph(
                         )
                     }
                 ) { paddingValues ->
-                    PluginsScreen(
-                        viewModel = settingsViewModel,
-                        modifier = Modifier.padding(paddingValues)
-                    )
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        PluginsScreen(
+                            viewModel = settingsViewModel,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
             composable(Screen.Skills.route) {
                 val skillsViewModel: SkillsViewModel = koinViewModel()
+                val skillsList by skillsViewModel.skills.collectAsState()
 
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text("Skills") },
+                            title = { Text("Skills (${skillsList.size})") },
                             navigationIcon = {
                                 IconButton(onClick = { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
@@ -267,21 +287,24 @@ fun OneClawNavGraph(
                         )
                     }
                 ) { paddingValues ->
-                    SkillsScreen(
-                        viewModel = skillsViewModel,
-                        onNavigateToEditor = { skillName ->
-                            val route = if (skillName != null) {
-                                "${Screen.SkillEditor.route}?skillName=$skillName"
-                            } else {
-                                Screen.SkillEditor.route
-                            }
-                            navController.navigate(route) { launchSingleTop = true }
-                        },
-                        onNavigateToChat = {
-                            navController.popBackStack(Screen.Chat.route, inclusive = false)
-                        },
-                        modifier = Modifier.padding(paddingValues)
-                    )
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        SkillsScreen(
+                            viewModel = skillsViewModel,
+                            onNavigateToEditor = { skillName ->
+                                val route = if (skillName != null) {
+                                    "${Screen.SkillEditor.route}?skillName=$skillName"
+                                } else {
+                                    Screen.SkillEditor.route
+                                }
+                                navController.navigate(route) { launchSingleTop = true }
+                            },
+                            onNavigateToChat = {
+                                navController.popBackStack(Screen.Chat.route, inclusive = false)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -323,17 +346,20 @@ fun OneClawNavGraph(
                         )
                     }
                 ) { paddingValues ->
-                    MemoryScreen(
-                        viewModel = memoryViewModel,
-                        onNavigateToDetail = { relativePath, displayName ->
-                            val encoded = java.net.URLEncoder.encode(relativePath, "UTF-8")
-                            val encodedName = java.net.URLEncoder.encode(displayName, "UTF-8")
-                            navController.navigate(
-                                "${Screen.MemoryDetail.route}?path=$encoded&name=$encodedName"
-                            ) { launchSingleTop = true }
-                        },
-                        modifier = Modifier.padding(paddingValues)
-                    )
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        MemoryScreen(
+                            viewModel = memoryViewModel,
+                            onNavigateToDetail = { relativePath, displayName ->
+                                val encoded = java.net.URLEncoder.encode(relativePath, "UTF-8")
+                                val encodedName = java.net.URLEncoder.encode(displayName, "UTF-8")
+                                navController.navigate(
+                                    "${Screen.MemoryDetail.route}?path=$encoded&name=$encodedName"
+                                ) { launchSingleTop = true }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -364,12 +390,15 @@ fun OneClawNavGraph(
                         )
                     }
                 ) { paddingValues ->
-                    MemoryDetailScreen(
-                        viewModel = memoryViewModel,
-                        relativePath = relativePath,
-                        onDelete = { navController.popBackStack() },
-                        modifier = Modifier.padding(paddingValues)
-                    )
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        MemoryDetailScreen(
+                            viewModel = memoryViewModel,
+                            relativePath = relativePath,
+                            onDelete = { navController.popBackStack() },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -388,10 +417,13 @@ fun OneClawNavGraph(
                         )
                     }
                 ) { paddingValues ->
-                    BackupScreen(
-                        viewModel = backupViewModel,
-                        modifier = Modifier.padding(paddingValues)
-                    )
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        BackupScreen(
+                            viewModel = backupViewModel,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -410,18 +442,21 @@ fun OneClawNavGraph(
                         )
                     }
                 ) { paddingValues ->
-                    AgentProfilesScreen(
-                        viewModel = agentProfilesViewModel,
-                        onNavigateToEditor = { profileName ->
-                            val route = if (profileName != null) {
-                                "${Screen.AgentProfileEditor.route}?profileName=$profileName"
-                            } else {
-                                Screen.AgentProfileEditor.route
-                            }
-                            navController.navigate(route) { launchSingleTop = true }
-                        },
-                        modifier = Modifier.padding(paddingValues)
-                    )
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        AgentProfilesScreen(
+                            viewModel = agentProfilesViewModel,
+                            onNavigateToEditor = { profileName ->
+                                val route = if (profileName != null) {
+                                    "${Screen.AgentProfileEditor.route}?profileName=$profileName"
+                                } else {
+                                    Screen.AgentProfileEditor.route
+                                }
+                                navController.navigate(route) { launchSingleTop = true }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -460,13 +495,39 @@ fun OneClawNavGraph(
                         )
                     }
                 ) { paddingValues ->
-                    GoogleAccountScreen(
-                        oauthAuthManager = oauthAuthManager,
-                        onSignInChanged = { signedIn ->
-                            settingsViewModel.onGoogleSignInChanged(signedIn)
-                        },
-                        modifier = Modifier.padding(paddingValues)
-                    )
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        GoogleAccountScreen(
+                            oauthAuthManager = oauthAuthManager,
+                            onSignInChanged = { signedIn ->
+                                settingsViewModel.onGoogleSignInChanged(signedIn)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
+            composable(Screen.Appearance.route) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Appearance") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
+                            }
+                        )
+                    }
+                ) { paddingValues ->
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        AppearanceScreen(
+                            modelPreferences = modelPreferences,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -485,10 +546,13 @@ fun OneClawNavGraph(
                         )
                     }
                 ) { paddingValues ->
-                    CronjobsScreen(
-                        viewModel = viewModel,
-                        modifier = Modifier.padding(paddingValues)
-                    )
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        CronjobsScreen(
+                            viewModel = viewModel,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
@@ -513,15 +577,18 @@ fun OneClawNavGraph(
                 },
                 modifier = Modifier.fillMaxSize()
             ) { paddingValues ->
-                ConversationHistoryScreen(
-                    viewModel = historyViewModel,
-                    currentConversationId = chatViewModel.conversationId,
-                    onConversationSelected = { convId ->
-                        chatViewModel.loadConversation(convId)
-                        showHistory = false
-                    },
-                    modifier = Modifier.padding(paddingValues)
-                )
+                Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                    ConversationHistoryScreen(
+                        viewModel = historyViewModel,
+                        currentConversationId = chatViewModel.conversationId,
+                        onConversationSelected = { convId ->
+                            chatViewModel.loadConversation(convId)
+                            showHistory = false
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }

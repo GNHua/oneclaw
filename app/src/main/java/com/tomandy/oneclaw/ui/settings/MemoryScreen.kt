@@ -15,6 +15,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.ui.drawScrollbar
 import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
+import com.tomandy.oneclaw.ui.theme.Dimens
 
 @Composable
 fun MemoryScreen(
@@ -47,8 +48,9 @@ fun MemoryScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .drawScrollbar(listState, scrollbarColor, heightCache)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(horizontal = Dimens.ScreenPadding),
+                verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
+                contentPadding = PaddingValues(top = Dimens.ScreenPadding, bottom = Dimens.ScreenPadding)
             ) {
                 items(files, key = { it.relativePath }) { entry ->
                     MemoryFileCard(

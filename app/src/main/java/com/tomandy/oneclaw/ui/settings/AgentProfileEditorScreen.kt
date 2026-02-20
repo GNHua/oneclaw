@@ -101,10 +101,11 @@ fun AgentProfileEditorScreen(
             )
         }
     ) { paddingValues ->
+        Column(Modifier.fillMaxSize().padding(paddingValues)) {
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .padding(horizontal = Dimens.ScreenPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
@@ -363,6 +364,7 @@ fun AgentProfileEditorScreen(
                     }
                 }
             }
+        }
         }
     }
 }

@@ -124,10 +124,11 @@ fun SkillEditorScreen(
         },
         modifier = modifier
     ) { paddingValues ->
+        Column(Modifier.fillMaxSize().padding(paddingValues)) {
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .padding(Dimens.ScreenPadding)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -193,6 +194,7 @@ fun SkillEditorScreen(
                     )
                 }
             }
+        }
         }
     }
 }

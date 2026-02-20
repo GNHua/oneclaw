@@ -20,6 +20,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -43,8 +45,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,6 +58,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -95,6 +96,8 @@ fun ChatInput(
 ) {
     val canSend = value.isNotBlank() || attachedImages.isNotEmpty() || attachedAudios.isNotEmpty() || attachedVideos.isNotEmpty() || attachedDocuments.isNotEmpty()
 
+    var menuExpanded by remember { mutableStateOf(false) }
+
     Column(modifier = modifier.fillMaxWidth()) {
         // Attached previews (images + audio + video)
         if (attachedImages.isNotEmpty() || attachedAudios.isNotEmpty() || attachedVideos.isNotEmpty() || attachedDocuments.isNotEmpty()) {
@@ -127,18 +130,108 @@ fun ChatInput(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.Bottom
         ) {
-            // Attachment button with dropdown menu
-            var menuExpanded by remember { mutableStateOf(false) }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.weight(1f),
+                maxLines = 4,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Send
+                ),
+                keyboardActions = KeyboardActions(
+                    onSend = { if (canSend) onSend() }
+                ),
+                decorationBox = { innerTextField ->
+                    Row(
+                        modifier = Modifier
+                            .background(
+                                MaterialTheme.colorScheme.surfaceContainerHighest,
+                                RoundedCornerShape(20.dp)
+                            )
+                            .height(40.dp)
+                            .padding(start = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            innerTextField()
+                        }
+                        if (isProcessing) {
+                            StopButton(onClick = onStop)
+                        } else if (!canSend) {
+                            IconButton(onClick = onTakePhoto, modifier = Modifier.size(36.dp)) {
+                                Icon(
+                                    imageVector = Icons.Default.CameraAlt,
+                                    contentDescription = "Take photo",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (micAvailable || isRecording) {
+                                IconButton(onClick = onMicTap, modifier = Modifier.size(36.dp)) {
+                                    Icon(
+                                        imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                                        contentDescription = if (isRecording) "Stop recording" else "Voice input",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = if (isRecording) {
+                                            MaterialTheme.colorScheme.error
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Right-side button: Send (when content) or + attachment menu
             Box {
-                IconButton(onClick = { menuExpanded = true }) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Attach",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                if (canSend || isProcessing) {
+                    FilledIconButton(
+                        onClick = onSend,
+                        enabled = canSend,
+                        modifier = Modifier.size(40.dp),
+                        shape = CircleShape,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Send message",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                } else {
+                    FilledIconButton(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.size(40.dp),
+                        shape = CircleShape,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Attach",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
                 DropdownMenu(
                     expanded = menuExpanded,
@@ -150,11 +243,6 @@ fun ChatInput(
                         leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) }
                     )
                     DropdownMenuItem(
-                        text = { Text("Take Photo") },
-                        onClick = { menuExpanded = false; onTakePhoto() },
-                        leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) }
-                    )
-                    DropdownMenuItem(
                         text = { Text("Take Video") },
                         onClick = { menuExpanded = false; onTakeVideo() },
                         leadingIcon = { Icon(Icons.Default.Videocam, contentDescription = null) }
@@ -163,73 +251,6 @@ fun ChatInput(
                         text = { Text("File") },
                         onClick = { menuExpanded = false; onPickDocument() },
                         leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) }
-                    )
-                }
-            }
-
-            TextField(
-                value = value,
-                onValueChange = onValueChange,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Type a message...") },
-                maxLines = 4,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences,
-                    imeAction = ImeAction.Send
-                ),
-                keyboardActions = KeyboardActions(
-                    onSend = { if (canSend) onSend() }
-                ),
-                shape = RoundedCornerShape(24.dp),
-                trailingIcon = if (isProcessing) {
-                    { StopButton(onClick = onStop) }
-                } else null,
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                )
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Right-side button: Send (when content), Mic/Stop (when empty + mic available)
-            if (canSend || isProcessing) {
-                FilledIconButton(
-                    onClick = onSend,
-                    enabled = canSend,
-                    modifier = Modifier.size(48.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send message"
-                    )
-                }
-            } else if (micAvailable || isRecording) {
-                // Mic button (or stop-recording button)
-                IconButton(onClick = onMicTap) {
-                    Icon(
-                        imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
-                        contentDescription = if (isRecording) "Stop recording" else "Voice input",
-                        tint = if (isRecording) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
-                }
-            } else {
-                // No mic available, show disabled send button as placeholder
-                IconButton(onClick = {}, enabled = false) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send message",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

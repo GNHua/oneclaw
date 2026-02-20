@@ -70,10 +70,7 @@ class SettingsViewModel(
             }
         }
         viewModelScope.launch {
-            DeviceControlManager.serviceConnected.collectLatest { connected ->
-                if (!connected) {
-                    togglePlugin("device_control", false)
-                }
+            DeviceControlManager.serviceConnected.collectLatest {
                 refreshPluginStates()
             }
         }

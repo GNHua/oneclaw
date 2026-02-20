@@ -38,6 +38,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -137,6 +138,7 @@ fun ChatScreen(
     val currentProfileId by viewModel.currentProfileId.collectAsState()
     val currentProfileName = currentProfileId
     var showAgentPicker by remember { mutableStateOf(false) }
+    var showAccessibilityDialog by remember { mutableStateOf(false) }
 
     var inputText by remember { mutableStateOf("") }
 
@@ -350,14 +352,7 @@ fun ChatScreen(
         viewModel.uiEvents.collect { event ->
             when (event) {
                 is ChatExecutionTracker.UiEvent.AccessibilityServiceNeeded -> {
-                    val result = snackbarHostState.showSnackbar(
-                        message = "Accessibility service required for device control",
-                        actionLabel = "Open Settings",
-                        duration = SnackbarDuration.Long
-                    )
-                    if (result == SnackbarResult.ActionPerformed) {
-                        DeviceControlManager.openAccessibilitySettings(context)
-                    }
+                    showAccessibilityDialog = true
                 }
                 is ChatExecutionTracker.UiEvent.NotificationListenerServiceNeeded -> {
                     val result = snackbarHostState.showSnackbar(
@@ -604,6 +599,36 @@ fun ChatScreen(
                 onRemoveDocument = { index -> attachedDocuments.removeAt(index) }
             )
         }
+    }
+
+    if (showAccessibilityDialog) {
+        AlertDialog(
+            onDismissRequest = { showAccessibilityDialog = false },
+            title = { Text("Accessibility Service Required") },
+            text = {
+                Text(
+                    "OneClaw needs the Accessibility Service to observe and interact with " +
+                        "your screen on your behalf. This includes reading screen content and " +
+                        "performing actions like tapping, typing, and swiping.\n\n" +
+                        "Screen content may be sent to your configured AI provider to process " +
+                        "your request. No data is collected by OneClaw.\n\n" +
+                        "You can disable this service at any time in Settings."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showAccessibilityDialog = false
+                    DeviceControlManager.openAccessibilitySettings(context)
+                }) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAccessibilityDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

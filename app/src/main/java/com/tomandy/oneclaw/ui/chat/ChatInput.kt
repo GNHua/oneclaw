@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,7 +37,6 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -66,7 +66,14 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -233,25 +240,48 @@ fun ChatInput(
                         )
                     }
                 }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Gallery") },
-                        onClick = { menuExpanded = false; onPickFromGallery() },
-                        leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Take Video") },
-                        onClick = { menuExpanded = false; onTakeVideo() },
-                        leadingIcon = { Icon(Icons.Default.Videocam, contentDescription = null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("File") },
-                        onClick = { menuExpanded = false; onPickDocument() },
-                        leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) }
-                    )
+                if (menuExpanded) {
+                    Popup(
+                        onDismissRequest = { menuExpanded = false },
+                        popupPositionProvider = object : PopupPositionProvider {
+                            override fun calculatePosition(
+                                anchorBounds: IntRect,
+                                windowSize: IntSize,
+                                layoutDirection: LayoutDirection,
+                                popupContentSize: IntSize
+                            ): IntOffset {
+                                val x = anchorBounds.right - popupContentSize.width
+                                val y = anchorBounds.top - popupContentSize.height
+                                return IntOffset(x, y)
+                            }
+                        },
+                        properties = PopupProperties(focusable = true)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            shadowElevation = 3.dp,
+                            tonalElevation = 3.dp,
+                            color = MaterialTheme.colorScheme.surfaceContainer
+                        ) {
+                            Column(modifier = Modifier.width(IntrinsicSize.Max).padding(vertical = 4.dp)) {
+                                DropdownMenuItem(
+                                    text = { Text("Gallery") },
+                                    onClick = { menuExpanded = false; onPickFromGallery() },
+                                    leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Take Video") },
+                                    onClick = { menuExpanded = false; onTakeVideo() },
+                                    leadingIcon = { Icon(Icons.Default.Videocam, contentDescription = null) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("File") },
+                                    onClick = { menuExpanded = false; onPickDocument() },
+                                    leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -2,6 +2,7 @@ package com.tomandy.oneclaw.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
@@ -35,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -365,9 +367,63 @@ private fun ByokSection(
                     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
                     val linkColor = MaterialTheme.colorScheme.primary
                     val bodySmall = MaterialTheme.typography.bodySmall
-                    val step1 = buildAnnotatedString {
+                    val apiList = listOf(
+                        "Gmail API", "Google Calendar API", "Google Tasks API",
+                        "People API", "Google Drive API", "Google Docs API",
+                        "Google Sheets API", "Google Slides API", "Google Forms API"
+                    )
+                    val scopeList = listOf(
+                        "gmail.modify", "gmail.settings.basic",
+                        "calendar", "tasks", "contacts",
+                        "drive", "documents", "spreadsheets",
+                        "presentations", "forms.body.readonly",
+                        "forms.responses.readonly"
+                    )
+
+                    var stepNumber = 1
+
+                    @Composable
+                    fun numberedStep(text: AnnotatedString) {
+                        val label = "${stepNumber++}. "
+                        Row(modifier = Modifier.padding(start = 4.dp)) {
+                            Text(
+                                text = label,
+                                style = bodySmall,
+                                color = textColor
+                            )
+                            Text(
+                                text = text,
+                                style = bodySmall,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    @Composable
+                    fun numberedStep(text: String) {
+                        numberedStep(AnnotatedString(text))
+                    }
+
+                    @Composable
+                    fun nestedItem(text: String) {
+                        Row(modifier = Modifier.padding(start = 28.dp)) {
+                            Text(
+                                text = "\u2022 ",
+                                style = bodySmall,
+                                color = textColor
+                            )
+                            Text(
+                                text = text,
+                                style = bodySmall,
+                                color = textColor,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    val step1Text = buildAnnotatedString {
                         withStyle(SpanStyle(color = textColor)) {
-                            append("1. Go to ")
+                            append("Go to ")
                         }
                         pushLink(LinkAnnotation.Url("https://console.cloud.google.com"))
                         withStyle(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)) {
@@ -378,27 +434,22 @@ private fun ByokSection(
                             append(" and create a project")
                         }
                     }
-                    Text(text = step1, style = bodySmall)
-                    val steps = listOf(
-                        "2. Go to APIs & Services > Library > search and enable each API:",
-                        "   Gmail API, Google Calendar API, Google Tasks API,",
-                        "   People API, Drive API, Docs API, Sheets API, Slides API, Forms API",
-                        "3. Go to APIs & Services > OAuth consent screen",
-                        "4. Under Branding: set an app name, user support email, and developer email",
-                        "5. Under Audience: select External, then click Publish App",
-                        "   (this keeps your refresh tokens valid indefinitely)",
-                        "6. Under Data Access: click Add or Remove Scopes, then add:",
-                        "   gmail.modify, gmail.settings.basic, calendar, tasks,",
-                        "   contacts, drive, documents, spreadsheets, presentations,",
-                        "   forms.body.readonly, forms.responses.readonly",
-                        "   (filter by the APIs you enabled in step 2 to find them)",
-                        "7. Go to APIs & Services > Credentials > + Create Credentials > OAuth client ID",
-                        "8. Set Application type to \"Desktop app\", give it any name, click Create",
-                        "9. Copy the Client ID and Client Secret below"
-                    )
-                    steps.forEach { step ->
-                        Text(text = step, style = bodySmall, color = textColor)
-                    }
+                    numberedStep(step1Text)
+
+                    numberedStep("Enable APIs in APIs & Services > Library:")
+                    apiList.forEach { api -> nestedItem(api) }
+
+                    numberedStep("Go to APIs & Services > OAuth consent screen")
+                    numberedStep("Under Branding: set an app name, user support email, and developer email")
+                    numberedStep("Under Audience: select External, then click Publish App (this keeps your refresh tokens valid indefinitely)")
+
+                    numberedStep("Under Data Access: click Add or Remove Scopes, add:")
+                    nestedItem("(filter by the APIs you enabled above to find them)")
+                    scopeList.forEach { scope -> nestedItem(scope) }
+
+                    numberedStep("Go to APIs & Services > Credentials > + Create Credentials > OAuth client ID")
+                    numberedStep("Set Application type to \"Desktop app\", give it any name, click Create")
+                    numberedStep("Copy the Client ID and Client Secret below")
 
                     Spacer(Modifier.height(8.dp))
                 }

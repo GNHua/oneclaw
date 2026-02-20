@@ -53,7 +53,16 @@ object DeviceControlManager {
     fun abortAllExecutions() {
         Log.w(TAG, "Abort triggered via hardware button")
         abortInstructionsShown = false
+        hideBorderOverlay()
         abortCallback?.abortAllExecutions()
+    }
+
+    fun showBorderOverlay() {
+        serviceRef?.get()?.showBorderOverlay()
+    }
+
+    fun hideBorderOverlay() {
+        serviceRef?.get()?.hideBorderOverlay()
     }
 
     fun showAbortInstructions() {

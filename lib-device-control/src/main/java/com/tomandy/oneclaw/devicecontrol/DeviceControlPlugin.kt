@@ -25,6 +25,7 @@ class DeviceControlPlugin : Plugin {
         }
 
         DeviceControlManager.showAbortInstructions()
+        DeviceControlManager.showBorderOverlay()
 
         return when (toolName) {
             "observe_screen" -> observeScreen()

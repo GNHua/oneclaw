@@ -20,6 +20,7 @@ import com.tomandy.oneclaw.agent.ToolRegistry
 import com.tomandy.oneclaw.agent.profile.AgentProfileEntry
 import com.tomandy.oneclaw.agent.profile.AgentProfileRepository
 import com.tomandy.oneclaw.data.AppDatabase
+import com.tomandy.oneclaw.devicecontrol.DeviceControlManager
 import com.tomandy.oneclaw.data.ModelPreferences
 import com.tomandy.oneclaw.data.entity.MessageEntity
 import com.tomandy.oneclaw.llm.LlmClientProvider
@@ -219,6 +220,7 @@ class ChatExecutionService : Service(), KoinComponent {
                     e.message ?: "Unknown error"
                 )
             } finally {
+                DeviceControlManager.hideBorderOverlay()
                 val removed = synchronized(activeCoordinators) { activeCoordinators.remove(conversationId) }
                 removed?.cleanup()
                 synchronized(activeJobs) { activeJobs.remove(conversationId) }

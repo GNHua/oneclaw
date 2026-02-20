@@ -1,6 +1,9 @@
 ---
 layout: default
+title: OneClaw
 ---
+
+[Home](./)
 
 # Plugin & Skill Reference
 

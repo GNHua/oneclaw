@@ -1,6 +1,9 @@
 ---
 layout: default
+title: OneClaw
 ---
+
+[Home](./)
 
 # Skill Loading Architecture
 

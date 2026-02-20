@@ -79,7 +79,7 @@ The debug APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Documentation
 
-- [Plugin & Skill Reference](reference) -- Complete reference for all 35 plugins and 168 tools
+- [Plugin & Skill Reference](plugins-skills) -- Complete reference for all 35 plugins and 168 tools
 - [Memory System](memory) -- How OneClaw stores and retrieves context across conversations
 - [Skill Loading Architecture](skill-loading) -- How skills are discovered, loaded, and injected
 

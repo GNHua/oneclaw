@@ -114,10 +114,11 @@ class SettingsViewModel(
                 )
                 state.metadata.id in PLUGIN_CREDENTIAL_IDS &&
                     isPluginMissingCredentials(state) -> state.copy(
-                    toggleable = false,
-                    toggleDisabledReason = "Requires API key configuration"
+                    toggleable = true,
+                    toggleDisabledReason = null,
+                    needsCredentials = true
                 )
-                else -> state.copy(toggleable = true, toggleDisabledReason = null)
+                else -> state.copy(toggleable = true, toggleDisabledReason = null, needsCredentials = false)
             }
         }
     }
@@ -421,5 +422,6 @@ data class PluginUiState(
     val enabled: Boolean,
     val isUserPlugin: Boolean = false,
     val toggleable: Boolean = true,
-    val toggleDisabledReason: String? = null
+    val toggleDisabledReason: String? = null,
+    val needsCredentials: Boolean = false
 )

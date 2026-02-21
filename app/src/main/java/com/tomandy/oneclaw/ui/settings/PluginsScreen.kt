@@ -124,7 +124,11 @@ fun PluginsScreen(
                             pluginState = pluginState,
                             onClick = { selectedPlugin = pluginState },
                             onToggle = { enabled ->
-                                viewModel.togglePlugin(pluginState.metadata.id, enabled)
+                                if (enabled && pluginState.needsCredentials) {
+                                    selectedPlugin = pluginState
+                                } else {
+                                    viewModel.togglePlugin(pluginState.metadata.id, enabled)
+                                }
                             },
                             onDelete = if (pluginState.isUserPlugin) {
                                 { showDeleteConfirm = pluginState.metadata.id }

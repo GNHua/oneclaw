@@ -30,6 +30,10 @@ fun AgentProfileEditorScreen(
     var filterSkills by remember { mutableStateOf(false) }
     var selectedSkills by remember { mutableStateOf(setOf<String>()) }
     var isModelDropdownExpanded by remember { mutableStateOf(false) }
+    var overrideTemperature by remember { mutableStateOf(false) }
+    var temperature by remember { mutableStateOf(0.7f) }
+    var overrideMaxIterations by remember { mutableStateOf(false) }
+    var maxIterations by remember { mutableStateOf(100) }
 
     var availableModels by remember { mutableStateOf(emptyList<Pair<String, com.tomandy.oneclaw.llm.LlmProvider>>()) }
     val availableTools = remember { viewModel.getAvailableToolNames() }
@@ -57,6 +61,14 @@ fun AgentProfileEditorScreen(
                 profile.enabledSkills?.let {
                     filterSkills = true
                     selectedSkills = it.toSet()
+                }
+                profile.temperature?.let {
+                    overrideTemperature = true
+                    temperature = it
+                }
+                profile.maxIterations?.let {
+                    overrideMaxIterations = true
+                    maxIterations = it
                 }
             }
             isLoaded = true
@@ -89,6 +101,8 @@ fun AgentProfileEditorScreen(
                                 model = selectedModel,
                                 allowedTools = allowedTools,
                                 enabledSkills = enabledSkills,
+                                temperature = if (overrideTemperature) temperature else null,
+                                maxIterations = if (overrideMaxIterations) maxIterations else null,
                                 originalName = profileName
                             )
                             onNavigateBack()
@@ -208,6 +222,115 @@ fun AgentProfileEditorScreen(
                                     )
                                 }
                             }
+                        }
+                    }
+                }
+            }
+
+            // Temperature
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Temperature",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = if (overrideTemperature)
+                                        "%.1f".format(temperature)
+                                    else
+                                        "Use default",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = overrideTemperature,
+                                onCheckedChange = { overrideTemperature = it }
+                            )
+                        }
+                        if (overrideTemperature) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Slider(
+                                value = temperature,
+                                onValueChange = { temperature = (it * 10).toInt() / 10f },
+                                valueRange = 0f..2f,
+                                steps = 19,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Max Iterations
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Max Iterations",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = if (overrideMaxIterations) {
+                                        if (maxIterations >= 500) "Unlimited" else "$maxIterations"
+                                    } else {
+                                        "Use default"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = overrideMaxIterations,
+                                onCheckedChange = { overrideMaxIterations = it }
+                            )
+                        }
+                        if (overrideMaxIterations) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Slider(
+                                value = maxIterations.toFloat(),
+                                onValueChange = { maxIterations = it.toInt() },
+                                valueRange = 1f..500f,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Text(
+                                text = "Drag to 500 for unlimited iterations",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }

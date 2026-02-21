@@ -14,6 +14,8 @@ object AgentProfileParser {
         val model: String?,
         val allowedTools: List<String>?,
         val enabledSkills: List<String>?,
+        val temperature: Float?,
+        val maxIterations: Int?,
         val body: String
     )
 
@@ -33,6 +35,8 @@ object AgentProfileParser {
         var model: String? = null
         var allowedTools: List<String>? = null
         var enabledSkills: List<String>? = null
+        var temperature: Float? = null
+        var maxIterations: Int? = null
 
         for (line in frontmatter.lines()) {
             if (line.isBlank()) continue
@@ -50,6 +54,22 @@ object AgentProfileParser {
                 "model" -> model = unquote(value)
                 "allowed-tools" -> allowedTools = parseList(value)
                 "enabled-skills" -> enabledSkills = parseList(value)
+                "temperature" -> {
+                    val parsed = unquote(value).toFloatOrNull()
+                    if (parsed != null && parsed in 0.0f..2.0f) {
+                        temperature = parsed
+                    } else {
+                        Log.w(TAG, "Invalid temperature value '$value' (must be 0.0-2.0)")
+                    }
+                }
+                "max-iterations" -> {
+                    val parsed = unquote(value).toIntOrNull()
+                    if (parsed != null && parsed in 1..500) {
+                        maxIterations = parsed
+                    } else {
+                        Log.w(TAG, "Invalid max-iterations value '$value' (must be 1-500)")
+                    }
+                }
             }
         }
 
@@ -58,7 +78,7 @@ object AgentProfileParser {
 
         validateName(name, expectedName)
 
-        return ParseResult(name, description, model, allowedTools, enabledSkills, body)
+        return ParseResult(name, description, model, allowedTools, enabledSkills, temperature, maxIterations, body)
     }
 
     private fun validateName(name: String, expectedName: String?) {

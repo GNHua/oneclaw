@@ -79,7 +79,8 @@ class ScheduledAgentExecutor(
                 // Get preferences
                 val model = profile?.model
                     ?: modelPreferences.getSelectedModel() ?: ""
-                val temperature = modelPreferences.getTemperature()
+                val temperature = profile?.temperature ?: modelPreferences.getTemperature()
+                val maxIter = profile?.maxIterations ?: modelPreferences.getMaxIterations()
 
                 // Build full system prompt with skills and memory
                 val basePrompt = profile?.systemPrompt
@@ -97,6 +98,7 @@ class ScheduledAgentExecutor(
                     userMessage = instruction,
                     systemPrompt = systemPrompt,
                     model = model,
+                    maxIterations = if (maxIter >= 500) Int.MAX_VALUE else maxIter,
                     temperature = temperature,
                     context = context
                 )

@@ -121,12 +121,9 @@ class ChatExecutionService : Service(), KoinComponent {
 
         val job = serviceScope.launch {
             try {
-                // Resolve global active agent profile
+                // Always use the "main" agent profile for chat
                 agentProfileRepository.reload()
-                val activeAgentName = modelPreferences.getActiveAgent()
-                val profile: AgentProfileEntry? = activeAgentName?.let {
-                    agentProfileRepository.findByName(it)
-                } ?: agentProfileRepository.findByName("main")
+                val profile: AgentProfileEntry? = agentProfileRepository.findByName("main")
 
                 val selectedModel = profile?.model
                     ?: modelPreferences.getSelectedModel()
@@ -184,12 +181,13 @@ class ChatExecutionService : Service(), KoinComponent {
                     documentPaths, documentNames, documentMimeTypes
                 )
 
+                val maxIter = profile?.maxIterations ?: modelPreferences.getMaxIterations()
                 val result = coordinator.execute(
                     userMessage = effectiveMessage,
                     systemPrompt = systemPrompt,
                     model = selectedModel,
-                    maxIterations = modelPreferences.getMaxIterations(),
-                    temperature = modelPreferences.getTemperature(),
+                    maxIterations = if (maxIter >= 500) Int.MAX_VALUE else maxIter,
+                    temperature = profile?.temperature ?: modelPreferences.getTemperature(),
                     mediaData = allMediaData.takeIf { it.isNotEmpty() }
                 )
 

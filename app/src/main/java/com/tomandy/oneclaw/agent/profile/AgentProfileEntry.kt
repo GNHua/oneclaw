@@ -7,6 +7,8 @@ data class AgentProfileEntry(
     val model: String? = null,
     val allowedTools: List<String>? = null,
     val enabledSkills: List<String>? = null,
+    val temperature: Float? = null,
+    val maxIterations: Int? = null,
     val source: AgentProfileSource = AgentProfileSource.USER,
     val filePath: String? = null
 )

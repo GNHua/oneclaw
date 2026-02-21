@@ -9,7 +9,6 @@ import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -28,8 +27,6 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -65,7 +62,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material.icons.filled.ArrowDropDown
 import com.tomandy.oneclaw.audio.AudioInputController
 import com.tomandy.oneclaw.audio.AudioState
 import com.tomandy.oneclaw.audio.AndroidSttProvider
@@ -134,11 +130,6 @@ fun ChatScreen(
         }
     }
 
-    // Agent profile selection
-    val agentProfiles by viewModel.agentProfiles.collectAsState()
-    val currentProfileId by viewModel.currentProfileId.collectAsState()
-    val currentProfileName = currentProfileId
-    var showAgentPicker by remember { mutableStateOf(false) }
     var showAccessibilityDialog by remember { mutableStateOf(false) }
     var showExactAlarmDialog by remember { mutableStateOf(false) }
 
@@ -392,52 +383,7 @@ fun ChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Column {
-                        Text("OneClaw")
-                        if (agentProfiles.isNotEmpty()) {
-                            Box {
-                                TextButton(
-                                    onClick = { showAgentPicker = true },
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                                    modifier = Modifier.height(24.dp)
-                                ) {
-                                    Text(
-                                        text = "Agent: ${currentProfileName ?: "main"}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Icon(
-                                        Icons.Default.ArrowDropDown,
-                                        contentDescription = "Select agent",
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                                DropdownMenu(
-                                    expanded = showAgentPicker,
-                                    onDismissRequest = { showAgentPicker = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text("main") },
-                                        onClick = {
-                                            viewModel.setAgentProfile(null)
-                                            showAgentPicker = false
-                                        }
-                                    )
-                                    agentProfiles.filter { it.name != "main" }.forEach { profile ->
-                                        DropdownMenuItem(
-                                            text = { Text(profile.name) },
-                                            onClick = {
-                                                viewModel.setAgentProfile(profile.name)
-                                                showAgentPicker = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
+                title = { Text("OneClaw") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateToHistory) {
                         Icon(Icons.Default.Menu, contentDescription = "Conversation history")

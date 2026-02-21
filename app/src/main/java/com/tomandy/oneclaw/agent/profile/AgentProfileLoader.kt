@@ -33,6 +33,8 @@ class AgentProfileLoader(
                         model = parsed.model,
                         allowedTools = parsed.allowedTools,
                         enabledSkills = parsed.enabledSkills,
+                        temperature = parsed.temperature,
+                        maxIterations = parsed.maxIterations,
                         source = AgentProfileSource.BUNDLED,
                         filePath = assetPath
                     )
@@ -60,6 +62,8 @@ class AgentProfileLoader(
                         model = parsed.model,
                         allowedTools = parsed.allowedTools,
                         enabledSkills = parsed.enabledSkills,
+                        temperature = parsed.temperature,
+                        maxIterations = parsed.maxIterations,
                         source = AgentProfileSource.USER,
                         filePath = "agents/${file.name}"
                     )

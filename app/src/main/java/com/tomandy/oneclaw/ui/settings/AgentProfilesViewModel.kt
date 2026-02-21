@@ -51,11 +51,13 @@ class AgentProfilesViewModel(
         model: String?,
         allowedTools: List<String>?,
         enabledSkills: List<String>?,
+        temperature: Float? = null,
+        maxIterations: Int? = null,
         originalName: String? = null
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val content = buildAgentMd(name, description, model, allowedTools, enabledSkills, systemPrompt)
+                val content = buildAgentMd(name, description, model, allowedTools, enabledSkills, temperature, maxIterations, systemPrompt)
                 AgentProfileParser.parse(content)
                 userAgentsDir.mkdirs()
                 // Handle rename: delete old file if name changed
@@ -100,6 +102,8 @@ class AgentProfilesViewModel(
         model: String?,
         allowedTools: List<String>?,
         enabledSkills: List<String>?,
+        temperature: Float?,
+        maxIterations: Int?,
         systemPrompt: String
     ): String = buildString {
         appendLine("---")
@@ -112,6 +116,8 @@ class AgentProfilesViewModel(
         if (enabledSkills != null) {
             appendLine("enabled-skills: [${enabledSkills.joinToString(", ") { "\"$it\"" }}]")
         }
+        if (temperature != null) appendLine("temperature: $temperature")
+        if (maxIterations != null) appendLine("max-iterations: $maxIterations")
         appendLine("---")
         appendLine()
         append(systemPrompt)

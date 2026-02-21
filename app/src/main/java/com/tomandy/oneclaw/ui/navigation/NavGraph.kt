@@ -1,7 +1,5 @@
 package com.tomandy.oneclaw.ui.navigation
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -104,10 +102,6 @@ fun OneClawNavGraph(
     var availableModels by remember { mutableStateOf<List<Pair<String, LlmProvider>>>(emptyList()) }
     var selectedModel by remember { mutableStateOf(modelPreferences.getSelectedModel() ?: "gpt-4o-mini") }
 
-    // History screen is shown as an overlay instead of a NavHost destination,
-    // so the Chat composable never leaves composition during Chat<->History cycles.
-    var showHistory by remember { mutableStateOf(false) }
-
     val providers by settingsViewModel.providers.collectAsState()
 
     LaunchedEffect(providers) {
@@ -124,7 +118,6 @@ fun OneClawNavGraph(
     LaunchedEffect(pendingConvId) {
         pendingConvId?.let { convId ->
             chatViewModel.loadConversation(convId)
-            showHistory = false
             navController.popBackStack(Screen.Chat.route, inclusive = false)
             navigationState.pendingConversationId.value = null
         }
@@ -137,7 +130,6 @@ fun OneClawNavGraph(
             chatViewModel.newConversation()
             kotlinx.coroutines.delay(100)
             chatViewModel.sendMessage(seed)
-            showHistory = false
             navController.popBackStack(Screen.Chat.route, inclusive = false)
             navigationState.pendingSkillSeed.value = null
         }
@@ -148,17 +140,15 @@ fun OneClawNavGraph(
     val pendingSharedText by navigationState.pendingSharedText.collectAsState()
     LaunchedEffect(pendingSharedText) {
         if (pendingSharedText != null) {
-            showHistory = false
             navController.popBackStack(Screen.Chat.route, inclusive = false)
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Chat.route,
-            modifier = Modifier.fillMaxSize()
-        ) {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Chat.route,
+        modifier = modifier.fillMaxSize()
+    ) {
             composable(Screen.Chat.route) {
                 ChatScreen(
                     viewModel = chatViewModel,
@@ -167,9 +157,6 @@ fun OneClawNavGraph(
                     },
                     onNavigateToCronjobs = {
                         navController.navigate(Screen.Cronjobs.route) { launchSingleTop = true }
-                    },
-                    onNavigateToHistory = {
-                        showHistory = true
                     }
                 )
             }
@@ -190,6 +177,9 @@ fun OneClawNavGraph(
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
                         HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsScreen(
+                            onNavigateToHistory = {
+                                navController.navigate(Screen.History.route) { launchSingleTop = true }
+                            },
                             onNavigateToProviders = {
                                 navController.navigate(Screen.Providers.route) { launchSingleTop = true }
                             },
@@ -596,41 +586,35 @@ fun OneClawNavGraph(
                     }
                 }
             }
-        }
 
-        // History screen shown as an overlay so the Chat composable never leaves
-        // composition during Chat<->History navigation cycles.
-        if (showHistory) {
-            val historyViewModel: ConversationHistoryViewModel = koinViewModel()
+            composable(Screen.History.route) {
+                val historyViewModel: ConversationHistoryViewModel = koinViewModel()
 
-            BackHandler { showHistory = false }
-
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Conversation History") },
-                        navigationIcon = {
-                            IconButton(onClick = { showHistory = false }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Conversation History") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
                             }
-                        }
-                    )
-                },
-                modifier = Modifier.fillMaxSize()
-            ) { paddingValues ->
-                Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                    ConversationHistoryScreen(
-                        viewModel = historyViewModel,
-                        currentConversationId = chatViewModel.conversationId,
-                        onConversationSelected = { convId ->
-                            chatViewModel.loadConversation(convId)
-                            showHistory = false
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
+                        )
+                    }
+                ) { paddingValues ->
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        ConversationHistoryScreen(
+                            viewModel = historyViewModel,
+                            currentConversationId = chatViewModel.conversationId,
+                            onConversationSelected = { convId ->
+                                chatViewModel.loadConversation(convId)
+                                navController.popBackStack(Screen.Chat.route, inclusive = false)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
-    }
 }

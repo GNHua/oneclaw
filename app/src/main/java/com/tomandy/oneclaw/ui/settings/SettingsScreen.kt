@@ -13,6 +13,7 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Psychology
@@ -28,6 +29,7 @@ import com.tomandy.oneclaw.ui.theme.Dimens
 
 @Composable
 fun SettingsScreen(
+    onNavigateToHistory: () -> Unit,
     onNavigateToProviders: () -> Unit,
     onNavigateToPlugins: () -> Unit,
     onNavigateToSkills: () -> Unit,
@@ -117,6 +119,12 @@ fun SettingsScreen(
             }
         }
 
+        SettingsMenuItem(
+            icon = Icons.Outlined.History,
+            title = "Conversation History",
+            subtitle = "Browse and manage past conversations",
+            onClick = onNavigateToHistory
+        )
         SettingsMenuItem(
             icon = Icons.Outlined.Key,
             title = "Providers",

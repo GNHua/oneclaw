@@ -24,7 +24,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -87,7 +86,6 @@ fun ChatScreen(
     viewModel: ChatViewModel,
     onNavigateToSettings: () -> Unit,
     onNavigateToCronjobs: () -> Unit,
-    onNavigateToHistory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val messages by viewModel.messages.collectAsState()
@@ -384,11 +382,6 @@ fun ChatScreen(
         topBar = {
             TopAppBar(
                 title = { Text("OneClaw") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateToHistory) {
-                        Icon(Icons.Default.Menu, contentDescription = "Conversation history")
-                    }
-                },
                 actions = {
                     IconButton(onClick = { viewModel.newConversation() }) {
                         Icon(Icons.Default.Add, contentDescription = "New conversation")

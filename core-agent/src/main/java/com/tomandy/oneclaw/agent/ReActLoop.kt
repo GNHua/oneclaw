@@ -68,7 +68,7 @@ class ReActLoop(
         conversationId: String,
         model: String = "gpt-4o-mini",
         maxIterations: Int = 200,
-        temperature: Float = 0.7f
+        temperature: Float = 0.2f
     ): Result<String> {
         Log.d("ReActLoop", "step called with ${messages.size} messages, model: $model")
         val workingMessages = messages.toMutableList()

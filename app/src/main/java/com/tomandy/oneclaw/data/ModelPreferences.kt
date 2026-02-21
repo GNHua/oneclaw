@@ -123,7 +123,7 @@ class ModelPreferences(context: Context) {
 
     companion object {
         const val DEFAULT_MAX_ITERATIONS = 200
-        const val DEFAULT_TEMPERATURE = 0.7f
+        const val DEFAULT_TEMPERATURE = 0.2f
         const val DEFAULT_SYSTEM_PROMPT = "You are a helpful AI assistant. Be concise and accurate."
     }
 }

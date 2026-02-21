@@ -23,7 +23,7 @@ class ModelPreferencesConfigContributor(
         ConfigEntry(
             key = "temperature",
             displayName = "Temperature",
-            description = "LLM sampling temperature. Lower = more deterministic, higher = more creative (0.0-2.0, default 0.7).",
+            description = "LLM sampling temperature. Lower = more deterministic, higher = more creative (0.0-2.0, default 0.2).",
             type = ConfigType.StringType,
             getter = { modelPreferences.getTemperature().toString() },
             setter = {},

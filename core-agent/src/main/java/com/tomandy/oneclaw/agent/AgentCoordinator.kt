@@ -116,7 +116,7 @@ class AgentCoordinator(
         systemPrompt: String,
         model: String = "",
         maxIterations: Int = 200,
-        temperature: Float = 0.7f,
+        temperature: Float = 0.2f,
         context: ExecutionContext = ExecutionContext.Interactive,
         mediaData: List<com.tomandy.oneclaw.llm.MediaData>? = null
     ): Result<String> {

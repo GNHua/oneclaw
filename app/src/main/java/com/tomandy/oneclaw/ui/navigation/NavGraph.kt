@@ -52,7 +52,7 @@ import com.tomandy.oneclaw.ui.settings.GoogleAccountScreen
 import com.tomandy.oneclaw.ui.settings.SkillsScreen
 import com.tomandy.oneclaw.ui.settings.SkillsViewModel
 import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
-import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -168,7 +168,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Settings") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.safePopBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -224,7 +224,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Providers") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.safePopBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -248,7 +248,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Plugins (${pluginsList.size})") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.safePopBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -274,7 +274,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Skills (${skillsList.size})") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.safePopBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -318,7 +318,7 @@ fun OneClawNavGraph(
                 SkillEditorScreen(
                     viewModel = skillsViewModel,
                     skillName = skillName,
-                    onNavigateBack = { navController.safePopBackStack() },
+                    onNavigateBack = dropUnlessResumed { navController.popBackStack() },
                     onNavigateToChat = {
                         navController.popBackStack(Screen.Chat.route, inclusive = false)
                     }
@@ -333,7 +333,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Memory") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.safePopBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -377,7 +377,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text(displayName) },
                             navigationIcon = {
-                                IconButton(onClick = { navController.safePopBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -389,7 +389,7 @@ fun OneClawNavGraph(
                         MemoryDetailScreen(
                             viewModel = memoryViewModel,
                             relativePath = relativePath,
-                            onDelete = { navController.safePopBackStack() },
+                            onDelete = dropUnlessResumed { navController.popBackStack() },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -404,7 +404,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Backup & Restore") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.safePopBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -429,7 +429,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Agent Profiles") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.safePopBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -470,7 +470,7 @@ fun OneClawNavGraph(
                 AgentProfileEditorScreen(
                     viewModel = agentProfilesViewModel,
                     profileName = profileName,
-                    onNavigateBack = { navController.safePopBackStack() }
+                    onNavigateBack = dropUnlessResumed { navController.popBackStack() }
                 )
             }
 
@@ -483,7 +483,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Google Account") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.safePopBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -509,7 +509,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Appearance") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.safePopBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -534,7 +534,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Scheduled Tasks") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.safePopBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -570,7 +570,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Task Details") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.safePopBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -596,7 +596,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Conversation History") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.safePopBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -618,10 +618,4 @@ fun OneClawNavGraph(
                 }
             }
         }
-}
-
-private fun NavHostController.safePopBackStack() {
-    if (currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
-        popBackStack()
-    }
 }

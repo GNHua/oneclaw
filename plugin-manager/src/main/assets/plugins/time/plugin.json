@@ -7,17 +7,8 @@
   "entryPoint": "TimePlugin",
   "tools": [
     {
-      "name": "get_current_time",
-      "description": "Get the current time in HH:mm:ss format with timezone offset",
-      "parameters": {
-        "type": "object",
-        "properties": {},
-        "required": []
-      }
-    },
-    {
-      "name": "get_current_date",
-      "description": "Get the current date in yyyy-MM-dd format with timezone offset",
+      "name": "get_current_datetime",
+      "description": "Get the current date and time in yyyy-MM-dd HH:mm:ss format with timezone offset",
       "parameters": {
         "type": "object",
         "properties": {},

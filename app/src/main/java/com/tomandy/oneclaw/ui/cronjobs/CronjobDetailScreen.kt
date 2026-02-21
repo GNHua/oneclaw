@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -38,6 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.data.entity.MessageEntity
+import com.tomandy.oneclaw.ui.chat.MessageBubble
+import com.tomandy.oneclaw.ui.chat.ToolCallGroupBubble
 import com.tomandy.oneclaw.scheduler.data.CronjobEntity
 import com.tomandy.oneclaw.scheduler.data.ExecutionLog
 import com.tomandy.oneclaw.scheduler.data.ExecutionStatus
@@ -239,13 +240,12 @@ fun CronjobDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = 32.dp)
             ) {
                 Text(
                     text = "Execution Conversation",
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 )
 
                 when {
@@ -264,58 +264,62 @@ fun CronjobDetailScreen(
                             text = "No conversation data available",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 24.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)
                         )
                     }
                     else -> {
-                        LazyColumn(
+                        val toolResultsMap = remember(conversationMessages) {
+                            conversationMessages
+                                .filter { it.role == "tool" && it.toolCallId != null }
+                                .associateBy { it.toolCallId!! }
+                        }
+                        val displayItems = remember(conversationMessages) {
+                            val filtered = conversationMessages.filter { it.role != "tool" }
+                            buildList<Pair<List<MessageEntity>, Boolean>> {
+                                var i = 0
+                                while (i < filtered.size) {
+                                    val msg = filtered[i]
+                                    if (msg.role == "assistant" && !msg.toolCalls.isNullOrEmpty()) {
+                                        val group = mutableListOf(msg)
+                                        while (i + 1 < filtered.size) {
+                                            val next = filtered[i + 1]
+                                            if (next.role == "assistant" && !next.toolCalls.isNullOrEmpty()) {
+                                                i++
+                                                group.add(next)
+                                            } else break
+                                        }
+                                        add(group to true)
+                                    } else {
+                                        add(listOf(msg) to false)
+                                    }
+                                    i++
+                                }
+                            }
+                        }
+
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .weight(1f, fill = false),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                .weight(1f, fill = false)
                         ) {
-                            items(conversationMessages, key = { it.id }) { message ->
-                                ConversationMessageItem(message = message)
+                            displayItems.forEach { (msgs, isToolGroup) ->
+                                if (isToolGroup) {
+                                    ToolCallGroupBubble(
+                                        messages = msgs,
+                                        toolResults = toolResultsMap
+                                    )
+                                } else {
+                                    MessageBubble(
+                                        message = msgs.first(),
+                                        toolResults = toolResultsMap
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ConversationMessageItem(
-    message: MessageEntity,
-    modifier: Modifier = Modifier
-) {
-    val isUser = message.role == "user"
-    Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = if (isUser) "User" else "Assistant",
-            style = MaterialTheme.typography.labelSmall,
-            color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Surface(
-            color = if (isUser) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-            } else {
-                MaterialTheme.colorScheme.surfaceContainerHighest
-            },
-            shape = MaterialTheme.shapes.small
-        ) {
-            Text(
-                text = message.content,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(8.dp)
-            )
-        }
-        HorizontalDivider(
-            modifier = Modifier.padding(top = 8.dp),
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-        )
     }
 }
 

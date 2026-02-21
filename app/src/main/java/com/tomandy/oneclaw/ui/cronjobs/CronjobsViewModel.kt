@@ -210,8 +210,7 @@ class CronjobsViewModel(
         _conversationMessages.value = emptyList()
         viewModelScope.launch {
             try {
-                val messages = messageDao.getMessagesOnce(conversationId)
-                _conversationMessages.value = messages.filter { it.role == "user" || it.role == "assistant" }
+                _conversationMessages.value = messageDao.getMessagesOnce(conversationId)
             } catch (e: Exception) {
                 _error.value = "Failed to load conversation: ${e.message}"
             } finally {

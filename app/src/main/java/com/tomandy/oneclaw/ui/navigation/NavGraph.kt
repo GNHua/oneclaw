@@ -31,6 +31,7 @@ import com.tomandy.oneclaw.llm.LlmProvider
 import com.tomandy.oneclaw.navigation.NavigationState
 import com.tomandy.oneclaw.ui.chat.ChatScreen
 import com.tomandy.oneclaw.ui.chat.ChatViewModel
+import com.tomandy.oneclaw.ui.cronjobs.CronjobDetailScreen
 import com.tomandy.oneclaw.ui.cronjobs.CronjobsScreen
 import com.tomandy.oneclaw.ui.cronjobs.CronjobsViewModel
 import com.tomandy.oneclaw.ui.history.ConversationHistoryScreen
@@ -77,6 +78,7 @@ enum class Screen(val route: String) {
     GoogleAccount("settings/google-account"),
     Appearance("settings/appearance"),
     Cronjobs("cronjobs"),
+    CronjobDetail("cronjobs/detail"),
     History("history")
 }
 
@@ -552,6 +554,43 @@ fun OneClawNavGraph(
                         HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                         CronjobsScreen(
                             viewModel = viewModel,
+                            onNavigateToDetail = { cronjobId ->
+                                navController.navigate(
+                                    "${Screen.CronjobDetail.route}?id=$cronjobId"
+                                ) { launchSingleTop = true }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
+            composable(
+                route = "${Screen.CronjobDetail.route}?id={cronjobId}",
+                arguments = listOf(
+                    navArgument("cronjobId") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val cronjobId = backStackEntry.arguments?.getString("cronjobId") ?: return@composable
+                val viewModel: CronjobsViewModel = koinViewModel()
+
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Task Details") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
+                            }
+                        )
+                    }
+                ) { paddingValues ->
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        CronjobDetailScreen(
+                            viewModel = viewModel,
+                            cronjobId = cronjobId,
                             modifier = Modifier.weight(1f)
                         )
                     }

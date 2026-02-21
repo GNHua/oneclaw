@@ -77,6 +77,7 @@ class CronjobsViewModel(
         viewModelScope.launch {
             try {
                 cronjobManager.delete(id)
+                _historyCronjobs.value = _historyCronjobs.value.filter { it.id != id }
                 if (_selectedCronjobId.value == id) {
                     _selectedCronjobId.value = null
                     _executionLogs.value = emptyList()
@@ -137,6 +138,24 @@ class CronjobsViewModel(
                 _historyLoading.value = false
             }
         }
+    }
+
+    fun getCronjobById(id: String): StateFlow<CronjobEntity?> {
+        val flow = MutableStateFlow<CronjobEntity?>(null)
+        viewModelScope.launch {
+            flow.value = cronjobManager.getById(id)
+        }
+        return flow.asStateFlow()
+    }
+
+    fun getExecutionLogsFor(cronjobId: String): StateFlow<List<ExecutionLog>> {
+        val flow = MutableStateFlow<List<ExecutionLog>>(emptyList())
+        viewModelScope.launch {
+            cronjobManager.getExecutionLogs(cronjobId).collect { logs ->
+                flow.value = logs
+            }
+        }
+        return flow.asStateFlow()
     }
 
     fun clearError() {

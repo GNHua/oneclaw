@@ -91,6 +91,22 @@ class CronjobManager(
     }
 
     /**
+     * Update an existing cronjob: cancel old schedule, persist changes, reschedule if enabled
+     */
+    suspend fun update(updated: CronjobEntity) {
+        validate(updated)
+        cancel(updated.id)
+        cronjobDao.update(updated)
+        if (updated.enabled) {
+            when (updated.scheduleType) {
+                ScheduleType.ONE_TIME -> scheduleOneTime(updated)
+                ScheduleType.RECURRING -> scheduleRecurring(updated)
+                ScheduleType.CONDITIONAL -> scheduleRecurring(updated.copy(intervalMinutes = 15))
+            }
+        }
+    }
+
+    /**
      * Delete a cronjob completely
      */
     suspend fun delete(cronjobId: String) {

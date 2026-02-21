@@ -66,6 +66,7 @@ import java.util.Locale
 @Composable
 fun CronjobsScreen(
     viewModel: CronjobsViewModel,
+    onNavigateToDetail: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val cronjobs by viewModel.cronjobs.collectAsState()
@@ -124,7 +125,8 @@ fun CronjobsScreen(
                 isLoading = historyLoading,
                 onLoadMore = { viewModel.loadMoreHistory() },
                 onToggleEnabled = { viewModel.toggleEnabled(it) },
-                onDelete = { viewModel.requestDelete(it.id) }
+                onDelete = { viewModel.requestDelete(it.id) },
+                onClick = { onNavigateToDetail(it.id) }
             )
         }
     }
@@ -181,6 +183,7 @@ fun CronjobsScreen(
                             onToggleEnabled = { viewModel.toggleEnabled(cronjob) },
                             onToggleLogs = { viewModel.toggleExecutionLogs(cronjob.id) },
                             onDelete = { viewModel.requestDelete(cronjob.id) },
+                            onClick = { onNavigateToDetail(cronjob.id) },
                             modifier = Modifier.animateItem()
                         )
                     }
@@ -213,7 +216,8 @@ private fun HistorySheetContent(
     isLoading: Boolean,
     onLoadMore: () -> Unit,
     onToggleEnabled: (CronjobEntity) -> Unit,
-    onDelete: (CronjobEntity) -> Unit
+    onDelete: (CronjobEntity) -> Unit,
+    onClick: (CronjobEntity) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -267,6 +271,7 @@ private fun HistorySheetContent(
                         cronjob = cronjob,
                         onToggleEnabled = { onToggleEnabled(cronjob) },
                         onDelete = { onDelete(cronjob) },
+                        onClick = { onClick(cronjob) },
                         modifier = Modifier.animateItem()
                     )
                 }
@@ -293,9 +298,11 @@ private fun HistoryCard(
     cronjob: CronjobEntity,
     onToggleEnabled: () -> Unit,
     onDelete: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
+        onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -410,9 +417,11 @@ private fun CronjobCard(
     onToggleEnabled: () -> Unit,
     onToggleLogs: () -> Unit,
     onDelete: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
+        onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface

@@ -62,19 +62,13 @@ The debug APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/chat-1.png" width="220" alt="Chat conversation">
+  <img src="screenshots/screenshot-1.png" width="220" alt="Chat with tool execution">
   &nbsp;&nbsp;
-  <img src="screenshots/chat-2.png" width="220" alt="Tool execution in chat">
+  <img src="screenshots/screenshot-2.png" width="220" alt="Conversation history">
   &nbsp;&nbsp;
-  <img src="screenshots/tool-call.png" width="220" alt="Tool call details">
-</p>
-
-<p align="center">
-  <img src="screenshots/scheduled-task.png" width="220" alt="Scheduled tasks">
+  <img src="screenshots/screenshot-3.png" width="220" alt="Scheduled tasks">
   &nbsp;&nbsp;
-  <img src="screenshots/settings.png" width="220" alt="Settings">
-  &nbsp;&nbsp;
-  <img src="screenshots/plugins.png" width="220" alt="Plugin management">
+  <img src="screenshots/screenshot-4.png" width="220" alt="Settings">
 </p>
 
 ## Documentation

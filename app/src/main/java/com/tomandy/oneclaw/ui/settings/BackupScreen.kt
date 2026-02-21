@@ -272,7 +272,19 @@ fun BackupScreen(
 
 private fun restartApp(context: Context) {
     val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-    intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-    context.startActivity(intent)
+        ?: return
+    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+    val pendingIntent = android.app.PendingIntent.getActivity(
+        context,
+        0,
+        intent,
+        android.app.PendingIntent.FLAG_CANCEL_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+    )
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+    alarmManager.set(
+        android.app.AlarmManager.RTC,
+        System.currentTimeMillis() + 200,
+        pendingIntent
+    )
     Runtime.getRuntime().exit(0)
 }

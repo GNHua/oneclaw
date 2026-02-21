@@ -249,11 +249,10 @@ async function execute(toolName, args) {
                 ];
                 var headers = { "Authorization": "Bearer " + token };
                 var raw = await oneclaw.http.uploadMultipart(url, parts, headers);
-                var resp = JSON.parse(raw);
-                if (resp.status >= 400) {
-                    throw new Error("Drive upload error (HTTP " + resp.status + "): " + resp.body);
+                var data = JSON.parse(raw);
+                if (data.error) {
+                    throw new Error("Drive upload error: " + JSON.stringify(data.error));
                 }
-                var data = JSON.parse(resp.body);
                 return {
                     output: "File uploaded: " + data.name +
                         "\nID: " + data.id

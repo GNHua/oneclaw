@@ -97,6 +97,16 @@ class ScheduledAgentExecutor(
                     memoryContext = memoryContext
                 )
 
+                // Persist user message to the temp conversation
+                messageStore.insert(
+                    MessageRecord(
+                        id = UUID.randomUUID().toString(),
+                        conversationId = tempConversationId,
+                        role = "user",
+                        content = instruction
+                    )
+                )
+
                 val result = coordinator.execute(
                     userMessage = instruction,
                     systemPrompt = systemPrompt,
@@ -105,6 +115,19 @@ class ScheduledAgentExecutor(
                     temperature = temperature,
                     context = context
                 )
+
+                // Persist final assistant response to the temp conversation
+                if (result.isSuccess) {
+                    val summary = result.getOrNull() ?: ""
+                    messageStore.insert(
+                        MessageRecord(
+                            id = UUID.randomUUID().toString(),
+                            conversationId = tempConversationId,
+                            role = "assistant",
+                            content = summary
+                        )
+                    )
+                }
 
                 // Post result to the original conversation
                 if (conversationId != null && result.isSuccess) {

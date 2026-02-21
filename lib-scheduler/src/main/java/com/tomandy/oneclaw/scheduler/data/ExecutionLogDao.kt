@@ -18,6 +18,9 @@ interface ExecutionLogDao {
     @Query("SELECT * FROM cronjob_executions WHERE cronjobId = :cronjobId ORDER BY startedAt DESC LIMIT :limit")
     suspend fun getRecentLogsForCronjob(cronjobId: String, limit: Int): List<ExecutionLog>
 
+    @Query("SELECT * FROM cronjob_executions WHERE cronjobId = :cronjobId ORDER BY startedAt DESC LIMIT :limit OFFSET :offset")
+    suspend fun getLogsForCronjobPaged(cronjobId: String, limit: Int, offset: Int): List<ExecutionLog>
+
     @Query("SELECT * FROM cronjob_executions ORDER BY startedAt DESC LIMIT :limit")
     fun getRecentLogs(limit: Int): Flow<List<ExecutionLog>>
 

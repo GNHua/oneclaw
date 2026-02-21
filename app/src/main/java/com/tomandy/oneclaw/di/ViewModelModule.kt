@@ -61,7 +61,7 @@ val viewModelModule = module {
         )
     }
 
-    viewModel { CronjobsViewModel(cronjobManager = get()) }
+    viewModel { CronjobsViewModel(cronjobManager = get(), messageDao = get()) }
 
     viewModel {
         ConversationHistoryViewModel(

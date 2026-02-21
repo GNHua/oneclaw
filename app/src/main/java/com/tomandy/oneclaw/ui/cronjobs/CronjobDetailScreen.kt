@@ -1,6 +1,8 @@
 package com.tomandy.oneclaw.ui.cronjobs
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,22 +14,30 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.tomandy.oneclaw.data.entity.MessageEntity
 import com.tomandy.oneclaw.scheduler.data.CronjobEntity
 import com.tomandy.oneclaw.scheduler.data.ExecutionLog
 import com.tomandy.oneclaw.scheduler.data.ExecutionStatus
@@ -42,6 +52,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CronjobDetailScreen(
     viewModel: CronjobsViewModel,
@@ -51,15 +62,42 @@ fun CronjobDetailScreen(
     val cronjobFlow = remember(cronjobId) { viewModel.getCronjobById(cronjobId) }
     val cronjob by cronjobFlow.collectAsState()
 
-    val logsFlow = remember(cronjobId) { viewModel.getExecutionLogsFor(cronjobId) }
-    val logs by logsFlow.collectAsState()
+    val logs by viewModel.detailLogs.collectAsState()
+    val canLoadMore by viewModel.detailLogsCanLoadMore.collectAsState()
+    val logsLoading by viewModel.detailLogsLoading.collectAsState()
+
+    val showConversation by viewModel.showConversation.collectAsState()
+    val conversationMessages by viewModel.conversationMessages.collectAsState()
+    val conversationLoading by viewModel.conversationLoading.collectAsState()
+
+    LaunchedEffect(cronjobId) {
+        viewModel.loadExecutionLogs(cronjobId)
+    }
 
     val task = cronjob
     if (task == null) {
         return
     }
 
+    val listState = rememberLazyListState()
+
+    // Trigger load more when scrolling near the bottom
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val totalItems = listState.layoutInfo.totalItemsCount
+            canLoadMore && !logsLoading && lastVisibleItem >= totalItems - 3
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore) {
+        if (shouldLoadMore) {
+            viewModel.loadMoreExecutionLogs()
+        }
+    }
+
     LazyColumn(
+        state = listState,
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
@@ -153,10 +191,9 @@ fun CronjobDetailScreen(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
-            HorizontalDivider()
         }
 
-        if (logs.isEmpty()) {
+        if (logs.isEmpty() && !logsLoading) {
             item {
                 Text(
                     text = "No execution history",
@@ -167,12 +204,118 @@ fun CronjobDetailScreen(
             }
         } else {
             items(logs, key = { it.id }) { log ->
-                DetailExecutionLogItem(log = log)
+                DetailExecutionLogItem(
+                    log = log,
+                    onClick = {
+                        viewModel.openConversation(log.conversationId)
+                    }
+                )
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
 
+        if (logsLoading) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
+            }
+        }
+
         item { Spacer(modifier = Modifier.height(16.dp)) }
+    }
+
+    // Conversation viewer bottom sheet
+    if (showConversation) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.closeConversation() },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp)
+            ) {
+                Text(
+                    text = "Execution Conversation",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                when {
+                    conversationLoading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    conversationMessages.isEmpty() -> {
+                        Text(
+                            text = "No conversation data available",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 24.dp)
+                        )
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f, fill = false),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(conversationMessages, key = { it.id }) { message ->
+                                ConversationMessageItem(message = message)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConversationMessageItem(
+    message: MessageEntity,
+    modifier: Modifier = Modifier
+) {
+    val isUser = message.role == "user"
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = if (isUser) "User" else "Assistant",
+            style = MaterialTheme.typography.labelSmall,
+            color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Surface(
+            color = if (isUser) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHighest
+            },
+            shape = MaterialTheme.shapes.small
+        ) {
+            Text(
+                text = message.content,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 8.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+        )
     }
 }
 
@@ -230,6 +373,7 @@ private fun StatusChip(label: String, color: androidx.compose.ui.graphics.Color)
 @Composable
 private fun DetailExecutionLogItem(
     log: ExecutionLog,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val (icon, tint) = when (log.status) {
@@ -239,7 +383,9 @@ private fun DetailExecutionLogItem(
     }
 
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(enabled = log.conversationId != null, onClick = onClick),
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
         shape = MaterialTheme.shapes.small
     ) {
@@ -294,6 +440,14 @@ private fun DetailExecutionLogItem(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                if (log.conversationId != null) {
+                    Text(
+                        text = "Tap to view conversation",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }

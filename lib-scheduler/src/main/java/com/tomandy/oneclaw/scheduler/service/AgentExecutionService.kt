@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import com.tomandy.oneclaw.scheduler.AgentExecutor
 import com.tomandy.oneclaw.scheduler.CronjobManager
 import com.tomandy.oneclaw.scheduler.R
+import com.tomandy.oneclaw.scheduler.TaskExecutionResult
 import com.tomandy.oneclaw.scheduler.data.ExecutionStatus
 import com.tomandy.oneclaw.scheduler.data.ScheduleType
 import kotlinx.coroutines.*
@@ -98,7 +99,7 @@ class AgentExecutionService : Service(), KoinComponent {
 
         try {
             // Execute the agent task
-            val result = executeAgentTask(
+            val taskResult = executeAgentTask(
                 cronjob.instruction,
                 cronjobId,
                 cronjob.conversationId
@@ -108,12 +109,13 @@ class AgentExecutionService : Service(), KoinComponent {
             cronjobManager.recordExecutionComplete(
                 logId = logId,
                 status = ExecutionStatus.SUCCESS,
-                resultSummary = result
+                resultSummary = taskResult.summary,
+                conversationId = taskResult.conversationId
             )
 
             // Send completion notification
             if (cronjob.notifyOnCompletion) {
-                sendCompletionNotification(cronjob.instruction, result, cronjob.conversationId)
+                sendCompletionNotification(cronjob.instruction, taskResult.summary, cronjob.conversationId)
             }
 
         } catch (e: Exception) {
@@ -141,7 +143,7 @@ class AgentExecutionService : Service(), KoinComponent {
         instruction: String,
         cronjobId: String,
         conversationId: String?
-    ): String {
+    ): TaskExecutionResult {
         val result = agentExecutor.executeTask(
             instruction = instruction,
             cronjobId = cronjobId,

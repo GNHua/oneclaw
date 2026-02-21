@@ -8,6 +8,7 @@ import com.tomandy.oneclaw.data.ModelPreferences
 import com.tomandy.oneclaw.data.entity.ConversationEntity
 import com.tomandy.oneclaw.llm.LlmClientProvider
 import com.tomandy.oneclaw.scheduler.AgentExecutor
+import com.tomandy.oneclaw.scheduler.TaskExecutionResult
 import com.tomandy.oneclaw.service.MemoryBootstrap
 import com.tomandy.oneclaw.skill.SkillRepository
 import com.tomandy.oneclaw.skill.SystemPromptBuilder
@@ -30,7 +31,7 @@ class ScheduledAgentExecutor(
         cronjobId: String,
         triggerTime: Long,
         conversationId: String?
-    ): Result<String> {
+    ): Result<TaskExecutionResult> {
         return try {
             skillRepository.reload()
             agentProfileRepository.reload()
@@ -126,10 +127,14 @@ class ScheduledAgentExecutor(
                     }
                 }
 
-                result
+                result.map { summary ->
+                    TaskExecutionResult(
+                        summary = summary,
+                        conversationId = tempConversationId
+                    )
+                }
             } finally {
                 coordinator.cleanup()
-                conversationDao.deleteById(tempConversationId)
             }
         } catch (e: Exception) {
             Result.failure(e)

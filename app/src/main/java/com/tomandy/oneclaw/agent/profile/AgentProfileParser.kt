@@ -14,8 +14,8 @@ object AgentProfileParser {
         val model: String?,
         val allowedTools: List<String>?,
         val enabledSkills: List<String>?,
-        val temperature: Float?,
-        val maxIterations: Int?,
+        val temperature: Float,
+        val maxIterations: Int,
         val body: String
     )
 
@@ -35,8 +35,8 @@ object AgentProfileParser {
         var model: String? = null
         var allowedTools: List<String>? = null
         var enabledSkills: List<String>? = null
-        var temperature: Float? = null
-        var maxIterations: Int? = null
+        var temperature: Float = DEFAULT_TEMPERATURE
+        var maxIterations: Int = DEFAULT_MAX_ITERATIONS
 
         for (line in frontmatter.lines()) {
             if (line.isBlank()) continue

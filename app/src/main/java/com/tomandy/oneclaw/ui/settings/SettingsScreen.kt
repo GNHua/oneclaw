@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.data.ModelPreferences
 import com.tomandy.oneclaw.llm.LlmProvider
 import com.tomandy.oneclaw.ui.theme.Dimens
-import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(
@@ -43,9 +42,6 @@ fun SettingsScreen(
     onModelSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var maxIterations by remember {
-        mutableIntStateOf(modelPreferences.getMaxIterations())
-    }
     var isModelDropdownExpanded by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
@@ -173,56 +169,6 @@ fun SettingsScreen(
         // Audio Input Mode
         AudioInputModeCard(modelPreferences = modelPreferences)
 
-        // Max Iterations setting
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = Dimens.CardElevation)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimens.CardInnerPadding)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Max Iterations",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Maximum ReAct loop iterations per request",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Text(
-                        text = "$maxIterations",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Slider(
-                    value = maxIterations.toFloat(),
-                    onValueChange = {
-                        maxIterations = it.roundToInt()
-                    },
-                    onValueChangeFinished = {
-                        modelPreferences.saveMaxIterations(maxIterations)
-                    },
-                    valueRange = 1f..500f,
-                    steps = 0
-                )
-            }
-        }
     }
 }
 

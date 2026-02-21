@@ -51,8 +51,8 @@ class AgentProfilesViewModel(
         model: String?,
         allowedTools: List<String>?,
         enabledSkills: List<String>?,
-        temperature: Float? = null,
-        maxIterations: Int? = null,
+        temperature: Float,
+        maxIterations: Int,
         originalName: String? = null
     ) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -102,8 +102,8 @@ class AgentProfilesViewModel(
         model: String?,
         allowedTools: List<String>?,
         enabledSkills: List<String>?,
-        temperature: Float?,
-        maxIterations: Int?,
+        temperature: Float,
+        maxIterations: Int,
         systemPrompt: String
     ): String = buildString {
         appendLine("---")
@@ -116,8 +116,8 @@ class AgentProfilesViewModel(
         if (enabledSkills != null) {
             appendLine("enabled-skills: [${enabledSkills.joinToString(", ") { "\"$it\"" }}]")
         }
-        if (temperature != null) appendLine("temperature: $temperature")
-        if (maxIterations != null) appendLine("max-iterations: $maxIterations")
+        appendLine("temperature: $temperature")
+        appendLine("max-iterations: $maxIterations")
         appendLine("---")
         appendLine()
         append(systemPrompt)

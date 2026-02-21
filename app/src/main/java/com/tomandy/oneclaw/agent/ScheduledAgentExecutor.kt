@@ -1,6 +1,8 @@
 package com.tomandy.oneclaw.agent
 
 import com.tomandy.oneclaw.agent.profile.AgentProfileRepository
+import com.tomandy.oneclaw.agent.profile.DEFAULT_MAX_ITERATIONS
+import com.tomandy.oneclaw.agent.profile.DEFAULT_TEMPERATURE
 import com.tomandy.oneclaw.data.AppDatabase
 import com.tomandy.oneclaw.data.ModelPreferences
 import com.tomandy.oneclaw.data.entity.ConversationEntity
@@ -79,8 +81,8 @@ class ScheduledAgentExecutor(
                 // Get preferences
                 val model = profile?.model
                     ?: modelPreferences.getSelectedModel() ?: ""
-                val temperature = profile?.temperature ?: modelPreferences.getTemperature()
-                val maxIter = profile?.maxIterations ?: modelPreferences.getMaxIterations()
+                val temperature = profile?.temperature ?: DEFAULT_TEMPERATURE
+                val maxIter = profile?.maxIterations ?: DEFAULT_MAX_ITERATIONS
 
                 // Build full system prompt with skills and memory
                 val basePrompt = profile?.systemPrompt

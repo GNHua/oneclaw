@@ -30,10 +30,8 @@ fun AgentProfileEditorScreen(
     var filterSkills by remember { mutableStateOf(false) }
     var selectedSkills by remember { mutableStateOf(setOf<String>()) }
     var isModelDropdownExpanded by remember { mutableStateOf(false) }
-    var overrideTemperature by remember { mutableStateOf(false) }
-    var temperature by remember { mutableStateOf(0.7f) }
-    var overrideMaxIterations by remember { mutableStateOf(false) }
-    var maxIterations by remember { mutableStateOf(100) }
+    var temperature by remember { mutableStateOf(com.tomandy.oneclaw.agent.profile.DEFAULT_TEMPERATURE) }
+    var maxIterations by remember { mutableStateOf(com.tomandy.oneclaw.agent.profile.DEFAULT_MAX_ITERATIONS) }
 
     var availableModels by remember { mutableStateOf(emptyList<Pair<String, com.tomandy.oneclaw.llm.LlmProvider>>()) }
     val availableTools = remember { viewModel.getAvailableToolNames() }
@@ -62,14 +60,8 @@ fun AgentProfileEditorScreen(
                     filterSkills = true
                     selectedSkills = it.toSet()
                 }
-                profile.temperature?.let {
-                    overrideTemperature = true
-                    temperature = it
-                }
-                profile.maxIterations?.let {
-                    overrideMaxIterations = true
-                    maxIterations = it
-                }
+                temperature = profile.temperature
+                maxIterations = profile.maxIterations
             }
             isLoaded = true
         }
@@ -101,8 +93,8 @@ fun AgentProfileEditorScreen(
                                 model = selectedModel,
                                 allowedTools = allowedTools,
                                 enabledSkills = enabledSkills,
-                                temperature = if (overrideTemperature) temperature else null,
-                                maxIterations = if (overrideMaxIterations) maxIterations else null,
+                                temperature = temperature,
+                                maxIterations = maxIterations,
                                 originalName = profileName
                             )
                             onNavigateBack()
@@ -245,36 +237,25 @@ fun AgentProfileEditorScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Temperature",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = if (overrideTemperature)
-                                        "%.1f".format(temperature)
-                                    else
-                                        "Use default",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Switch(
-                                checked = overrideTemperature,
-                                onCheckedChange = { overrideTemperature = it }
+                            Text(
+                                text = "Temperature",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "%.1f".format(temperature),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        if (overrideTemperature) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Slider(
-                                value = temperature,
-                                onValueChange = { temperature = (it * 10).toInt() / 10f },
-                                valueRange = 0f..2f,
-                                steps = 19,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Slider(
+                            value = temperature,
+                            onValueChange = { temperature = (it * 10).toInt() / 10f },
+                            valueRange = 0f..2f,
+                            steps = 19,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }
@@ -297,41 +278,29 @@ fun AgentProfileEditorScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Max Iterations",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = if (overrideMaxIterations) {
-                                        if (maxIterations >= 500) "Unlimited" else "$maxIterations"
-                                    } else {
-                                        "Use default"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Switch(
-                                checked = overrideMaxIterations,
-                                onCheckedChange = { overrideMaxIterations = it }
-                            )
-                        }
-                        if (overrideMaxIterations) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Slider(
-                                value = maxIterations.toFloat(),
-                                onValueChange = { maxIterations = it.toInt() },
-                                valueRange = 1f..500f,
-                                modifier = Modifier.fillMaxWidth()
+                            Text(
+                                text = "Max Iterations",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Drag to 500 for unlimited iterations",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = if (maxIterations >= 500) "Unlimited" else "$maxIterations",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Slider(
+                            value = maxIterations.toFloat(),
+                            onValueChange = { maxIterations = it.toInt() },
+                            valueRange = 1f..500f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            text = "Set to 500 for unlimited iterations",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }

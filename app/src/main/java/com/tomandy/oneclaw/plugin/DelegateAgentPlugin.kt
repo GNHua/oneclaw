@@ -94,8 +94,8 @@ class DelegateAgentPlugin(
                 userMessage = task,
                 systemPrompt = systemPrompt,
                 model = selectedModel,
-                maxIterations = (profile.maxIterations ?: modelPreferences.getMaxIterations()).coerceAtMost(50),
-                temperature = profile.temperature ?: modelPreferences.getTemperature()
+                maxIterations = profile.maxIterations.coerceAtMost(50),
+                temperature = profile.temperature
             )
 
             coordinator.cleanup()

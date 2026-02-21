@@ -19,6 +19,8 @@ import com.tomandy.oneclaw.agent.ToolExecutor
 import com.tomandy.oneclaw.agent.ToolRegistry
 import com.tomandy.oneclaw.agent.profile.AgentProfileEntry
 import com.tomandy.oneclaw.agent.profile.AgentProfileRepository
+import com.tomandy.oneclaw.agent.profile.DEFAULT_MAX_ITERATIONS
+import com.tomandy.oneclaw.agent.profile.DEFAULT_TEMPERATURE
 import com.tomandy.oneclaw.data.AppDatabase
 import com.tomandy.oneclaw.devicecontrol.DeviceControlManager
 import com.tomandy.oneclaw.data.ModelPreferences
@@ -181,13 +183,13 @@ class ChatExecutionService : Service(), KoinComponent {
                     documentPaths, documentNames, documentMimeTypes
                 )
 
-                val maxIter = profile?.maxIterations ?: modelPreferences.getMaxIterations()
+                val maxIter = profile?.maxIterations ?: DEFAULT_MAX_ITERATIONS
                 val result = coordinator.execute(
                     userMessage = effectiveMessage,
                     systemPrompt = systemPrompt,
                     model = selectedModel,
                     maxIterations = if (maxIter >= 500) Int.MAX_VALUE else maxIter,
-                    temperature = profile?.temperature ?: modelPreferences.getTemperature(),
+                    temperature = profile?.temperature ?: DEFAULT_TEMPERATURE,
                     mediaData = allMediaData.takeIf { it.isNotEmpty() }
                 )
 

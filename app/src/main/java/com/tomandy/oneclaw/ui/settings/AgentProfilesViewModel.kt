@@ -27,6 +27,9 @@ class AgentProfilesViewModel(
 
     val profiles: StateFlow<List<AgentProfileEntry>> = agentProfileRepository.profiles
 
+    /** Draft text shared with SystemPromptEditorScreen via ViewModel scoping. */
+    var draftSystemPrompt: String = ""
+
     init {
         agentProfileRepository.reload()
     }

@@ -12,21 +12,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import com.tomandy.oneclaw.ui.chat.ChatMarkdown
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.Dimens
 
@@ -35,11 +27,11 @@ import com.tomandy.oneclaw.ui.theme.Dimens
 fun AgentProfileEditorScreen(
     viewModel: AgentProfilesViewModel,
     profileName: String?,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToSystemPrompt: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var systemPrompt by remember { mutableStateOf("") }
     var selectedModel by remember { mutableStateOf<String?>(null) }
     var filterTools by remember { mutableStateOf(false) }
     var selectedTools by remember { mutableStateOf(setOf<String>()) }
@@ -57,7 +49,6 @@ fun AgentProfileEditorScreen(
     var isBundled by remember { mutableStateOf(false) }
 
     // Expand states
-    var isSystemPromptEditorOpen by remember { mutableStateOf(false) }
     var isModelExpanded by remember { mutableStateOf(false) }
     var isTemperatureExpanded by remember { mutableStateOf(false) }
     var isMaxIterationsExpanded by remember { mutableStateOf(false) }
@@ -72,7 +63,7 @@ fun AgentProfileEditorScreen(
             if (profile != null) {
                 name = profile.name
                 description = profile.description
-                systemPrompt = profile.systemPrompt
+                viewModel.draftSystemPrompt = profile.systemPrompt
                 selectedModel = profile.model
                 isBundled = profile.source == com.tomandy.oneclaw.agent.profile.AgentProfileSource.BUNDLED
                 profile.allowedTools?.let {
@@ -87,12 +78,14 @@ fun AgentProfileEditorScreen(
                 maxIterations = profile.maxIterations
             }
             isLoaded = true
+        } else {
+            viewModel.draftSystemPrompt = ""
         }
     }
 
     if (!isLoaded) return
 
-    val canSave = name.isNotBlank() && description.isNotBlank() && systemPrompt.isNotBlank()
+    val canSave = name.isNotBlank() && description.isNotBlank() && viewModel.draftSystemPrompt.isNotBlank()
 
     Scaffold(
         topBar = {
@@ -112,7 +105,7 @@ fun AgentProfileEditorScreen(
                             viewModel.saveProfile(
                                 name = name.trim(),
                                 description = description.trim(),
-                                systemPrompt = systemPrompt.trim(),
+                                systemPrompt = viewModel.draftSystemPrompt.trim(),
                                 model = selectedModel,
                                 allowedTools = allowedTools,
                                 enabledSkills = enabledSkills,
@@ -196,7 +189,7 @@ fun AgentProfileEditorScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { isSystemPromptEditorOpen = true }
+                            .clickable { onNavigateToSystemPrompt() }
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -206,7 +199,8 @@ fun AgentProfileEditorScreen(
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Text(
-                            text = if (systemPrompt.isEmpty()) "Empty" else "${systemPrompt.length} chars",
+                            text = if (viewModel.draftSystemPrompt.isEmpty()) "Empty"
+                            else "${viewModel.draftSystemPrompt.length} chars",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -624,90 +618,6 @@ fun AgentProfileEditorScreen(
                             }
                         }
                     }
-                }
-            }
-        }
-    }
-
-    if (isSystemPromptEditorOpen) {
-        SystemPromptEditorDialog(
-            value = systemPrompt,
-            onValueChange = { systemPrompt = it },
-            onDismiss = { isSystemPromptEditorOpen = false }
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SystemPromptEditorDialog(
-    value: String,
-    onValueChange: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var showRaw by remember { mutableStateOf(false) }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("System Prompt") },
-                    navigationIcon = {
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { showRaw = !showRaw }) {
-                            Icon(
-                                imageVector = if (showRaw)
-                                    Icons.Default.Description
-                                else
-                                    Icons.Default.Code,
-                                contentDescription = if (showRaw) "Show rendered" else "Show raw"
-                            )
-                        }
-                    }
-                )
-            }
-        ) { paddingValues ->
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                HorizontalDivider(
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-                if (showRaw) {
-                    OutlinedTextField(
-                        value = value,
-                        onValueChange = onValueChange,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        textStyle = TextStyle(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp
-                        ),
-                        placeholder = { Text("Enter system prompt...") }
-                    )
-                } else {
-                    val scrollState = rememberScrollState()
-                    val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    ChatMarkdown(
-                        text = value,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .drawColumnScrollbar(scrollState, scrollbarColor)
-                            .verticalScroll(scrollState)
-                            .padding(16.dp)
-                    )
                 }
             }
         }

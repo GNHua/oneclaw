@@ -10,19 +10,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import com.tomandy.oneclaw.ui.chat.ChatMarkdown
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.Dimens
 import com.tomandy.oneclaw.skill.SkillFrontmatterParser
@@ -35,6 +27,7 @@ fun SkillEditorScreen(
     skillName: String?,
     onNavigateBack: () -> Unit,
     onNavigateToChat: () -> Unit,
+    onNavigateToInstructions: (readOnly: Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val existingSkill = remember(skillName) {
@@ -65,9 +58,12 @@ fun SkillEditorScreen(
 
     var name by remember { mutableStateOf(initialContent?.first ?: "") }
     var description by remember { mutableStateOf(initialContent?.second ?: "") }
-    var body by remember { mutableStateOf(initialContent?.third ?: "") }
     var nameError by remember { mutableStateOf<String?>(null) }
-    var isInstructionsEditorOpen by remember { mutableStateOf(false) }
+
+    // Initialize draft body from initial content
+    LaunchedEffect(initialContent) {
+        viewModel.draftInstructionsBody = initialContent?.third ?: ""
+    }
 
     val saveStatus by viewModel.saveStatus.collectAsState()
 
@@ -123,7 +119,7 @@ fun SkillEditorScreen(
                             onClick = {
                                 nameError = validateName(name)
                                 if (nameError == null && description.isNotBlank()) {
-                                    viewModel.saveSkill(name, description, body)
+                                    viewModel.saveSkill(name, description, viewModel.draftInstructionsBody)
                                 }
                             },
                             enabled = name.isNotBlank() && description.isNotBlank() &&
@@ -213,7 +209,7 @@ fun SkillEditorScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { isInstructionsEditorOpen = true }
+                            .clickable { onNavigateToInstructions(readOnly) }
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -223,7 +219,8 @@ fun SkillEditorScreen(
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Text(
-                            text = if (body.isEmpty()) "Empty" else "${body.length} chars",
+                            text = if (viewModel.draftInstructionsBody.isEmpty()) "Empty"
+                            else "${viewModel.draftInstructionsBody.length} chars",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -259,93 +256,6 @@ fun SkillEditorScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
-            }
-        }
-    }
-
-    if (isInstructionsEditorOpen) {
-        InstructionsEditorDialog(
-            value = body,
-            onValueChange = { if (!readOnly) body = it },
-            readOnly = readOnly,
-            onDismiss = { isInstructionsEditorOpen = false }
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun InstructionsEditorDialog(
-    value: String,
-    onValueChange: (String) -> Unit,
-    readOnly: Boolean,
-    onDismiss: () -> Unit
-) {
-    var showRaw by remember { mutableStateOf(false) }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Instructions") },
-                    navigationIcon = {
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { showRaw = !showRaw }) {
-                            Icon(
-                                imageVector = if (showRaw)
-                                    Icons.Default.Description
-                                else
-                                    Icons.Default.Code,
-                                contentDescription = if (showRaw) "Show rendered" else "Show raw"
-                            )
-                        }
-                    }
-                )
-            }
-        ) { paddingValues ->
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                HorizontalDivider(
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-                if (showRaw) {
-                    OutlinedTextField(
-                        value = value,
-                        onValueChange = onValueChange,
-                        readOnly = readOnly,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        textStyle = TextStyle(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp
-                        ),
-                        placeholder = { Text("Markdown instructions for the agent...") }
-                    )
-                } else {
-                    val scrollState = rememberScrollState()
-                    val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    ChatMarkdown(
-                        text = value,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .drawColumnScrollbar(scrollState, scrollbarColor)
-                            .verticalScroll(scrollState)
-                            .padding(16.dp)
-                    )
                 }
             }
         }

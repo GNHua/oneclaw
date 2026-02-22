@@ -10,6 +10,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.tomandy.oneclaw.ui.settings.SystemPromptEditorScreen
+import com.tomandy.oneclaw.ui.settings.InstructionsEditorScreen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -74,6 +76,8 @@ enum class Screen(val route: String) {
     Backup("settings/backup"),
     AgentProfiles("settings/agents"),
     AgentProfileEditor("settings/agents/editor"),
+    SystemPromptEditor("settings/agents/editor/system-prompt"),
+    SkillInstructionsEditor("settings/skills/editor/instructions"),
     GoogleAccount("settings/google-account"),
     Appearance("settings/appearance"),
     Cronjobs("cronjobs"),
@@ -324,6 +328,11 @@ fun OneClawNavGraph(
                     onNavigateBack = dropUnlessResumed { navController.popBackStack() },
                     onNavigateToChat = {
                         navController.popBackStack(Screen.Chat.route, inclusive = false)
+                    },
+                    onNavigateToInstructions = { readOnly ->
+                        navController.navigate(
+                            "${Screen.SkillInstructionsEditor.route}?readOnly=$readOnly"
+                        ) { launchSingleTop = true }
                     }
                 )
             }
@@ -486,6 +495,41 @@ fun OneClawNavGraph(
                 AgentProfileEditorScreen(
                     viewModel = agentProfilesViewModel,
                     profileName = profileName,
+                    onNavigateBack = dropUnlessResumed { navController.popBackStack() },
+                    onNavigateToSystemPrompt = dropUnlessResumed {
+                        navController.navigate(Screen.SystemPromptEditor.route) { launchSingleTop = true }
+                    }
+                )
+            }
+
+            composable(Screen.SystemPromptEditor.route) {
+                val parentEntry = navController.previousBackStackEntry!!
+                val viewModel: AgentProfilesViewModel = koinViewModel(
+                    viewModelStoreOwner = parentEntry
+                )
+                SystemPromptEditorScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = dropUnlessResumed { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = "${Screen.SkillInstructionsEditor.route}?readOnly={readOnly}",
+                arguments = listOf(
+                    navArgument("readOnly") {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    }
+                )
+            ) { backStackEntry ->
+                val readOnly = backStackEntry.arguments?.getBoolean("readOnly") ?: false
+                val parentEntry = navController.previousBackStackEntry!!
+                val viewModel: SkillsViewModel = koinViewModel(
+                    viewModelStoreOwner = parentEntry
+                )
+                InstructionsEditorScreen(
+                    viewModel = viewModel,
+                    readOnly = readOnly,
                     onNavigateBack = dropUnlessResumed { navController.popBackStack() }
                 )
             }

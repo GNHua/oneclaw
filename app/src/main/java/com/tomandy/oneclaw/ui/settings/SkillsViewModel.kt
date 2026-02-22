@@ -26,6 +26,9 @@ class SkillsViewModel(
 
     val skills: StateFlow<List<SkillEntry>> = skillRepository.skills
 
+    /** Draft text shared with InstructionsEditorScreen via ViewModel scoping. */
+    var draftInstructionsBody: String = ""
+
     private val _enabledMap = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val enabledMap: StateFlow<Map<String, Boolean>> = _enabledMap.asStateFlow()
 

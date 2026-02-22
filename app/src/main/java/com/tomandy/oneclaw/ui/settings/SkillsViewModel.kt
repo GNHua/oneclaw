@@ -141,20 +141,33 @@ class SkillsViewModel(
     }
 
     fun startAgentCreateFlow() {
-        val seedPrompt = buildString {
-            append("Help me create a new skill. ")
-            append("Skills are SKILL.md files with YAML frontmatter (name, description) ")
-            append("followed by markdown instructions. ")
-            append("The file should be saved to workspace/skills/{skill-name}/SKILL.md ")
-            append("using the write_file tool. ")
-            append("Start by asking me what the skill should do.")
+        val skill = skillRepository.findByCommand("/skill:create-skill")
+        val body = skill?.let { skillRepository.loadBody(it) }
+        val seedPrompt = if (body != null) {
+            buildString {
+                appendLine("<skill name=\"create-skill\" location=\"skills/create-skill/SKILL.md\">")
+                appendLine(body)
+                appendLine("</skill>")
+                appendLine()
+                append("Help me create a new skill. Start by asking me what the skill should do.")
+            }
+        } else {
+            "Help me create a new skill. Start by asking me what the skill should do."
         }
         navigationState.pendingSkillSeed.value = seedPrompt
     }
 
     fun startAgentEditFlow(skill: SkillEntry) {
         val path = "skills/${skill.metadata.name}/SKILL.md"
+        val createSkill = skillRepository.findByCommand("/skill:create-skill")
+        val body = createSkill?.let { skillRepository.loadBody(it) }
         val seedPrompt = buildString {
+            if (body != null) {
+                appendLine("<skill name=\"create-skill\" location=\"skills/create-skill/SKILL.md\">")
+                appendLine(body)
+                appendLine("</skill>")
+                appendLine()
+            }
             append("Help me edit the skill '${skill.metadata.name}'. ")
             append("First, read the current content with read_file at path=\"$path\", ")
             append("then ask me what changes I'd like to make. ")

@@ -57,7 +57,8 @@ class AnthropicClient(
         client = if (apiKey.isNotEmpty()) {
             val builder = AnthropicOkHttpClient.builder()
                 .apiKey(apiKey)
-                .timeout(Duration.ofSeconds(NetworkConfig.DEFAULT_READ_TIMEOUT))
+                .timeout(Duration.ofSeconds(NetworkConfig.LLM_REQUEST_TIMEOUT))
+                .maxRetries(3)
             if (baseUrl.isNotEmpty()) {
                 builder.baseUrl(baseUrl)
             }

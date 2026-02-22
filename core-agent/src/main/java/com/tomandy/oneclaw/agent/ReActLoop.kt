@@ -147,7 +147,15 @@ class ReActLoop(
                     iterations-- // don't count the failed attempt
                     continue
                 }
-                return Result.failure(error)
+                // Graceful degradation: return a friendly message instead of
+                // a hard error so the user can follow up in the same conversation.
+                Log.w(
+                    "ReActLoop",
+                    "LLM call failed on iteration $iterations: ${error.message}"
+                )
+                val msg = "Sorry, I ran into an issue while processing your request" +
+                    " (${error.message}). You can try again or ask me to continue."
+                return Result.success(msg)
             }
 
             val response = result.getOrNull()!!

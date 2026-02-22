@@ -131,27 +131,6 @@ class ScheduledAgentExecutor(
                     )
                 }
 
-                // Post result to the original conversation
-                if (conversationId != null && result.isSuccess) {
-                    val summary = result.getOrNull() ?: ""
-                    messageStore.insert(
-                        MessageRecord(
-                            id = UUID.randomUUID().toString(),
-                            conversationId = conversationId,
-                            role = "assistant",
-                            content = "[Scheduled Task] $instruction\n\n$summary"
-                        )
-                    )
-                    // Update conversation metadata so the new message is visible
-                    conversationDao.getConversationOnce(conversationId)?.let { conv ->
-                        conversationDao.update(conv.copy(
-                            updatedAt = System.currentTimeMillis(),
-                            messageCount = conv.messageCount + 1,
-                            lastMessagePreview = summary.take(100)
-                        ))
-                    }
-                }
-
                 result.map { summary ->
                     TaskExecutionResult(
                         summary = summary,

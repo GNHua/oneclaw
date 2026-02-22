@@ -1,13 +1,17 @@
 package com.tomandy.oneclaw.skill
 
+import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class SkillRepository(
     private val loader: SkillLoader,
-    private val preferences: SkillPreferences
+    private val preferences: SkillPreferences,
+    private val userSkillsDir: File? = null
 ) {
+    private var fileObserver: SkillFileObserver? = null
+    private var observerStarted = false
     private val _skills = MutableStateFlow<List<SkillEntry>>(emptyList())
     val skills: StateFlow<List<SkillEntry>> = _skills.asStateFlow()
 
@@ -15,6 +19,8 @@ class SkillRepository(
      * Load all skills with precedence: user overrides bundled.
      */
     fun loadAll() {
+        startObserving()
+
         val bundled = loader.loadBundledSkills()
         val user = loader.loadUserSkills()
 
@@ -23,6 +29,14 @@ class SkillRepository(
             user.associateBy { it.metadata.name }).values.toList()
 
         _skills.value = merged
+    }
+
+    private fun startObserving() {
+        if (observerStarted || userSkillsDir == null) return
+        observerStarted = true
+        fileObserver = SkillFileObserver(userSkillsDir) { reload() }.also {
+            it.startWatching()
+        }
     }
 
     /**
@@ -64,5 +78,14 @@ class SkillRepository(
      */
     fun loadRawContent(skill: SkillEntry): String? {
         return loader.loadRawContent(skill)
+    }
+
+    /**
+     * Stop the file observer. Call when the repository is no longer needed.
+     */
+    fun close() {
+        fileObserver?.stopWatching()
+        fileObserver = null
+        observerStarted = false
     }
 }

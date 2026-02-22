@@ -34,7 +34,7 @@ fun SkillsScreen(
     var showDeleteConfirm by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        viewModel.skills // triggers reload in init
+        viewModel.refresh()
     }
 
     Box(modifier = modifier.fillMaxSize()) {

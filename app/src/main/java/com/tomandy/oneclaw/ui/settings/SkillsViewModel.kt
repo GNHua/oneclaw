@@ -26,6 +26,11 @@ class SkillsViewModel(
 
     val skills: StateFlow<List<SkillEntry>> = skillRepository.skills
 
+    /** Re-read skills from disk. Safe to call on every recomposition. */
+    fun refresh() {
+        skillRepository.reload()
+    }
+
     /** Draft text shared with InstructionsEditorScreen via ViewModel scoping. */
     var draftInstructionsBody: String = ""
 

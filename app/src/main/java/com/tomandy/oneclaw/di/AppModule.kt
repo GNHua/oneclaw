@@ -73,7 +73,13 @@ val appModule = module {
             userSkillsDir = java.io.File(androidContext().filesDir, "workspace/skills")
         )
     }
-    single { SkillRepository(loader = get(), preferences = get()) }
+    single {
+        SkillRepository(
+            loader = get(),
+            preferences = get(),
+            userSkillsDir = java.io.File(androidContext().filesDir, "workspace/skills")
+        )
+    }
     single { SlashCommandRouter(repository = get()) }
 
     // Plugin Engine

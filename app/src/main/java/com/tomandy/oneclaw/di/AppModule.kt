@@ -14,6 +14,7 @@ import com.tomandy.oneclaw.navigation.NavigationState
 import com.tomandy.oneclaw.plugin.ConfigContributor
 import com.tomandy.oneclaw.plugin.ConfigRegistry
 import com.tomandy.oneclaw.plugin.PluginCoordinator
+import com.tomandy.oneclaw.service.ChatExecutionManager
 import com.tomandy.oneclaw.plugin.config.ModelConfigContributor
 import com.tomandy.oneclaw.plugin.config.ModelPreferencesConfigContributor
 import com.tomandy.oneclaw.plugin.config.PluginConfigContributor
@@ -84,6 +85,9 @@ val appModule = module {
     // Message Store
     single<MessageStore> { RoomMessageStore(get()) }
 
+    // Chat Execution Manager
+    single { ChatExecutionManager(messageDao = get()) }
+
     // LLM Client Provider
     single { LlmClientProvider(credentialVault = get(), modelPreferences = get()) }
 
@@ -140,7 +144,8 @@ val appModule = module {
             llmClientProvider = get(),
             modelPreferences = get(),
             database = get(),
-            messageStore = get()
+            messageStore = get(),
+            executionManager = get()
         )
     }
 

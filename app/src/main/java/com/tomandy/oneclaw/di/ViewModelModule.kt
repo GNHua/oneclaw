@@ -23,6 +23,7 @@ val viewModelModule = module {
             conversationPreferences = get(),
             modelPreferences = get(),
             appContext = androidContext(),
+            executionManager = get(),
             slashCommandRouter = get(),
             skillRepository = get(),
             agentProfileRepository = get(),

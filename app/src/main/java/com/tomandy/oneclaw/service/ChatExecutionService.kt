@@ -39,11 +39,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.jsonArray
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -59,6 +58,7 @@ class ChatExecutionService : Service(), KoinComponent {
     private val database: AppDatabase by inject()
     private val skillRepository: SkillRepository by inject()
     private val agentProfileRepository: AgentProfileRepository by inject()
+    private val executionManager: ChatExecutionManager by inject()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -83,16 +83,14 @@ class ChatExecutionService : Service(), KoinComponent {
             ACTION_CANCEL -> {
                 val conversationId = intent.getStringExtra(EXTRA_CONVERSATION_ID)
                 if (conversationId != null) {
-                    cancelExecution(conversationId)
+                    executionManager.cancelExecution(conversationId)
                 }
             }
             ACTION_INJECT -> {
                 val conversationId = intent.getStringExtra(EXTRA_CONVERSATION_ID)
                 val message = intent.getStringExtra(EXTRA_USER_MESSAGE)
                 if (conversationId != null && message != null) {
-                    synchronized(activeCoordinators) {
-                        activeCoordinators[conversationId]
-                    }?.injectMessage(message)
+                    executionManager.getCoordinator(conversationId)?.injectMessage(message)
                 }
             }
             ACTION_SUMMARIZE -> {
@@ -122,6 +120,11 @@ class ChatExecutionService : Service(), KoinComponent {
         ChatExecutionTracker.markActive(conversationId)
 
         val job = serviceScope.launch {
+            // Capture our own Job so we can check if we're still the active execution
+            // in catch/finally blocks. A newer execution may have replaced us in the
+            // activeJobs map while we were still unwinding (e.g. stuck on a socket read).
+            val myJob = coroutineContext[Job]!!
+
             try {
                 // Always use the "main" agent profile for chat
                 agentProfileRepository.reload()
@@ -158,9 +161,7 @@ class ChatExecutionService : Service(), KoinComponent {
                     }
                 )
 
-                synchronized(activeCoordinators) {
-                    activeCoordinators[conversationId] = coordinator
-                }
+                executionManager.registerCoordinator(conversationId, coordinator)
 
                 launch {
                     coordinator.state.collect { state ->
@@ -199,37 +200,25 @@ class ChatExecutionService : Service(), KoinComponent {
                 if (usedDeviceControl) {
                     vibrateCompletion()
                 }
-            } catch (e: CancellationException) {
-                Log.d(TAG, "Execution cancelled for $conversationId")
-                withContext(NonCancellable) {
-                    database.messageDao().insert(
-                        MessageEntity(
-                            id = UUID.randomUUID().toString(),
-                            conversationId = conversationId,
-                            role = "meta",
-                            content = "stopped",
-                            toolName = "stopped",
-                            timestamp = System.currentTimeMillis()
-                        )
+            } catch (e: Exception) {
+                coroutineContext.ensureActive()
+                Log.e(TAG, "Exception in executeChat: ${e.message}", e)
+                if (executionManager.isActiveJob(conversationId, myJob)) {
+                    ChatExecutionTracker.setError(
+                        conversationId,
+                        e.message ?: "Unknown error"
                     )
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Exception in executeChat: ${e.message}", e)
-                ChatExecutionTracker.setError(
-                    conversationId,
-                    e.message ?: "Unknown error"
-                )
             } finally {
                 DeviceControlManager.hideBorderOverlay()
-                val removed = synchronized(activeCoordinators) { activeCoordinators.remove(conversationId) }
-                removed?.cleanup()
-                synchronized(activeJobs) { activeJobs.remove(conversationId) }
-                ChatExecutionTracker.markInactive(conversationId)
+                if (executionManager.removeIfActive(conversationId, myJob)) {
+                    ChatExecutionTracker.markInactive(conversationId)
+                }
                 stopSelfIfIdle()
             }
         }
 
-        synchronized(activeJobs) { activeJobs[conversationId] = job }
+        executionManager.registerJob(conversationId, job)
     }
 
     // -- executeChat helpers --------------------------------------------------
@@ -475,26 +464,20 @@ class ChatExecutionService : Service(), KoinComponent {
                     e.message ?: "Summarization failed"
                 )
             } finally {
-                val removed = synchronized(activeCoordinators) { activeCoordinators.remove(conversationId) }
-                removed?.cleanup()
-                synchronized(activeJobs) { activeJobs.remove(conversationId) }
-                ChatExecutionTracker.markInactive(conversationId)
+                val myJob = coroutineContext[Job]!!
+                if (executionManager.removeIfActive(conversationId, myJob)) {
+                    ChatExecutionTracker.markInactive(conversationId)
+                }
                 stopSelfIfIdle()
             }
         }
 
-        synchronized(activeJobs) { activeJobs[conversationId] = job }
-    }
-
-    private fun cancelExecution(conversationId: String) {
-        cancelExecutionDirect(conversationId)
+        executionManager.registerJob(conversationId, job)
     }
 
     private fun stopSelfIfIdle() {
-        synchronized(activeJobs) {
-            if (activeJobs.isEmpty()) {
-                stopSelf()
-            }
+        if (!executionManager.hasActiveJobs()) {
+            stopSelf()
         }
     }
 
@@ -605,22 +588,6 @@ class ChatExecutionService : Service(), KoinComponent {
         const val EXTRA_DOCUMENT_MIMETYPES = "document_mimetypes"
         private const val CHANNEL_ID = "chat_processing_channel"
         private const val NOTIFICATION_ID = 1002
-
-        internal val activeCoordinators = mutableMapOf<String, AgentCoordinator>()
-        internal val activeJobs = mutableMapOf<String, Job>()
-
-        fun cancelExecutionDirect(conversationId: String) {
-            val coordinator = synchronized(activeCoordinators) {
-                activeCoordinators.remove(conversationId)
-            }
-            coordinator?.cleanup()
-            coordinator?.cancel()
-
-            val job = synchronized(activeJobs) {
-                activeJobs.remove(conversationId)
-            }
-            job?.cancel()
-        }
 
         fun startExecution(
             context: Context,

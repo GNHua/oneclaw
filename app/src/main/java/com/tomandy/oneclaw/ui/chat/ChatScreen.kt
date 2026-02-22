@@ -9,25 +9,20 @@ import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -68,6 +63,7 @@ import com.tomandy.oneclaw.devicecontrol.DeviceControlManager
 import com.tomandy.oneclaw.notificationmedia.NotificationMediaServiceManager
 import com.tomandy.oneclaw.llm.LlmClientProvider
 import com.tomandy.oneclaw.navigation.NavigationState
+import com.tomandy.oneclaw.skill.SkillRepository
 import com.tomandy.oneclaw.notification.ChatNotificationHelper
 import com.tomandy.oneclaw.notification.ChatScreenTracker
 import com.tomandy.oneclaw.service.ChatExecutionTracker
@@ -86,12 +82,17 @@ fun ChatScreen(
     viewModel: ChatViewModel,
     onNavigateToSettings: () -> Unit,
     onNavigateToCronjobs: () -> Unit,
+    onNavigateToHistory: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val messages by viewModel.messages.collectAsState()
     val isProcessing by viewModel.isProcessing.collectAsState()
     val error by viewModel.error.collectAsState()
     val currentConversationId by viewModel.conversationId.collectAsState()
+
+    // Skill picker
+    val skillRepository: SkillRepository = koinInject()
+    var showSkillPicker by remember { mutableStateOf(false) }
 
     // Audio input
     val audioInputController: AudioInputController = koinInject()
@@ -382,10 +383,12 @@ fun ChatScreen(
         topBar = {
             TopAppBar(
                 title = { Text("OneClaw") },
-                actions = {
-                    IconButton(onClick = { viewModel.newConversation() }) {
-                        Icon(Icons.Default.Add, contentDescription = "New conversation")
+                navigationIcon = {
+                    IconButton(onClick = onNavigateToHistory) {
+                        Icon(Icons.Default.Menu, contentDescription = "History")
                     }
+                },
+                actions = {
                     IconButton(onClick = onNavigateToCronjobs) {
                         Icon(Icons.Default.DateRange, contentDescription = "Scheduled tasks")
                     }
@@ -405,7 +408,6 @@ fun ChatScreen(
                 .consumeWindowInsets(paddingValues)
                 .imePadding()
         ) {
-            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
             // Message list
             Box(modifier = Modifier.weight(1f)) {
                 if (messages.isEmpty() && !isProcessing) {
@@ -417,23 +419,10 @@ fun ChatScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Info,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Start a conversation",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Ask me anything!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "What can I do for you?",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
                     }
                 } else {
@@ -446,10 +435,6 @@ fun ChatScreen(
             }
 
             // Input field
-            HorizontalDivider(
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant
-            )
             ChatInput(
                 value = inputText,
                 onValueChange = { inputText = it },
@@ -487,23 +472,10 @@ fun ChatScreen(
                         takePhotoLauncher.launch(uri)
                     }
                 },
-                onTakeVideo = {
-                    val hasCameraPermission = ContextCompat.checkSelfPermission(
-                        context, Manifest.permission.CAMERA
-                    ) == PackageManager.PERMISSION_GRANTED
-                    if (!hasCameraPermission) {
-                        pendingCameraAction = "video"
-                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                    } else {
-                        val (file, uri) = VideoStorageHelper.createTempVideoFile(context, currentConversationId)
-                        pendingVideoFile = file
-                        pendingVideoUri = uri
-                        takeVideoLauncher.launch(uri)
-                    }
-                },
                 onPickDocument = {
                     documentPickerLauncher.launch(arrayOf("application/pdf", "text/*"))
                 },
+                onShowSkillPicker = { showSkillPicker = true },
                 onMicTap = {
                     // Check permission first
                     val hasPermission = ContextCompat.checkSelfPermission(
@@ -604,6 +576,16 @@ fun ChatScreen(
                     Text("Dismiss")
                 }
             }
+        )
+    }
+
+    if (showSkillPicker) {
+        SkillPickerSheet(
+            skills = skillRepository.getEnabledSkills(),
+            onSkillSelected = { command ->
+                inputText = "$command "
+            },
+            onDismiss = { showSkillPicker = false }
         )
     }
 }

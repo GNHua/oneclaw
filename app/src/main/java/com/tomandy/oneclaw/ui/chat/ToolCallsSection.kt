@@ -23,22 +23,19 @@ import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.data.entity.MessageEntity
 import com.tomandy.oneclaw.llm.ToolCall
 
-/**
- * Clickable header displaying tool calls made by the assistant.
- * Tapping opens a bottom sheet with tool call details.
- */
 @Composable
 fun ToolCallsSection(
     toolCalls: List<ToolCall>,
     toolResults: Map<String, MessageEntity> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
-    var showSheet by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
+    val indicatorColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { showSheet = true }
+            .clickable { showDialog = true }
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -50,29 +47,29 @@ fun ToolCallsSection(
             Icon(
                 imageVector = Icons.Default.Build,
                 contentDescription = "Tools",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = indicatorColor,
                 modifier = Modifier.size(16.dp)
             )
             Text(
                 text = "Used ${toolCalls.size} tool${if (toolCalls.size > 1) "s" else ""}",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = indicatorColor
             )
         }
 
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = "View details",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = indicatorColor,
             modifier = Modifier.size(20.dp)
         )
     }
 
-    if (showSheet) {
-        ToolCallDetailSheet(
+    if (showDialog) {
+        ToolCallDetailDialog(
             toolCalls = toolCalls,
             toolResults = toolResults,
-            onDismiss = { showSheet = false }
+            onDismiss = { showDialog = false }
         )
     }
 }

@@ -9,6 +9,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -158,6 +160,9 @@ fun OneClawNavGraph(
                     },
                     onNavigateToCronjobs = {
                         navController.navigate(Screen.Cronjobs.route) { launchSingleTop = true }
+                    },
+                    onNavigateToHistory = {
+                        navController.navigate(Screen.History.route) { launchSingleTop = true }
                     }
                 )
             }
@@ -601,6 +606,16 @@ fun OneClawNavGraph(
                                 }
                             }
                         )
+                    },
+                    floatingActionButton = {
+                        FloatingActionButton(
+                            onClick = {
+                                chatViewModel.newConversation()
+                                navController.popBackStack(Screen.Chat.route, inclusive = false)
+                            }
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "New conversation")
+                        }
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {

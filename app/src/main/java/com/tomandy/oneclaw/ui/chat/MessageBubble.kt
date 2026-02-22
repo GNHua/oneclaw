@@ -146,114 +146,121 @@ fun MessageBubble(
         } ?: emptyList()
     }
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
-    ) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = if (isUser) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
-            },
-            modifier = Modifier
-                .widthIn(max = 340.dp)
-                .combinedClickable(
-                    onClick = {},
-                    onLongClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
-                        Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
-                    }
+    val contentColor = if (isUser) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onBackground
+    }
+
+    @Composable
+    fun MessageContent() {
+        // Show attached images
+        if (imagePaths.isNotEmpty()) {
+            imagePaths.forEach { path ->
+                MessageImageThumbnail(filePath = path)
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Show attached audio
+        if (audioPaths.isNotEmpty()) {
+            audioPaths.forEach { path ->
+                AudioPlayerBar(
+                    filePath = path,
+                    accentColor = contentColor,
+                    textColor = contentColor
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Show attached videos
+        if (videoPaths.isNotEmpty()) {
+            videoPaths.forEach { path ->
+                MessageVideoThumbnail(filePath = path)
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Show attached documents
+        if (documentMetas.isNotEmpty()) {
+            documentMetas.forEach { doc ->
+                MessageDocumentChip(
+                    filePath = doc.path,
+                    displayName = doc.name,
+                    mimeType = doc.mimeType,
+                    tintColor = contentColor
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        if (!toolCalls.isNullOrEmpty()) {
+            ToolCallsSection(
+                toolCalls = toolCalls,
+                toolResults = toolResults,
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else if (message.content.isNotBlank()) {
+            CollapsibleMarkdown(
+                text = message.content,
+                textColor = contentColor
+            )
+        }
+    }
+
+    if (isUser) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.End
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                // Show attached images
-                if (imagePaths.isNotEmpty()) {
-                    imagePaths.forEach { path ->
-                        MessageImageThumbnail(filePath = path)
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                }
-
-                // Show attached audio
-                if (audioPaths.isNotEmpty()) {
-                    audioPaths.forEach { path ->
-                        AudioPlayerBar(
-                            filePath = path,
-                            accentColor = if (isUser) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                            textColor = if (isUser) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                }
-
-                // Show attached videos
-                if (videoPaths.isNotEmpty()) {
-                    videoPaths.forEach { path ->
-                        MessageVideoThumbnail(filePath = path)
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                }
-
-                // Show attached documents
-                if (documentMetas.isNotEmpty()) {
-                    documentMetas.forEach { doc ->
-                        MessageDocumentChip(
-                            filePath = doc.path,
-                            displayName = doc.name,
-                            mimeType = doc.mimeType,
-                            tintColor = if (isUser) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                }
-
-                if (!toolCalls.isNullOrEmpty()) {
-                    // Tool-call-only bubble
-                    ToolCallsSection(
-                        toolCalls = toolCalls,
-                        toolResults = toolResults,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else if (message.content.isNotBlank()) {
-                    CollapsibleMarkdown(
-                        text = message.content,
-                        textColor = if (isUser) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier
+                    .widthIn(max = 340.dp)
+                    .combinedClickable(
+                        onClick = {},
+                        onLongClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
+                            Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
                         }
                     )
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    MessageContent()
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = formatTimestamp(message.timestamp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Timestamp
-                Text(
-                    text = formatTimestamp(message.timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isUser) {
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    }
-                )
+            }
+        }
+    } else {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 340.dp)
+                    .combinedClickable(
+                        onClick = {},
+                        onLongClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
+                            Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+            ) {
+                MessageContent()
             }
         }
     }

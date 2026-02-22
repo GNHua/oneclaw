@@ -44,9 +44,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -94,6 +98,8 @@ fun ChatInput(
         attachedDocuments.isNotEmpty()
 
     var showAttachmentSheet by remember { mutableStateOf(false) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val scope = rememberCoroutineScope()
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Attached previews
@@ -178,7 +184,13 @@ fun ChatInput(
                 ) {
                     // Attachment button
                     IconButton(
-                        onClick = { showAttachmentSheet = true },
+                        onClick = {
+                            keyboardController?.hide()
+                            scope.launch {
+                                delay(150)
+                                showAttachmentSheet = true
+                            }
+                        },
                         modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
@@ -191,7 +203,13 @@ fun ChatInput(
 
                     // Skill picker button
                     IconButton(
-                        onClick = onShowSkillPicker,
+                        onClick = {
+                            keyboardController?.hide()
+                            scope.launch {
+                                delay(150)
+                                onShowSkillPicker()
+                            }
+                        },
                         modifier = Modifier.size(40.dp)
                     ) {
                         Icon(

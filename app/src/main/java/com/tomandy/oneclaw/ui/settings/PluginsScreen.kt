@@ -3,23 +3,28 @@ package com.tomandy.oneclaw.ui.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
+import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
-import com.tomandy.oneclaw.ui.theme.Dimens
+import org.koin.compose.koinInject
 
 private enum class PluginGroup(val label: String) {
     USER("User Plugins"),
@@ -74,6 +79,8 @@ fun PluginsScreen(
     var showImportSheet by remember { mutableStateOf(false) }
     var showUrlDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf<String?>(null) }
+    var credentialPrompt by remember { mutableStateOf<String?>(null) }
+    var showGoogleAccountSheet by remember { mutableStateOf(false) }
 
     val zipPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -113,28 +120,32 @@ fun PluginsScreen(
                     .fillMaxSize()
                     .drawColumnScrollbar(scrollState, scrollbarColor)
                     .verticalScroll(scrollState)
-                    .padding(horizontal = Dimens.ScreenPadding)
-                    .padding(top = Dimens.ScreenPadding, bottom = 80.dp),
-                verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing)
+                    .padding(16.dp)
+                    .padding(bottom = 64.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                groupedPlugins.entries.forEachIndexed { index, (group, groupPlugins) ->
-                    SectionHeader(title = group.label, showDivider = index > 0)
-                    groupPlugins.forEach { pluginState ->
-                        PluginCard(
-                            pluginState = pluginState,
-                            onClick = { selectedPlugin = pluginState },
-                            onToggle = { enabled ->
-                                if (enabled && pluginState.needsCredentials) {
-                                    selectedPlugin = pluginState
-                                } else {
-                                    viewModel.togglePlugin(pluginState.metadata.id, enabled)
-                                }
-                            },
-                            onDelete = if (pluginState.isUserPlugin) {
-                                { showDeleteConfirm = pluginState.metadata.id }
-                            } else null
-                        )
-                    }
+                groupedPlugins.forEach { (group, groupPlugins) ->
+                    PluginGroupCard(
+                        group = group,
+                        plugins = groupPlugins,
+                        onPluginClick = { selectedPlugin = it },
+                        onToggle = { pluginState, enabled ->
+                            if (enabled && !pluginState.toggleable &&
+                                pluginState.toggleDisabledReason == "Requires Google sign-in"
+                            ) {
+                                showGoogleAccountSheet = true
+                            } else if (enabled && !pluginState.toggleable &&
+                                pluginState.toggleDisabledReason != null
+                            ) {
+                                credentialPrompt = pluginState.toggleDisabledReason
+                            } else if (enabled && pluginState.needsCredentials) {
+                                selectedPlugin = pluginState
+                            } else {
+                                viewModel.togglePlugin(pluginState.metadata.id, enabled)
+                            }
+                        },
+                        onDelete = { showDeleteConfirm = it.metadata.id }
+                    )
                 }
             }
         }
@@ -181,6 +192,30 @@ fun PluginsScreen(
                 .padding(16.dp)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Add plugin")
+        }
+    }
+
+    // Google Account bottom sheet
+    if (showGoogleAccountSheet) {
+        val oauthAuthManager: OAuthGoogleAuthManager = koinInject()
+        val googleSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { showGoogleAccountSheet = false },
+            sheetState = googleSheetState
+        ) {
+            GoogleAccountScreen(
+                oauthAuthManager = oauthAuthManager,
+                onSignInChanged = { signedIn ->
+                    viewModel.onGoogleSignInChanged(signedIn)
+                    if (signedIn) {
+                        showGoogleAccountSheet = false
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .imePadding()
+            )
         }
     }
 
@@ -291,164 +326,123 @@ fun PluginsScreen(
             }
         )
     }
+
+    // Credential/setup required dialog
+    credentialPrompt?.let { reason ->
+        AlertDialog(
+            onDismissRequest = { credentialPrompt = null },
+            title = { Text("Setup Required") },
+            text = { Text(reason) },
+            confirmButton = {
+                TextButton(onClick = { credentialPrompt = null }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 }
 
 @Composable
-private fun PluginCard(
+private fun PluginGroupCard(
+    group: PluginGroup,
+    plugins: List<PluginUiState>,
+    onPluginClick: (PluginUiState) -> Unit,
+    onToggle: (PluginUiState, Boolean) -> Unit,
+    onDelete: (PluginUiState) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val enabledCount = plugins.count { it.enabled }
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primaryContainer
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = group.label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = "$enabledCount / ${plugins.size}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.rotate(if (expanded) 180f else 0f)
+                )
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column {
+                    plugins.forEachIndexed { index, pluginState ->
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                        PluginRow(
+                            pluginState = pluginState,
+                            onClick = { onPluginClick(pluginState) },
+                            onToggle = { enabled -> onToggle(pluginState, enabled) },
+                            onDelete = if (pluginState.isUserPlugin) {
+                                { onDelete(pluginState) }
+                            } else null
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PluginRow(
     pluginState: PluginUiState,
     onClick: () -> Unit,
     onToggle: (Boolean) -> Unit,
-    onDelete: (() -> Unit)?,
-    modifier: Modifier = Modifier
+    onDelete: (() -> Unit)?
 ) {
-    val metadata = pluginState.metadata
-    Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                WrapRow(
-                    horizontalSpacing = 8.dp,
-                    verticalSpacing = 4.dp
-                ) {
-                    Text(
-                        text = metadata.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    AssistChip(
-                        onClick = {},
-                        label = {
-                            Text(
-                                text = if (pluginState.isUserPlugin) "User" else "Built-in",
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        },
-                        modifier = Modifier.height(24.dp)
-                    )
-                    metadata.tags.forEach { tag ->
-                        AssistChip(
-                            onClick = {},
-                            label = {
-                                Text(
-                                    text = tag.replaceFirstChar { it.uppercaseChar() },
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            },
-                            modifier = Modifier.height(24.dp),
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                labelColor = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                        )
-                    }
-                }
-                Text(
-                    text = metadata.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "v${metadata.version} · ${metadata.tools.size} tool${if (metadata.tools.size != 1) "s" else ""}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (!pluginState.toggleable && pluginState.toggleDisabledReason != null) {
-                    Text(
-                        text = pluginState.toggleDisabledReason,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (onDelete != null) {
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Delete plugin",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-                Switch(
-                    checked = pluginState.enabled,
-                    onCheckedChange = onToggle,
-                    enabled = pluginState.toggleable
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String, showDivider: Boolean = true) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        if (showDivider) {
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
-        }
         Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+            text = pluginState.metadata.name,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
         )
-    }
-}
-
-@Composable
-private fun WrapRow(
-    modifier: Modifier = Modifier,
-    horizontalSpacing: Dp = 0.dp,
-    verticalSpacing: Dp = 0.dp,
-    content: @Composable () -> Unit
-) {
-    Layout(content = content, modifier = modifier) { measurables, constraints ->
-        val hSpacingPx = horizontalSpacing.roundToPx()
-        val vSpacingPx = verticalSpacing.roundToPx()
-        val placeables = measurables.map { it.measure(constraints.copy(minWidth = 0)) }
-        var x = 0
-        var y = 0
-        var rowHeight = 0
-        val positions = placeables.map { placeable ->
-            if (x > 0 && x + hSpacingPx + placeable.width > constraints.maxWidth) {
-                x = 0
-                y += rowHeight + vSpacingPx
-                rowHeight = 0
+        if (onDelete != null) {
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete plugin",
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(20.dp)
+                )
             }
-            if (x > 0) x += hSpacingPx
-            val pos = IntOffset(x, y)
-            x += placeable.width
-            rowHeight = maxOf(rowHeight, placeable.height)
-            pos
+            Spacer(modifier = Modifier.width(4.dp))
         }
-        val totalHeight = if (placeables.isEmpty()) 0 else y + rowHeight
-        layout(constraints.maxWidth, totalHeight) {
-            placeables.forEachIndexed { i, placeable ->
-                placeable.placeRelative(positions[i].x, positions[i].y)
-            }
-        }
+        Switch(
+            checked = pluginState.enabled,
+            onCheckedChange = onToggle,
+            modifier = Modifier.scale(0.8f)
+        )
     }
 }

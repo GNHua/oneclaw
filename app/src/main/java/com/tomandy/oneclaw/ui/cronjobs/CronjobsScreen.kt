@@ -178,10 +178,7 @@ fun CronjobsScreen(
                     items(cronjobs, key = { it.id }) { cronjob ->
                         CronjobCard(
                             cronjob = cronjob,
-                            isExpanded = selectedCronjobId == cronjob.id,
-                            executionLogs = if (selectedCronjobId == cronjob.id) executionLogs else emptyList(),
                             onToggleEnabled = { viewModel.toggleEnabled(cronjob) },
-                            onToggleLogs = { viewModel.toggleExecutionLogs(cronjob.id) },
                             onDelete = { viewModel.requestDelete(cronjob.id) },
                             onClick = { onNavigateToDetail(cronjob.id) },
                             modifier = Modifier.animateItem()

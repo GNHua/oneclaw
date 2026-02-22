@@ -19,6 +19,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
@@ -83,6 +84,7 @@ fun ChatScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToCronjobs: () -> Unit,
     onNavigateToHistory: () -> Unit = {},
+    onNewConversation: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val messages by viewModel.messages.collectAsState()
@@ -389,6 +391,9 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNewConversation) {
+                        Icon(Icons.Default.Add, contentDescription = "New conversation")
+                    }
                     IconButton(onClick = onNavigateToCronjobs) {
                         Icon(Icons.Default.DateRange, contentDescription = "Scheduled tasks")
                     }

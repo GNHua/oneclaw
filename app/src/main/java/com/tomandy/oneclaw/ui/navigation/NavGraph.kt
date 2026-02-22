@@ -161,6 +161,9 @@ fun OneClawNavGraph(
                     },
                     onNavigateToHistory = {
                         navController.navigate(Screen.History.route) { launchSingleTop = true }
+                    },
+                    onNewConversation = {
+                        chatViewModel.newConversation()
                     }
                 )
             }
@@ -601,16 +604,6 @@ fun OneClawNavGraph(
                                 }
                             }
                         )
-                    },
-                    floatingActionButton = {
-                        FloatingActionButton(
-                            onClick = {
-                                chatViewModel.newConversation()
-                                navController.popBackStack(Screen.Chat.route, inclusive = false)
-                            }
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "New conversation")
-                        }
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {

@@ -585,6 +585,7 @@ fun ChatScreen(
     }
 
     if (showSkillPicker) {
+        skillRepository.reload()
         SkillPickerSheet(
             skills = skillRepository.getEnabledSkills(),
             onSkillSelected = { command ->

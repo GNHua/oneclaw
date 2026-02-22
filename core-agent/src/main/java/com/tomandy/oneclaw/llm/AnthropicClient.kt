@@ -18,6 +18,7 @@ import com.anthropic.models.messages.ToolUseBlockParam
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
+import java.time.Duration
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -56,6 +57,7 @@ class AnthropicClient(
         client = if (apiKey.isNotEmpty()) {
             val builder = AnthropicOkHttpClient.builder()
                 .apiKey(apiKey)
+                .timeout(Duration.ofSeconds(NetworkConfig.DEFAULT_READ_TIMEOUT))
             if (baseUrl.isNotEmpty()) {
                 builder.baseUrl(baseUrl)
             }

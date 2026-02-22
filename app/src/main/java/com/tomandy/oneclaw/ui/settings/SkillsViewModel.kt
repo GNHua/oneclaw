@@ -13,6 +13,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 import java.io.File
 import java.net.URL
@@ -32,7 +35,7 @@ class SkillsViewModel(
     }
 
     /** Draft text shared with InstructionsEditorScreen via ViewModel scoping. */
-    var draftInstructionsBody: String = ""
+    var draftInstructionsBody: String by mutableStateOf("")
 
     private val _enabledMap = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val enabledMap: StateFlow<Map<String, Boolean>> = _enabledMap.asStateFlow()

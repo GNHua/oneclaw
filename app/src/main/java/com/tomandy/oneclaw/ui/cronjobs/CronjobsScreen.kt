@@ -412,10 +412,7 @@ private fun HistoryCard(
 @Composable
 private fun CronjobCard(
     cronjob: CronjobEntity,
-    isExpanded: Boolean,
-    executionLogs: List<ExecutionLog>,
     onToggleEnabled: () -> Unit,
-    onToggleLogs: () -> Unit,
     onDelete: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -500,116 +497,12 @@ private fun CronjobCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Row {
-                    IconButton(onClick = onToggleLogs) {
-                        Icon(
-                            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = if (isExpanded) "Hide logs" else "Show logs",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete task",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-            }
-
-            // Expandable execution logs
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                Column {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    if (executionLogs.isEmpty()) {
-                        Text(
-                            text = "No execution history",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    } else {
-                        executionLogs.take(10).forEach { log ->
-                            ExecutionLogItem(log = log)
-                            Spacer(modifier = Modifier.height(6.dp))
-                        }
-                        if (executionLogs.size > 10) {
-                            Text(
-                                text = "and ${executionLogs.size - 10} more...",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ExecutionLogItem(
-    log: ExecutionLog,
-    modifier: Modifier = Modifier
-) {
-    val (icon, tint) = when (log.status) {
-        ExecutionStatus.SUCCESS -> Icons.Default.Check to SuccessGreen
-        ExecutionStatus.FAILED -> Icons.Default.Close to MaterialTheme.colorScheme.error
-        ExecutionStatus.CANCELLED -> Icons.Default.Close to MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        shape = MaterialTheme.shapes.small
-    ) {
-        Row(
-            modifier = Modifier.padding(8.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = log.status.name,
-                tint = tint,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = log.status.name,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = tint
-                    )
-                    Text(
-                        text = formatTimestamp(log.startedAt),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                val summary = when {
-                    log.status == ExecutionStatus.FAILED && log.errorMessage != null -> log.errorMessage
-                    log.resultSummary != null -> log.resultSummary
-                    else -> null
-                }
-                if (summary != null) {
-                    Text(
-                        text = summary,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp)
+                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete task",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

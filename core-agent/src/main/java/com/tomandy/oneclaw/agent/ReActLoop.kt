@@ -114,26 +114,6 @@ class ReActLoop(
                 lastKnownPromptTokens = 0
             }
 
-            // On the last iteration, omit tools and ask for a summary so the
-            // LLM is forced to produce a final text response instead of
-            // requesting more tool calls that we can't execute.
-            val isLastIteration = iterations == maxIterations
-            val toolsForCall = if (isLastIteration) {
-                Log.d("ReActLoop", "Last iteration -- omitting tools to force final answer")
-                workingMessages.add(
-                    Message(
-                        role = "user",
-                        content = "[System: You have reached the maximum number of steps " +
-                            "($maxIterations). Summarize what you have done so far and " +
-                            "what remains. Let the user know they can increase the max " +
-                            "iterations in Agent Profiles and ask you to continue.]"
-                    )
-                )
-                null
-            } else {
-                if (llmTools.isNotEmpty()) llmTools else null
-            }
-
             // 1. Call LLM with tools
             val totalChars = workingMessages.sumOf { (it.content?.length ?: 0) }
             Log.d(
@@ -145,7 +125,7 @@ class ReActLoop(
                 messages = workingMessages,
                 model = model,
                 temperature = temperature,
-                tools = toolsForCall
+                tools = if (llmTools.isNotEmpty()) llmTools else null
             )
             Log.d("ReActLoop", "llmClient.complete returned")
 
@@ -306,11 +286,13 @@ class ReActLoop(
             }
         }
 
-        // Unreachable: the last iteration omits tools and forces a text
-        // response, so the loop always exits via "stop" finish_reason above.
-        // Kept as a safeguard.
+        // Max iterations reached. Return a friendly message -- tool call
+        // history is preserved in the DB so the user can continue seamlessly.
+        Log.w("ReActLoop", "Max iterations ($maxIterations) reached")
         return Result.success(
-            "Reached maximum steps ($maxIterations) without completing the task."
+            "Reached the maximum number of steps ($maxIterations). " +
+                "You can send a follow-up message to continue, " +
+                "or increase max iterations in Agent Profiles."
         )
     }
 

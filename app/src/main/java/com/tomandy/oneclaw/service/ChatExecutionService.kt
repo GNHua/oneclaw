@@ -30,6 +30,7 @@ import com.tomandy.oneclaw.llm.LlmProvider
 import com.tomandy.oneclaw.llm.MediaData
 import com.tomandy.oneclaw.llm.Message
 import com.tomandy.oneclaw.llm.NetworkConfig
+import com.tomandy.oneclaw.llm.ToolCall
 import com.tomandy.oneclaw.notification.ChatNotificationHelper
 import com.tomandy.oneclaw.skill.SkillRepository
 import com.tomandy.oneclaw.skill.SystemPromptBuilder
@@ -245,12 +246,40 @@ class ChatExecutionService : Service(), KoinComponent {
         return buildList {
             for (msg in messagesAfterSummary) {
                 when {
-                    msg.role == "user" || msg.role == "assistant" -> {
-                        var content = msg.content
-                        if (msg.role == "user") {
-                            content = annotateMediaAttachments(content, msg)
+                    msg.role == "assistant" -> {
+                        val toolCalls = msg.toolCalls?.let { json ->
+                            try {
+                                NetworkConfig.json.decodeFromString(
+                                    kotlinx.serialization.builtins.ListSerializer(
+                                        ToolCall.serializer()
+                                    ),
+                                    json
+                                )
+                            } catch (e: Exception) {
+                                null
+                            }
                         }
-                        add(Message(role = msg.role, content = content))
+                        add(
+                            Message(
+                                role = "assistant",
+                                content = msg.content,
+                                tool_calls = toolCalls?.takeIf { it.isNotEmpty() }
+                            )
+                        )
+                    }
+                    msg.role == "tool" -> {
+                        add(
+                            Message(
+                                role = "tool",
+                                content = msg.content,
+                                tool_call_id = msg.toolCallId,
+                                name = msg.toolName
+                            )
+                        )
+                    }
+                    msg.role == "user" -> {
+                        val content = annotateMediaAttachments(msg.content, msg)
+                        add(Message(role = "user", content = content))
                     }
                     msg.role == "meta" && msg.toolName == "stopped" ->
                         add(Message(role = "assistant", content = "[The previous response was cancelled by the user. Do not continue or retry the cancelled task unless explicitly asked.]"))

@@ -55,7 +55,7 @@ All data stays on your device. You provide your own API keys. Nothing is collect
 
 **Plugin system** -- 16+ built-in JavaScript plugins including Google Workspace (Gmail, Calendar, Contacts, Tasks, Drive, Docs, Sheets, Slides, Forms), web search, HTTP, and time utilities. Plugins run in a sandboxed QuickJS engine.
 
-**Skills** -- Markdown-based slash commands (`/morning-briefing`, `/code-review`, `/translate`, `/weather`, etc.) that inject specialized prompts. Create your own or use the built-ins.
+**Skills** -- Markdown-based slash commands (`/skill:morning-briefing`, `/skill:code-review`, `/skill:translate`, `/skill:weather`, etc.) that inject specialized prompts. Create your own or use the built-ins.
 
 **Scheduled tasks** -- Set one-time or recurring reminders. The agent creates and manages them through natural conversation, backed by WorkManager/AlarmManager.
 

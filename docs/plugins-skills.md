@@ -1184,7 +1184,7 @@ Supports all HTTP methods (GET, POST, PUT, PATCH, DELETE). Returns status code a
 
 ## Skills
 
-Skills are markdown files with YAML frontmatter in `skill-engine/src/main/assets/skills/`. Only metadata appears in the system prompt as an `<available_skills>` XML block. The full skill body is injected when the user invokes the slash command (e.g., `/weather`).
+Skills are markdown files with YAML frontmatter in `skill-engine/src/main/assets/skills/`. Only metadata appears in the system prompt as an `<available_skills>` XML block. The full skill body is injected when the user invokes the slash command (e.g., `/skill:weather`).
 
 Skills do not introduce new tools. They instruct the LLM to use existing tools (like `http_get` from web-fetch, or calendar/gmail tools) in specific ways.
 
@@ -1193,7 +1193,7 @@ Skills do not introduce new tools. They instruct the LLM to use existing tools (
 | Field | Value |
 |---|---|
 | Name | weather |
-| Slash command | `/weather` |
+| Slash command | `/skill:weather` |
 | Description | Get current weather and forecast for any location |
 | Depends on | `http_get` (from web-fetch plugin) |
 | API key | None (uses free Open-Meteo API) |
@@ -1211,7 +1211,7 @@ Instructs the LLM to:
 | Field | Value |
 |---|---|
 | Name | summarize-url |
-| Slash command | `/summarize-url` |
+| Slash command | `/skill:summarize-url` |
 | Description | Summarize the content of a web page or article |
 | Depends on | `http_get` (from web-fetch plugin) |
 
@@ -1227,7 +1227,7 @@ Instructs the LLM to:
 | Field | Value |
 |---|---|
 | Name | morning-briefing |
-| Slash command | `/morning-briefing` |
+| Slash command | `/skill:morning-briefing` |
 | Description | Daily briefing combining calendar, email, tasks, and weather |
 | Depends on | calendar tools, gmail tools, tasks tools, `http_get` |
 
@@ -1245,7 +1245,7 @@ Can be triggered via the scheduler for automated daily delivery.
 | Field | Value |
 |---|---|
 | Name | translate |
-| Slash command | `/translate` |
+| Slash command | `/skill:translate` |
 | Description | Translate text between languages |
 | Depends on | None (uses LLM's built-in translation ability) |
 
@@ -1263,7 +1263,7 @@ Instructs the LLM to:
 | Field | Value |
 |---|---|
 | Name | code-review |
-| Slash command | `/code-review` |
+| Slash command | `/skill:code-review` |
 | Description | Review code for bugs, style issues, and improvements |
 | Depends on | None (uses LLM analysis) |
 
@@ -1282,7 +1282,7 @@ References line numbers and suggests concrete fixes.
 | Field | Value |
 |---|---|
 | Name | explain |
-| Slash command | `/explain` |
+| Slash command | `/skill:explain` |
 | Description | Explain a concept clearly and concisely |
 | Depends on | None (uses LLM knowledge) |
 
@@ -1295,7 +1295,7 @@ Instructs the LLM to explain topics clearly with analogies, structured from simp
 | Field | Value |
 |---|---|
 | Name | about-oneclaw |
-| Slash command | `/about-oneclaw` |
+| Slash command | `/skill:about-oneclaw` |
 | Description | Comprehensive knowledge about OneClaw's architecture, features, tools, and source code |
 | Depends on | `http_get` (to fetch source files from GitHub when needed) |
 
@@ -1308,7 +1308,7 @@ Injects detailed knowledge about OneClaw's module structure, plugin system, two-
 | Field | Value |
 |---|---|
 | Name | create-plugin |
-| Slash command | `/create-plugin` |
+| Slash command | `/skill:create-plugin` |
 | Description | Create or update a custom JavaScript plugin for OneClaw |
 | Depends on | `install_plugin` (from plugin_management plugin) |
 

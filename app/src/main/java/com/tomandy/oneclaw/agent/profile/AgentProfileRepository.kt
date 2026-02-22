@@ -16,6 +16,7 @@ class AgentProfileRepository(
         val user = loader.loadUserProfiles()
         val merged = (bundled.associateBy { it.name } +
             user.associateBy { it.name }).values.toList()
+            .sortedWith(compareByDescending<AgentProfileEntry> { it.name == "main" }.thenBy { it.name })
         _profiles.value = merged
     }
 

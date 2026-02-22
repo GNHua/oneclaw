@@ -115,7 +115,12 @@ class ReActLoop(
             }
 
             // 1. Call LLM with tools
-            Log.d("ReActLoop", "Calling llmClient.complete with ${workingMessages.size} messages")
+            val totalChars = workingMessages.sumOf { (it.content?.length ?: 0) }
+            Log.d(
+                "ReActLoop",
+                "Calling llmClient.complete with ${workingMessages.size} messages, " +
+                    "~${totalChars} chars (~${totalChars / 4} tokens est)"
+            )
             val result = llmClient.complete(
                 messages = workingMessages,
                 model = model,
@@ -313,6 +318,10 @@ class ReActLoop(
          */
         internal fun truncateToolOutput(output: String): String {
             if (output.length <= MAX_LLM_TOOL_RESULT_CHARS) return output
+            Log.d(
+                "ReActLoop",
+                "Truncating tool output: ${output.length} -> $MAX_LLM_TOOL_RESULT_CHARS chars"
+            )
             return output.take(MAX_LLM_TOOL_RESULT_CHARS) +
                 "\n\n[Output truncated: ${output.length} chars total, " +
                 "showing first $MAX_LLM_TOOL_RESULT_CHARS]"

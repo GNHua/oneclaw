@@ -90,7 +90,8 @@ class AgentCoordinator(
         ReActLoop(
             llmClient = clientProvider(),
             toolExecutor = toolExecutor,
-            messageStore = messageStore
+            messageStore = messageStore,
+            contextWindow = contextWindow
         )
     }
 

@@ -165,7 +165,16 @@ class GeminiClient(
             throw e
         } catch (e: Exception) {
             pendingModelContent = null
-            Result.failure(Exception("Gemini API error: ${e.message}", e))
+            val msg = e.message?.lowercase() ?: ""
+            if (msg.contains("request payload size exceeds") ||
+                msg.contains("too many tokens") ||
+                msg.contains("exceeds the maximum") ||
+                msg.contains("prompt is too long")
+            ) {
+                Result.failure(ContextOverflowException("Gemini: ${e.message}", e))
+            } else {
+                Result.failure(Exception("Gemini API error: ${e.message}", e))
+            }
         }
     }
 

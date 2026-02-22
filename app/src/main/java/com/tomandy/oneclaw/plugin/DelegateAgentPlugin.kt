@@ -13,6 +13,7 @@ import com.tomandy.oneclaw.engine.Plugin
 import com.tomandy.oneclaw.engine.PluginContext
 import com.tomandy.oneclaw.engine.ToolResult
 import com.tomandy.oneclaw.llm.LlmClientProvider
+import com.tomandy.oneclaw.llm.LlmProvider
 import com.tomandy.oneclaw.service.MemoryBootstrap
 import com.tomandy.oneclaw.skill.SkillRepository
 import com.tomandy.oneclaw.skill.SystemPromptBuilder
@@ -85,6 +86,7 @@ class DelegateAgentPlugin(
                 toolExecutor = subToolExecutor,
                 messageStore = messageStore,
                 conversationId = tempConversationId,
+                contextWindow = LlmProvider.getContextWindow(selectedModel),
                 toolFilter = toolFilter
             )
 

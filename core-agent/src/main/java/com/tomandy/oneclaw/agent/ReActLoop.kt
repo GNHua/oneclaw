@@ -2,6 +2,7 @@ package com.tomandy.oneclaw.agent
 
 import android.util.Log
 import com.tomandy.oneclaw.engine.ToolDefinition
+import com.tomandy.oneclaw.llm.ContextOverflowException
 import com.tomandy.oneclaw.llm.LlmClient
 import com.tomandy.oneclaw.llm.Message
 import com.tomandy.oneclaw.llm.NetworkConfig
@@ -27,11 +28,15 @@ import java.util.concurrent.ConcurrentLinkedQueue
  * - Max iteration safety limit (default: 5)
  * - Full conversation context preservation
  * - Persists intermediate tool-call messages to DB for UI display
+ * - Tool result truncation to prevent context overflow
+ * - Mid-loop token estimation with automatic message trimming
+ * - Recovery from context overflow API errors
  */
 class ReActLoop(
     private val llmClient: LlmClient,
     private val toolExecutor: ToolExecutor,
-    private val messageStore: MessageStore
+    private val messageStore: MessageStore,
+    private val contextWindow: Int = 200_000
 ) {
     private val pendingUserMessages = ConcurrentLinkedQueue<String>()
 
@@ -49,8 +54,8 @@ class ReActLoop(
      * Steps:
      * 1. Call LLM with available tools
      * 2. Check finish_reason:
-     *    - "stop" → Return final answer
-     *    - "tool_calls" → Execute tools and continue loop
+     *    - "stop" -> Return final answer
+     *    - "tool_calls" -> Execute tools and continue loop
      * 3. Add tool results to conversation
      * 4. Repeat until final answer or max iterations
      *
@@ -73,6 +78,8 @@ class ReActLoop(
         Log.d("ReActLoop", "step called with ${messages.size} messages, model: $model")
         val workingMessages = messages.toMutableList()
         var iterations = 0
+        var lastKnownPromptTokens = 0
+        var overflowRetries = 0
 
         while (iterations < maxIterations) {
             iterations++
@@ -91,6 +98,22 @@ class ReActLoop(
                 injected = pendingUserMessages.poll()
             }
 
+            // Layer 2: Mid-loop token check -- trim if approaching context limit
+            val estimatedTokens = if (lastKnownPromptTokens > 0) {
+                lastKnownPromptTokens
+            } else {
+                workingMessages.sumOf { (it.content?.length ?: 0) } / 4
+            }
+            val trimThreshold = (contextWindow * 0.85).toInt()
+            if (estimatedTokens > trimThreshold && workingMessages.size > 6) {
+                Log.d(
+                    "ReActLoop",
+                    "Token estimate $estimatedTokens exceeds 85% of $contextWindow, trimming"
+                )
+                trimWorkingMessages(workingMessages, contextWindow)
+                lastKnownPromptTokens = 0
+            }
+
             // 1. Call LLM with tools
             Log.d("ReActLoop", "Calling llmClient.complete with ${workingMessages.size} messages")
             val result = llmClient.complete(
@@ -101,12 +124,32 @@ class ReActLoop(
             )
             Log.d("ReActLoop", "llmClient.complete returned")
 
+            // Layer 3: Handle context overflow with recovery
             if (result.isFailure) {
-                return Result.failure(result.exceptionOrNull()!!)
+                val error = result.exceptionOrNull()!!
+                if (error is ContextOverflowException &&
+                    overflowRetries < MAX_OVERFLOW_RETRIES &&
+                    iterations > 1
+                ) {
+                    overflowRetries++
+                    Log.w(
+                        "ReActLoop",
+                        "Context overflow on iteration $iterations, " +
+                            "retry $overflowRetries/$MAX_OVERFLOW_RETRIES"
+                    )
+                    trimWorkingMessages(workingMessages, (contextWindow * 0.5).toInt())
+                    lastKnownPromptTokens = 0
+                    iterations-- // don't count the failed attempt
+                    continue
+                }
+                return Result.failure(error)
             }
 
             val response = result.getOrNull()!!
             lastUsage = response.usage
+            // Layer 4: Track actual prompt tokens for next iteration's check
+            response.usage?.prompt_tokens?.let { lastKnownPromptTokens = it }
+
             val choice = response.choices.firstOrNull()
                 ?: return Result.failure(Exception("No choices in LLM response"))
 
@@ -155,7 +198,9 @@ class ReActLoop(
 
                     // Save intermediate assistant message with tool calls to DB
                     val toolCallsJson = NetworkConfig.json.encodeToString(
-                        kotlinx.serialization.builtins.ListSerializer(com.tomandy.oneclaw.llm.ToolCall.serializer()),
+                        kotlinx.serialization.builtins.ListSerializer(
+                            com.tomandy.oneclaw.llm.ToolCall.serializer()
+                        ),
                         toolCalls
                     )
                     messageStore.insert(
@@ -183,15 +228,17 @@ class ReActLoop(
                     Log.d("ReActLoop", "Tool execution completed, got ${toolResults.size} results")
 
                     // Add tool results to history as observations
-                    toolResults.forEach { result ->
-                        when (result) {
+                    toolResults.forEach { toolResult ->
+                        when (toolResult) {
                             is ToolExecutionResult.Success -> {
+                                // Layer 1: Cap tool result size for LLM context
+                                val output = truncateToolOutput(toolResult.output)
                                 workingMessages.add(
                                     Message(
                                         role = "tool",
-                                        content = result.output,
-                                        tool_call_id = result.toolCall.id,
-                                        name = result.toolCall.function.name
+                                        content = output,
+                                        tool_call_id = toolResult.toolCall.id,
+                                        name = toolResult.toolCall.function.name
                                     )
                                 )
                             }
@@ -199,9 +246,9 @@ class ReActLoop(
                                 workingMessages.add(
                                     Message(
                                         role = "tool",
-                                        content = "Error: ${result.error}",
-                                        tool_call_id = result.toolCall.id,
-                                        name = result.toolCall.function.name
+                                        content = "Error: ${toolResult.error}",
+                                        tool_call_id = toolResult.toolCall.id,
+                                        name = toolResult.toolCall.function.name
                                     )
                                 )
                             }
@@ -235,7 +282,7 @@ class ReActLoop(
     /**
      * Convert engine ToolDefinition to LLM Tool format.
      *
-     * ToolDefinition (from plugin metadata) → Tool (for LLM API)
+     * ToolDefinition (from plugin metadata) -> Tool (for LLM API)
      *
      * @param toolDef The tool definition from plugin
      * @return Tool object for LLM request
@@ -249,5 +296,85 @@ class ReActLoop(
                 parameters = toolDef.parameters
             )
         )
+    }
+
+    companion object {
+        /** Max characters for a single tool result sent to the LLM. */
+        internal const val MAX_LLM_TOOL_RESULT_CHARS = 32_768
+
+        /** Max overflow recovery retries to prevent infinite loops. */
+        private const val MAX_OVERFLOW_RETRIES = 2
+
+        /** Number of recent messages to always preserve when trimming. */
+        private const val PRESERVE_TAIL_COUNT = 6
+
+        /**
+         * Truncate a tool output string if it exceeds [MAX_LLM_TOOL_RESULT_CHARS].
+         */
+        internal fun truncateToolOutput(output: String): String {
+            if (output.length <= MAX_LLM_TOOL_RESULT_CHARS) return output
+            return output.take(MAX_LLM_TOOL_RESULT_CHARS) +
+                "\n\n[Output truncated: ${output.length} chars total, " +
+                "showing first $MAX_LLM_TOOL_RESULT_CHARS]"
+        }
+
+        /**
+         * Trim older tool-call/tool-result message pairs from the middle of
+         * [workingMessages] to bring the estimated token count under [targetTokens].
+         *
+         * Preserves: system messages, the first user message, and the last
+         * [PRESERVE_TAIL_COUNT] messages.
+         */
+        internal fun trimWorkingMessages(
+            workingMessages: MutableList<Message>,
+            targetTokens: Int
+        ) {
+            if (workingMessages.size <= PRESERVE_TAIL_COUNT + 2) return
+
+            // Find the boundary: preserve head (system + first user) and tail
+            val headEnd = workingMessages.indexOfFirst { it.role == "user" } + 1
+            if (headEnd <= 0) return
+            val tailStart = (workingMessages.size - PRESERVE_TAIL_COUNT).coerceAtLeast(headEnd)
+            if (tailStart <= headEnd) return
+
+            // Estimate current tokens
+            val currentTokens = workingMessages.sumOf { (it.content?.length ?: 0) } / 4
+            if (currentTokens <= targetTokens) return
+
+            // Remove messages from the middle, oldest first, until under budget
+            val removable = workingMessages.subList(headEnd, tailStart)
+            val toRemove = mutableListOf<Int>()
+            var freed = 0
+            val needed = currentTokens - targetTokens
+
+            for (i in removable.indices) {
+                val msg = removable[i]
+                freed += (msg.content?.length ?: 0) / 4
+                toRemove.add(headEnd + i)
+                if (freed >= needed) break
+            }
+
+            if (toRemove.isEmpty()) return
+
+            // Remove in reverse order to preserve indices
+            for (idx in toRemove.reversed()) {
+                workingMessages.removeAt(idx)
+            }
+
+            // Insert a placeholder at the trim point
+            workingMessages.add(
+                headEnd,
+                Message(
+                    role = "user",
+                    content = "[System: ${toRemove.size} earlier tool interactions were " +
+                        "trimmed to fit context window]"
+                )
+            )
+
+            Log.d(
+                "ReActLoop",
+                "Trimmed ${toRemove.size} messages, freed ~$freed tokens"
+            )
+        }
     }
 }

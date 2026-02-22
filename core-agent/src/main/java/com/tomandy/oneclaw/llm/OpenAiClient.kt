@@ -113,12 +113,17 @@ class OpenAiClient(
             Result.success(response)
 
         } catch (e: HttpException) {
+            val errorBody = e.response()?.errorBody()?.string()
+            val parsed = parseApiError(errorBody)
+            if (e.code() == 400 && isContextOverflow(errorBody)) {
+                return Result.failure(ContextOverflowException("OpenAI: $parsed", e))
+            }
             val errorMessage = when (e.code()) {
                 401 -> "Unauthorized: Invalid API key"
-                429 -> "Rate limit exceeded: ${parseApiError(e.response()?.errorBody()?.string())}"
-                500 -> "Server error: ${parseApiError(e.response()?.errorBody()?.string())}"
+                429 -> "Rate limit exceeded: $parsed"
+                500 -> "Server error: $parsed"
                 502, 503, 504 -> "Service unavailable: ${e.code()}"
-                else -> "HTTP error ${e.code()}: ${parseApiError(e.response()?.errorBody()?.string())}"
+                else -> "HTTP error ${e.code()}: $parsed"
             }
             Result.failure(IOException(errorMessage, e))
 
@@ -234,6 +239,11 @@ class OpenAiClient(
             val responseBody = response.body?.string()
 
             if (!response.isSuccessful) {
+                if (response.code == 400 && isContextOverflow(responseBody)) {
+                    return@runInterruptible Result.failure(
+                        ContextOverflowException("OpenAI: ${parseApiError(responseBody)}")
+                    )
+                }
                 val errorMessage = when (response.code) {
                     401 -> "Unauthorized: Invalid API key"
                     429 -> "Rate limit exceeded: ${parseApiError(responseBody)}"
@@ -276,6 +286,15 @@ class OpenAiClient(
         httpClient = createHttpClient()
         retrofit = createRetrofit(httpClient)
         api = retrofit.create(OpenAiApi::class.java)
+    }
+
+    private fun isContextOverflow(body: String?): Boolean {
+        if (body == null) return false
+        val lower = body.lowercase()
+        return lower.contains("context_length_exceeded") ||
+            lower.contains("maximum context length") ||
+            lower.contains("too many tokens") ||
+            lower.contains("prompt is too long")
     }
 
     private fun openAiAudioFormat(mimeType: String): String {

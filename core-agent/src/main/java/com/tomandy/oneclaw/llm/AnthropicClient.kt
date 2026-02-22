@@ -167,6 +167,15 @@ class AnthropicClient(
             )
         } catch (e: CancellationException) {
             throw e
+        } catch (e: com.anthropic.errors.BadRequestException) {
+            val msg = e.message ?: ""
+            if (msg.contains("prompt is too long", ignoreCase = true) ||
+                msg.contains("too many tokens", ignoreCase = true)
+            ) {
+                Result.failure(ContextOverflowException("Anthropic: $msg", e))
+            } else {
+                Result.failure(Exception("Anthropic API error: $msg", e))
+            }
         } catch (e: Exception) {
             Result.failure(Exception("Anthropic API error: ${e.message}", e))
         }

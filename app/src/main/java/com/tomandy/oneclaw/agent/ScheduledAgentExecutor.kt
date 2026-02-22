@@ -7,6 +7,7 @@ import com.tomandy.oneclaw.data.AppDatabase
 import com.tomandy.oneclaw.data.ModelPreferences
 import com.tomandy.oneclaw.data.entity.ConversationEntity
 import com.tomandy.oneclaw.llm.LlmClientProvider
+import com.tomandy.oneclaw.llm.LlmProvider
 import com.tomandy.oneclaw.scheduler.AgentExecutor
 import com.tomandy.oneclaw.scheduler.TaskExecutionResult
 import com.tomandy.oneclaw.service.MemoryBootstrap
@@ -64,12 +65,17 @@ class ScheduledAgentExecutor(
             val snapshotRegistry = toolRegistry.snapshot()
             val snapshotToolExecutor = ToolExecutor(snapshotRegistry, messageStore)
 
+            // Get preferences
+            val model = profile?.model
+                ?: modelPreferences.getSelectedModel() ?: ""
+
             val coordinator = AgentCoordinator(
                 clientProvider = { llmClientProvider.getCurrentLlmClient() },
                 toolRegistry = snapshotRegistry,
                 toolExecutor = snapshotToolExecutor,
                 messageStore = messageStore,
-                conversationId = tempConversationId
+                conversationId = tempConversationId,
+                contextWindow = LlmProvider.getContextWindow(model)
             )
 
             try {
@@ -78,10 +84,6 @@ class ScheduledAgentExecutor(
                     cronjobId = cronjobId,
                     triggerTime = triggerTime
                 )
-
-                // Get preferences
-                val model = profile?.model
-                    ?: modelPreferences.getSelectedModel() ?: ""
                 val temperature = profile?.temperature ?: DEFAULT_TEMPERATURE
                 val maxIter = profile?.maxIterations ?: DEFAULT_MAX_ITERATIONS
 

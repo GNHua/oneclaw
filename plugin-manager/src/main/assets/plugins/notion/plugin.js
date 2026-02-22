@@ -22,8 +22,9 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        oneclaw.log.error("notion error: " + e.message);
-        return { error: e.message };
+        var msg = (e && e.message) ? e.message : String(e || "Unknown error");
+        oneclaw.log.error("notion error: " + msg);
+        return { error: msg };
     }
 }
 
@@ -51,6 +52,9 @@ async function notionFetch(method, path, body) {
     );
 
     var resp = JSON.parse(raw);
+    if (resp.error) {
+        throw new Error("Notion request failed: " + resp.error);
+    }
     if (resp.status >= 400) {
         var errorBody;
         try { errorBody = JSON.parse(resp.body); } catch (e) { errorBody = {}; }

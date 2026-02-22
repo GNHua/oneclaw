@@ -7,8 +7,9 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        oneclaw.log.error("image-gen error: " + e.message);
-        return { error: e.message };
+        var msg = (e && e.message) ? e.message : String(e || "Unknown error");
+        oneclaw.log.error("image-gen error: " + msg);
+        return { error: msg };
     }
 }
 

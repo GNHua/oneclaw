@@ -13,8 +13,9 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        oneclaw.log.error("smart-home error: " + e.message);
-        return { error: e.message };
+        var msg = (e && e.message) ? e.message : String(e || "Unknown error");
+        oneclaw.log.error("smart-home error: " + msg);
+        return { error: msg };
     }
 }
 
@@ -45,6 +46,9 @@ async function haFetch(method, path, body) {
     );
 
     var resp = JSON.parse(raw);
+    if (resp.error) {
+        throw new Error("Smart Home request failed: " + resp.error);
+    }
     if (resp.status >= 400) {
         var errorMsg = resp.body || "HTTP " + resp.status;
         throw new Error("Home Assistant API error (HTTP " + resp.status + "): " + errorMsg);

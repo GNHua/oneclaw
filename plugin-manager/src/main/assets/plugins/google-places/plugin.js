@@ -74,6 +74,9 @@ async function placesRequest(method, path, body, fieldMask) {
     );
 
     var resp = JSON.parse(raw);
+    if (resp.error) {
+        throw new Error("Places request failed: " + resp.error);
+    }
     if (resp.status >= 400) {
         var detail = "";
         try { detail = JSON.parse(resp.body).error.message || resp.body; } catch (e) { detail = resp.body; }
@@ -308,7 +311,8 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        oneclaw.log.error("google-places error: " + e.message);
-        return { error: e.message };
+        var msg = (e && e.message) ? e.message : String(e || "Unknown error");
+        oneclaw.log.error("google-places error: " + msg);
+        return { error: msg };
     }
 }

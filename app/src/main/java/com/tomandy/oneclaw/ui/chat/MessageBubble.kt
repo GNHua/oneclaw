@@ -250,7 +250,7 @@ fun MessageBubble(
         ) {
             Column(
                 modifier = Modifier
-                    .widthIn(max = 340.dp)
+                    .fillMaxWidth()
                     .combinedClickable(
                         onClick = {},
                         onLongClick = {

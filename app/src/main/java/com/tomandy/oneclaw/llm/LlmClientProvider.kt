@@ -10,8 +10,8 @@ class LlmClientProvider(
     private val credentialVault: CredentialVault,
     private val modelPreferences: ModelPreferences
 ) {
-    private val openAiClient = OpenAiClient(apiKey = "")
-    private val geminiClient = GeminiClient(apiKey = "")
+    private val openAiClient = OpenAiClient()
+    private val geminiClient = GeminiClient()
     private val anthropicClient = AnthropicClient()
 
     private val _selectedProvider = MutableStateFlow(LlmProvider.OPENAI)

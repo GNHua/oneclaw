@@ -7,12 +7,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -37,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.tomandy.oneclaw.data.entity.MessageEntity
 import com.tomandy.oneclaw.llm.ToolCall
+import com.tomandy.oneclaw.ui.drawScrollbar
+import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
 import com.tomandy.oneclaw.ui.theme.SuccessGreen
 
 @Composable
@@ -48,7 +51,8 @@ fun ToolCallDetailDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.85f)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
@@ -57,10 +61,16 @@ fun ToolCallDetailDialog(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
+                val listState = rememberLazyListState()
+                val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                val heightCache = rememberLazyListHeightCache()
+
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 400.dp),
+                        .weight(1f)
+                        .drawScrollbar(listState, scrollbarColor, heightCache),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(toolCalls, key = { it.id }) { toolCall ->

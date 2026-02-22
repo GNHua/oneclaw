@@ -183,9 +183,6 @@ fun OneClawNavGraph(
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
                         HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsScreen(
-                            onNavigateToHistory = {
-                                navController.navigate(Screen.History.route) { launchSingleTop = true }
-                            },
                             onNavigateToProviders = {
                                 navController.navigate(Screen.Providers.route) { launchSingleTop = true }
                             },

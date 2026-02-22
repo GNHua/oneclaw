@@ -2,7 +2,6 @@ package com.tomandy.oneclaw.di
 
 import com.tomandy.oneclaw.backup.BackupViewModel
 import com.tomandy.oneclaw.engine.GoogleAuthProvider
-import com.tomandy.oneclaw.engine.PluginEngine
 import com.tomandy.oneclaw.llm.LlmClientProvider
 import com.tomandy.oneclaw.plugin.PluginCoordinator
 import com.tomandy.oneclaw.ui.chat.ChatViewModel

@@ -4,7 +4,6 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.graphics.PixelFormat
-import android.graphics.Rect
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper

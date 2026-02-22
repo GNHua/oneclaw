@@ -1,10 +1,7 @@
 package com.tomandy.oneclaw.ui.cronjobs
 
-import androidx.compose.animation.AnimatedVisibility
 import com.tomandy.oneclaw.scheduler.util.formatCronExpression
 import com.tomandy.oneclaw.scheduler.util.formatIntervalMinutes
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,16 +17,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,8 +48,6 @@ import com.tomandy.oneclaw.scheduler.data.CronjobEntity
 import com.tomandy.oneclaw.ui.drawScrollbar
 import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
 import com.tomandy.oneclaw.ui.theme.SuccessGreen
-import com.tomandy.oneclaw.scheduler.data.ExecutionLog
-import com.tomandy.oneclaw.scheduler.data.ExecutionStatus
 import com.tomandy.oneclaw.scheduler.data.ScheduleType
 import java.text.SimpleDateFormat
 import java.util.Date

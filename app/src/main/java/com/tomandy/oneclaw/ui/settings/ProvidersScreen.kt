@@ -2,7 +2,7 @@ package com.tomandy.oneclaw.ui.settings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -47,29 +47,26 @@ fun ProvidersScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = Dimens.ScreenPadding),
+            .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
-        contentPadding = PaddingValues(top = Dimens.ScreenPadding, bottom = Dimens.ScreenPadding)
+        contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)
     ) {
         // Add new API key section
         item {
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = Dimens.CardElevation)
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(Dimens.CardInnerPadding),
+                        .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
                         text = "Add API Key",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = MaterialTheme.typography.titleMedium
                     )
 
                     // Provider dropdown
@@ -204,21 +201,12 @@ fun ProvidersScreen(
 
         // Saved providers section
         item {
-            Text(
-                text = "Saved Providers",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
-
-        if (providers.isEmpty()) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                if (providers.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -231,77 +219,74 @@ fun ProvidersScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                } else {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        providers.forEachIndexed { index, provider ->
+                            var providerBaseUrl by remember { mutableStateOf("") }
+                            LaunchedEffect(provider) {
+                                providerBaseUrl = viewModel.getBaseUrl(provider)
+                            }
+                            if (index > 0) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                            }
+                            ProviderRow(
+                                provider = provider,
+                                baseUrl = providerBaseUrl,
+                                onDelete = { viewModel.deleteApiKey(provider) },
+                                isDeleting = deleteStatus is DeleteStatus.Deleting
+                            )
+                        }
+                    }
                 }
-            }
-        } else {
-            items(providers) { provider ->
-                var providerBaseUrl by remember { mutableStateOf("") }
-                LaunchedEffect(provider) {
-                    providerBaseUrl = viewModel.getBaseUrl(provider)
-                }
-                ProviderCard(
-                    provider = provider,
-                    baseUrl = providerBaseUrl,
-                    onDelete = { viewModel.deleteApiKey(provider) },
-                    isDeleting = deleteStatus is DeleteStatus.Deleting
-                )
             }
         }
     }
 }
 
 @Composable
-private fun ProviderCard(
+private fun ProviderRow(
     provider: String,
     baseUrl: String,
     onDelete: () -> Unit,
     isDeleting: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.weight(1f)
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = provider,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = if (baseUrl.isNotEmpty()) baseUrl else "API key configured",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = provider,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = if (baseUrl.isNotEmpty()) baseUrl else "API key configured",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
-            IconButton(
-                onClick = onDelete,
-                enabled = !isDeleting
-            ) {
-                if (isDeleting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete $provider API key",
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
+        IconButton(
+            onClick = onDelete,
+            enabled = !isDeleting
+        ) {
+            if (isDeleting) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete $provider API key",
+                    tint = MaterialTheme.colorScheme.error
+                )
             }
         }
     }

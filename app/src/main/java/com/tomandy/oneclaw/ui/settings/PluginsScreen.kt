@@ -3,6 +3,7 @@ package com.tomandy.oneclaw.ui.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -72,6 +73,8 @@ fun PluginsScreen(
     viewModel: SettingsViewModel,
     modifier: Modifier = Modifier
 ) {
+    LaunchedEffect(Unit) { viewModel.refreshPlugins() }
+
     val plugins by viewModel.plugins.collectAsState()
     val importStatus by viewModel.importStatus.collectAsState()
 

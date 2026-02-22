@@ -76,6 +76,10 @@ class SettingsViewModel(
         }
     }
 
+    fun refreshPlugins() {
+        loadPlugins()
+    }
+
     private fun loadPlugins() {
         val userPluginIds = userPluginManager.getUserPluginIds()
         _plugins.value = pluginEngine.getAllPlugins().map { loaded ->

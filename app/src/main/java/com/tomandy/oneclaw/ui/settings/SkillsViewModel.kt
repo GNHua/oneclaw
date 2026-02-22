@@ -26,6 +26,9 @@ class SkillsViewModel(
 
     val skills: StateFlow<List<SkillEntry>> = skillRepository.skills
 
+    private val _enabledMap = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val enabledMap: StateFlow<Map<String, Boolean>> = _enabledMap.asStateFlow()
+
     private val _importStatus = MutableStateFlow<SkillImportStatus>(SkillImportStatus.Idle)
     val importStatus: StateFlow<SkillImportStatus> = _importStatus.asStateFlow()
 
@@ -34,14 +37,25 @@ class SkillsViewModel(
 
     init {
         skillRepository.reload()
+        refreshEnabledMap()
+        viewModelScope.launch {
+            skills.collect { refreshEnabledMap() }
+        }
+    }
+
+    private fun refreshEnabledMap() {
+        _enabledMap.value = skills.value.associate { skill ->
+            skill.metadata.name to skillPreferences.isSkillEnabled(skill.metadata.name)
+        }
     }
 
     fun toggleSkill(name: String, enabled: Boolean) {
         skillPreferences.setSkillEnabled(name, enabled)
+        _enabledMap.value = _enabledMap.value + (name to enabled)
     }
 
     fun isSkillEnabled(name: String): Boolean {
-        return skillPreferences.isSkillEnabled(name)
+        return _enabledMap.value[name] ?: skillPreferences.isSkillEnabled(name)
     }
 
     fun deleteSkill(skillName: String) {

@@ -20,8 +20,15 @@ object SystemPromptBuilder {
             sb.appendLine("  <skill>")
             sb.appendLine("    <name>${escapeXml(skill.metadata.name)}</name>")
             sb.appendLine("    <description>${escapeXml(skill.metadata.description)}</description>")
-            if (skill.filePath != null) {
-                sb.appendLine("    <location>${escapeXml(skill.filePath)}</location>")
+            val location = when {
+                skill.source == SkillSource.BUNDLED && skill.baseDir != null ->
+                    "bundled-skills/skills/${skill.baseDir}/SKILL.md"
+                skill.source == SkillSource.USER && skill.filePath != null ->
+                    skill.filePath
+                else -> null
+            }
+            if (location != null) {
+                sb.appendLine("    <location>${escapeXml(location)}</location>")
             }
             sb.appendLine("  </skill>")
         }

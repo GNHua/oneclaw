@@ -208,8 +208,12 @@ class AgentCoordinator(
             )
             Log.d("AgentCoordinator", "reActLoop.step completed")
 
-            // Update token tracking from usage
-            reActLoop.lastUsage?.prompt_tokens?.let { lastPromptTokens = it }
+            // Update token tracking from usage.
+            // Use prompt + completion tokens because the completion becomes
+            // part of the next turn's prompt (conversation history).
+            reActLoop.lastUsage?.let {
+                lastPromptTokens = it.prompt_tokens + it.completion_tokens
+            }
 
             result.fold(
                 onSuccess = { response ->

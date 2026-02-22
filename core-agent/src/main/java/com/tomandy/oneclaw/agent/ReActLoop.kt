@@ -160,8 +160,12 @@ class ReActLoop(
 
             val response = result.getOrNull()!!
             lastUsage = response.usage
-            // Layer 4: Track actual prompt tokens for next iteration's check
-            response.usage?.prompt_tokens?.let { lastKnownPromptTokens = it }
+            // Layer 4: Track actual token usage for next iteration's check.
+            // Use prompt + completion tokens because the completion becomes
+            // part of the next iteration's prompt (conversation history).
+            response.usage?.let {
+                lastKnownPromptTokens = it.prompt_tokens + it.completion_tokens
+            }
 
             val choice = response.choices.firstOrNull()
                 ?: return Result.failure(Exception("No choices in LLM response"))

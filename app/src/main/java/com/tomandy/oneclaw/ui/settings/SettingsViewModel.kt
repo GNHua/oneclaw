@@ -351,6 +351,13 @@ class SettingsViewModel(
     }
 
     /**
+     * Gets the saved API key for a specific provider.
+     */
+    suspend fun getApiKey(provider: String): String {
+        return credentialVault.getApiKey(provider) ?: ""
+    }
+
+    /**
      * Saves a plugin-specific credential.
      */
     fun savePluginCredential(pluginId: String, key: String, value: String) {

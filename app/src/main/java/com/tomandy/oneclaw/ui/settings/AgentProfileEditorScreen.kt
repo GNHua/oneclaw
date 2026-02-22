@@ -12,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.tomandy.oneclaw.ui.chat.ChatMarkdown
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.Dimens
 
@@ -642,6 +645,8 @@ private fun SystemPromptEditorDialog(
     onValueChange: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    var showRaw by remember { mutableStateOf(false) }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -653,6 +658,17 @@ private fun SystemPromptEditorDialog(
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { showRaw = !showRaw }) {
+                            Icon(
+                                imageVector = if (showRaw)
+                                    Icons.Default.Description
+                                else
+                                    Icons.Default.Code,
+                                contentDescription = if (showRaw) "Show rendered" else "Show raw"
+                            )
                         }
                     }
                 )
@@ -667,19 +683,32 @@ private fun SystemPromptEditorDialog(
                     thickness = 0.5.dp,
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
-                OutlinedTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    textStyle = TextStyle(
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp
-                    ),
-                    placeholder = { Text("Enter system prompt...") }
-                )
+                if (showRaw) {
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = onValueChange,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        textStyle = TextStyle(
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp
+                        ),
+                        placeholder = { Text("Enter system prompt...") }
+                    )
+                } else {
+                    val scrollState = rememberScrollState()
+                    val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    ChatMarkdown(
+                        text = value,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .drawColumnScrollbar(scrollState, scrollbarColor)
+                            .verticalScroll(scrollState)
+                            .padding(16.dp)
+                    )
+                }
             }
         }
     }

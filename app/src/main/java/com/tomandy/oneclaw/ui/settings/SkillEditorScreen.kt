@@ -282,7 +282,7 @@ private fun InstructionsEditorDialog(
     readOnly: Boolean,
     onDismiss: () -> Unit
 ) {
-    var showRaw by remember { mutableStateOf(!readOnly) }
+    var showRaw by remember { mutableStateOf(false) }
 
     Dialog(
         onDismissRequest = onDismiss,

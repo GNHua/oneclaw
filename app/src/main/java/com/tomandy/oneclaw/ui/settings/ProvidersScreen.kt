@@ -1,5 +1,6 @@
 package com.tomandy.oneclaw.ui.settings
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -20,18 +21,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.tomandy.oneclaw.google.AntigravityAuthManager
 import com.tomandy.oneclaw.llm.LlmProvider
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProvidersScreen(
     viewModel: SettingsViewModel,
+    antigravityAuthManager: AntigravityAuthManager,
     modifier: Modifier = Modifier
 ) {
     val providers by viewModel.providers.collectAsState()
@@ -52,17 +57,190 @@ fun ProvidersScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         LlmProvider.entries.forEach { provider ->
-            ProviderGroup(
-                provider = provider,
-                isConfigured = provider.displayName in providers,
-                isExpanded = expandedProvider == provider,
-                onToggle = {
-                    expandedProvider = if (expandedProvider == provider) null else provider
-                },
-                viewModel = viewModel,
-                saveStatus = saveStatus,
-                deleteStatus = deleteStatus
-            )
+            if (provider == LlmProvider.ANTIGRAVITY) {
+                AntigravityProviderGroup(
+                    isConfigured = provider.displayName in providers,
+                    isExpanded = expandedProvider == provider,
+                    onToggle = {
+                        expandedProvider =
+                            if (expandedProvider == provider) null else provider
+                    },
+                    antigravityAuthManager = antigravityAuthManager,
+                    viewModel = viewModel
+                )
+            } else {
+                ProviderGroup(
+                    provider = provider,
+                    isConfigured = provider.displayName in providers,
+                    isExpanded = expandedProvider == provider,
+                    onToggle = {
+                        expandedProvider =
+                            if (expandedProvider == provider) null else provider
+                    },
+                    viewModel = viewModel,
+                    saveStatus = saveStatus,
+                    deleteStatus = deleteStatus
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AntigravityProviderGroup(
+    isConfigured: Boolean,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    antigravityAuthManager: AntigravityAuthManager,
+    viewModel: SettingsViewModel
+) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var isAuthInProgress by remember { mutableStateOf(false) }
+    var authError by remember { mutableStateOf<String?>(null) }
+    var email by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(isExpanded) {
+        if (isExpanded) {
+            email = antigravityAuthManager.getAccountEmail()
+        }
+    }
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(if (isConfigured || isExpanded) 1f else 0.5f)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggle)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Antigravity",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = if (isConfigured) "Connected" else "Not connected",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.rotate(
+                        if (isExpanded) 180f else 0f
+                    )
+                )
+            }
+
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Column(
+                        modifier = Modifier.padding(
+                            horizontal = 16.dp,
+                            vertical = 12.dp
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Access Claude and Gemini models " +
+                                "via Google Cloud Code Assist",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        if (isConfigured && email != null) {
+                            Text(
+                                text = "Signed in as $email",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            OutlinedButton(
+                                onClick = {
+                                    scope.launch {
+                                        antigravityAuthManager.signOut()
+                                        viewModel.deleteApiKey(
+                                            LlmProvider.ANTIGRAVITY.displayName
+                                        )
+                                        email = null
+                                    }
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Text("Disconnect")
+                            }
+                        } else {
+                            Button(
+                                onClick = {
+                                    isAuthInProgress = true
+                                    authError = null
+                                    scope.launch {
+                                        val error =
+                                            antigravityAuthManager.authorize { intent ->
+                                                context.startActivity(
+                                                    intent.addFlags(
+                                                        Intent.FLAG_ACTIVITY_NEW_TASK
+                                                    )
+                                                )
+                                            }
+                                        isAuthInProgress = false
+                                        if (error != null) {
+                                            authError = error
+                                        } else {
+                                            viewModel.saveApiKey(
+                                                LlmProvider.ANTIGRAVITY
+                                                    .displayName,
+                                                "oauth-connected"
+                                            )
+                                            email = antigravityAuthManager
+                                                .getAccountEmail()
+                                        }
+                                    }
+                                },
+                                enabled = !isAuthInProgress
+                            ) {
+                                if (isAuthInProgress) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme
+                                            .onPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Signing in...")
+                                } else {
+                                    Text("Sign in with Google")
+                                }
+                            }
+
+                            if (authError != null) {
+                                Text(
+                                    text = authError!!,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

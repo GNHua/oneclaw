@@ -53,6 +53,7 @@ import com.tomandy.oneclaw.ui.settings.AgentProfilesViewModel
 import com.tomandy.oneclaw.ui.settings.GoogleAccountScreen
 import com.tomandy.oneclaw.ui.settings.SkillsScreen
 import com.tomandy.oneclaw.ui.settings.SkillsViewModel
+import com.tomandy.oneclaw.google.AntigravityAuthManager
 import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavHostController
@@ -242,6 +243,7 @@ fun OneClawNavGraph(
 
                         ProvidersScreen(
                             viewModel = settingsViewModel,
+                            antigravityAuthManager = koinInject<AntigravityAuthManager>(),
                             modifier = Modifier.weight(1f)
                         )
                     }

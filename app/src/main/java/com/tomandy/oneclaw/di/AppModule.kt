@@ -25,6 +25,7 @@ import com.tomandy.oneclaw.pluginmanager.UserPluginManager
 import com.tomandy.oneclaw.scheduler.AgentExecutor
 import com.tomandy.oneclaw.scheduler.CronjobManager
 import com.tomandy.oneclaw.scheduler.data.CronjobDatabase
+import com.tomandy.oneclaw.google.AntigravityAuthManager
 import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
 import com.tomandy.oneclaw.security.CredentialVaultImpl
 import com.tomandy.oneclaw.skill.SkillLoader
@@ -59,6 +60,9 @@ val appModule = module {
     // Google Auth: BYOK OAuth only
     single { OAuthGoogleAuthManager(androidContext(), get<AppCredentialVault>()) }
     single<GoogleAuthProvider> { get<OAuthGoogleAuthManager>() }
+
+    // Antigravity Auth
+    single { AntigravityAuthManager(androidContext(), get<AppCredentialVault>()) }
 
     // Preferences
     single { ModelPreferences(androidContext()) }
@@ -95,7 +99,15 @@ val appModule = module {
     single { ChatExecutionManager(messageDao = get()) }
 
     // LLM Client Provider
-    single { LlmClientProvider(credentialVault = get(), modelPreferences = get()) }
+    single {
+        val antigravityAuth: AntigravityAuthManager = get()
+        LlmClientProvider(
+            credentialVault = get(),
+            modelPreferences = get(),
+            antigravityTokenProvider = { antigravityAuth.getAccessToken() },
+            antigravityProjectIdProvider = { antigravityAuth.getProjectId() }
+        )
+    }
 
     // Cronjob Database & Manager
     single { CronjobDatabase.getDatabase(androidContext()) }

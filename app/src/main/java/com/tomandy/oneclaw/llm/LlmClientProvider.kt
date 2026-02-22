@@ -8,11 +8,24 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class LlmClientProvider(
     private val credentialVault: CredentialVault,
-    private val modelPreferences: ModelPreferences
+    private val modelPreferences: ModelPreferences,
+    antigravityTokenProvider: (suspend () -> String?)? = null,
+    antigravityProjectIdProvider: (suspend () -> String?)? = null
 ) {
     private val openAiClient = OpenAiClient()
     private val geminiClient = GeminiClient()
     private val anthropicClient = AnthropicClient()
+    private val antigravityClient: AntigravityClient? =
+        if (antigravityTokenProvider != null &&
+            antigravityProjectIdProvider != null
+        ) {
+            AntigravityClient(
+                antigravityTokenProvider,
+                antigravityProjectIdProvider
+            )
+        } else {
+            null
+        }
 
     private val _selectedProvider = MutableStateFlow(LlmProvider.OPENAI)
     val selectedProvider: StateFlow<LlmProvider> = _selectedProvider.asStateFlow()
@@ -22,6 +35,10 @@ class LlmClientProvider(
             LlmProvider.OPENAI -> openAiClient
             LlmProvider.GEMINI -> geminiClient
             LlmProvider.ANTHROPIC -> anthropicClient
+            LlmProvider.ANTIGRAVITY -> antigravityClient
+                ?: throw IllegalStateException(
+                    "Antigravity not configured"
+                )
         }
     }
 
@@ -56,6 +73,8 @@ class LlmClientProvider(
             anthropicClient.setBaseUrl(url)
         }
 
+        // Antigravity: no API key to load (auth handled by AntigravityAuthManager)
+
         // Restore provider from saved model selection, falling back to key-based priority
         val savedModel = modelPreferences.getSelectedModel()
         val restoredProvider = savedModel?.let { getProviderForModel(it) }
@@ -63,6 +82,7 @@ class LlmClientProvider(
 
         val activeProvider = restoredProvider ?: when {
             providers.contains(LlmProvider.ANTHROPIC.displayName) -> LlmProvider.ANTHROPIC
+            providers.contains(LlmProvider.ANTIGRAVITY.displayName) -> LlmProvider.ANTIGRAVITY
             providers.contains(LlmProvider.GEMINI.displayName) -> LlmProvider.GEMINI
             providers.contains(LlmProvider.OPENAI.displayName) -> LlmProvider.OPENAI
             else -> LlmProvider.OPENAI

@@ -110,7 +110,7 @@ private fun AgentProfileCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.primaryContainer
         )
     ) {
         Row(

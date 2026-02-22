@@ -71,7 +71,7 @@ class JsPlugin(
                 "globalThis.__pcResult = undefined; " +
                     "Promise.resolve(execute('$toolName', $argsJson))" +
                     ".then(function(r) { globalThis.__pcResult = JSON.stringify(r); })" +
-                    ".catch(function(e) { globalThis.__pcResult = JSON.stringify({ error: e.message || String(e) }); })"
+                    ".catch(function(e) { var msg = (e && e.message) ? e.message : (e != null ? String(e) : 'Unknown error'); globalThis.__pcResult = JSON.stringify({ error: msg }); })"
             )
             val resultJson = js.evaluate<String?>("globalThis.__pcResult")
 
@@ -276,38 +276,50 @@ class JsPlugin(
                     val body = args.getOrNull(2) as? String
                     val contentType = (args.getOrNull(3) as? String) ?: "application/json"
                     val headers = args.getOrNull(4)
-                    withContext(Dispatchers.IO) {
-                        val builder = Request.Builder().url(url)
-                        if (body != null) {
-                            builder.method(method, body.toRequestBody(contentType.toMediaType()))
-                        } else {
-                            builder.method(method, null)
-                        }
-                        @Suppress("UNCHECKED_CAST")
-                        if (headers is Map<*, *>) {
-                            (headers as Map<String, Any?>).forEach { (k, v) ->
-                                builder.addHeader(k, v.toString())
+                    try {
+                        withContext(Dispatchers.IO) {
+                            val builder = Request.Builder().url(url)
+                            if (body != null) {
+                                builder.method(method, body.toRequestBody(contentType.toMediaType()))
+                            } else {
+                                builder.method(method, null)
+                            }
+                            @Suppress("UNCHECKED_CAST")
+                            if (headers is Map<*, *>) {
+                                (headers as Map<String, Any?>).forEach { (k, v) ->
+                                    builder.addHeader(k, v.toString())
+                                }
+                            }
+                            context.httpClient.newCall(builder.build()).execute().use { resp ->
+                                val respHeaders = buildMap {
+                                    resp.headers.forEach { (name, value) -> put(name, value) }
+                                }
+                                val headersJson = respHeaders.entries.joinToString(",") { (k, v) ->
+                                    "\"${k.replace("\"", "\\\"")}\":" +
+                                        "\"${v.replace("\"", "\\\"")}\""
+                                }
+                                val respBody = resp.body?.string() ?: ""
+                                val escapedBody = respBody
+                                    .replace("\\", "\\\\")
+                                    .replace("\"", "\\\"")
+                                    .replace("\n", "\\n")
+                                    .replace("\r", "\\r")
+                                    .replace("\t", "\\t")
+                                "{\"status\":${resp.code}," +
+                                    "\"headers\":{$headersJson}," +
+                                    "\"body\":\"$escapedBody\"}"
                             }
                         }
-                        context.httpClient.newCall(builder.build()).execute().use { resp ->
-                            val respHeaders = buildMap {
-                                resp.headers.forEach { (name, value) -> put(name, value) }
-                            }
-                            val headersJson = respHeaders.entries.joinToString(",") { (k, v) ->
-                                "\"${k.replace("\"", "\\\"")}\":" +
-                                    "\"${v.replace("\"", "\\\"")}\""
-                            }
-                            val respBody = resp.body?.string() ?: ""
-                            val escapedBody = respBody
-                                .replace("\\", "\\\\")
-                                .replace("\"", "\\\"")
-                                .replace("\n", "\\n")
-                                .replace("\r", "\\r")
-                                .replace("\t", "\\t")
-                            "{\"status\":${resp.code}," +
-                                "\"headers\":{$headersJson}," +
-                                "\"body\":\"$escapedBody\"}"
-                        }
+                    } catch (e: Exception) {
+                        // Catch transport-level errors (DNS, timeout, SSL, etc.) and
+                        // return them as structured JSON. Without this, quickjs-kt
+                        // rejects the JS Promise with the Kotlin Throwable which the
+                        // JNI layer converts to null, losing the error details.
+                        val errorMsg = (e.message ?: e.toString())
+                            .replace("\\", "\\\\")
+                            .replace("\"", "\\\"")
+                            .replace("\n", " ")
+                        "{\"status\":0,\"headers\":{},\"body\":\"\",\"error\":\"$errorMsg\"}"
                     }
                 }
 
@@ -500,8 +512,15 @@ class JsPlugin(
             context: PluginContext,
             buildRequest: () -> Request
         ): String = withContext(Dispatchers.IO) {
-            context.httpClient.newCall(buildRequest()).execute().use {
-                it.body?.string() ?: ""
+            try {
+                context.httpClient.newCall(buildRequest()).execute().use {
+                    it.body?.string() ?: ""
+                }
+            } catch (e: Exception) {
+                // Return error as text instead of throwing. Without this,
+                // quickjs-kt rejects the JS Promise with the Kotlin Throwable
+                // which the JNI layer converts to null, losing error details.
+                "Error: ${e.message ?: e.toString()}"
             }
         }
 

@@ -22,6 +22,9 @@ async function calFetch(method, path, body) {
         headers
     );
     var resp = JSON.parse(raw);
+    if (resp.error) {
+        throw new Error("Calendar request failed: " + resp.error);
+    }
     if (resp.status >= 400) {
         throw new Error("Calendar API error (HTTP " + resp.status + "): " + resp.body);
     }
@@ -290,7 +293,8 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        oneclaw.log.error("calendar error: " + e.message);
-        return { error: e.message };
+        var msg = (e && e.message) ? e.message : String(e || "Unknown error");
+        oneclaw.log.error("calendar error: " + msg);
+        return { error: msg };
     }
 }

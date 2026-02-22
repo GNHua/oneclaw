@@ -22,6 +22,9 @@ async function execute(toolName, args) {
                     args.headers || null
                 );
                 var resp = JSON.parse(raw);
+                if (resp.error) {
+                    return { error: "HTTP request failed: " + resp.error };
+                }
                 var result = "Status: " + resp.status + "\n";
                 result += "Body:\n" + resp.body;
                 return { output: result };
@@ -30,7 +33,8 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        oneclaw.log.error("web-fetch error: " + e.message);
-        return { error: e.message };
+        var msg = (e && e.message) ? e.message : String(e || "Unknown error");
+        oneclaw.log.error("web-fetch error: " + msg);
+        return { error: msg };
     }
 }

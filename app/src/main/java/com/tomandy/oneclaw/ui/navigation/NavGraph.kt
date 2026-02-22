@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.padding
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -372,6 +374,7 @@ fun OneClawNavGraph(
                     backStackEntry.arguments?.getString("name") ?: "", "UTF-8"
                 )
                 val memoryViewModel: MemoryViewModel = koinViewModel()
+                var showRawMarkdown by remember { mutableStateOf(false) }
 
                 Scaffold(
                     topBar = {
@@ -380,6 +383,17 @@ fun OneClawNavGraph(
                             navigationIcon = {
                                 IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = { showRawMarkdown = !showRawMarkdown }) {
+                                    Icon(
+                                        imageVector = if (showRawMarkdown)
+                                            Icons.Default.Description
+                                        else
+                                            Icons.Default.Code,
+                                        contentDescription = if (showRawMarkdown) "Show rendered" else "Show raw"
+                                    )
                                 }
                             }
                         )
@@ -390,6 +404,7 @@ fun OneClawNavGraph(
                         MemoryDetailScreen(
                             viewModel = memoryViewModel,
                             relativePath = relativePath,
+                            showRaw = showRawMarkdown,
                             onDelete = dropUnlessResumed { navController.popBackStack() },
                             modifier = Modifier.weight(1f)
                         )

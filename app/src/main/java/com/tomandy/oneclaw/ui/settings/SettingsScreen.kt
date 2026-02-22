@@ -64,7 +64,7 @@ fun SettingsScreen(
         // Group 1: Model selector
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh
+            color = MaterialTheme.colorScheme.primaryContainer
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -105,7 +105,7 @@ fun SettingsScreen(
                     exit = shrinkVertically()
                 ) {
                     Column {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         availableModels.forEach { (model, provider) ->
                             Row(
                                 modifier = Modifier
@@ -150,25 +150,25 @@ fun SettingsScreen(
                 title = "Providers",
                 onClick = onNavigateToProviders
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             GroupItem(
                 icon = Icons.Outlined.Extension,
                 title = "Plugins",
                 onClick = onNavigateToPlugins
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             GroupItem(
                 icon = Icons.Outlined.AutoAwesome,
                 title = "Skills",
                 onClick = onNavigateToSkills
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             GroupItem(
                 icon = Icons.Outlined.Groups,
                 title = "Agent Profiles",
                 onClick = onNavigateToAgentProfiles
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             GroupItem(
                 icon = Icons.Outlined.Psychology,
                 title = "Memory",
@@ -183,19 +183,19 @@ fun SettingsScreen(
                 title = "Google Account",
                 onClick = onNavigateToGoogleAccount
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             GroupItem(
                 icon = Icons.Outlined.CloudUpload,
                 title = "Backup & Restore",
                 onClick = onNavigateToBackup
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             GroupItem(
                 icon = Icons.Outlined.Palette,
                 title = "Appearance",
                 onClick = onNavigateToAppearance
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             VoiceInputExpandableItem(modelPreferences = modelPreferences)
         }
     }
@@ -207,7 +207,7 @@ private fun SettingsGroup(
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
+        color = MaterialTheme.colorScheme.primaryContainer
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -300,7 +300,7 @@ private fun VoiceInputExpandableItem(modelPreferences: ModelPreferences) {
             exit = shrinkVertically()
         ) {
             Column {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

@@ -4,9 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.unit.dp
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -181,7 +179,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         SettingsScreen(
                             onNavigateToProviders = {
                                 navController.navigate(Screen.Providers.route) { launchSingleTop = true }
@@ -234,7 +232,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         ProvidersScreen(
                             viewModel = settingsViewModel,
                             modifier = Modifier.weight(1f)
@@ -258,7 +256,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         PluginsScreen(
                             viewModel = settingsViewModel,
                             modifier = Modifier.weight(1f)
@@ -284,7 +282,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         SkillsScreen(
                             viewModel = skillsViewModel,
                             onNavigateToEditor = { skillName ->
@@ -343,7 +341,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         MemoryScreen(
                             viewModel = memoryViewModel,
                             onNavigateToDetail = { relativePath, displayName ->
@@ -387,7 +385,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         MemoryDetailScreen(
                             viewModel = memoryViewModel,
                             relativePath = relativePath,
@@ -414,7 +412,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         BackupScreen(
                             viewModel = backupViewModel,
                             modifier = Modifier.weight(1f)
@@ -439,7 +437,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         AgentProfilesScreen(
                             viewModel = agentProfilesViewModel,
                             onNavigateToEditor = { profileName ->
@@ -493,7 +491,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         GoogleAccountScreen(
                             oauthAuthManager = oauthAuthManager,
                             onSignInChanged = { signedIn ->
@@ -519,7 +517,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         AppearanceScreen(
                             modelPreferences = modelPreferences,
                             modifier = Modifier.weight(1f)
@@ -544,7 +542,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         CronjobsScreen(
                             viewModel = viewModel,
                             onNavigateToDetail = { cronjobId ->
@@ -580,7 +578,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         CronjobDetailScreen(
                             viewModel = viewModel,
                             cronjobId = cronjobId,
@@ -616,7 +614,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         ConversationHistoryScreen(
                             viewModel = historyViewModel,
                             currentConversationId = chatViewModel.conversationId,

@@ -257,6 +257,8 @@ class JsPlugin(
                         val builder = Request.Builder().url(url)
                         if (body != null) {
                             builder.method(method, body.toRequestBody(contentType.toMediaType()))
+                        } else if (method in listOf("POST", "PUT", "PATCH")) {
+                            builder.method(method, "".toRequestBody(null))
                         } else {
                             builder.method(method, null)
                         }
@@ -281,6 +283,8 @@ class JsPlugin(
                             val builder = Request.Builder().url(url)
                             if (body != null) {
                                 builder.method(method, body.toRequestBody(contentType.toMediaType()))
+                            } else if (method in listOf("POST", "PUT", "PATCH")) {
+                                builder.method(method, "".toRequestBody(null))
                             } else {
                                 builder.method(method, null)
                             }

@@ -19,13 +19,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,9 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.tomandy.oneclaw.data.entity.MessageEntity
-import com.tomandy.oneclaw.ui.chat.MessageBubble
-import com.tomandy.oneclaw.ui.chat.ToolCallGroupBubble
+import com.tomandy.oneclaw.ui.HandleDismissBottomSheet
+import com.tomandy.oneclaw.ui.MessagePreviewContent
 import com.tomandy.oneclaw.scheduler.data.CronjobEntity
 import com.tomandy.oneclaw.scheduler.data.ExecutionLog
 import com.tomandy.oneclaw.scheduler.data.ExecutionStatus
@@ -53,7 +50,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CronjobDetailScreen(
     viewModel: CronjobsViewModel,
@@ -233,92 +229,24 @@ fun CronjobDetailScreen(
 
     // Conversation viewer bottom sheet
     if (showConversation) {
-        ModalBottomSheet(
+        HandleDismissBottomSheet(
             onDismissRequest = { viewModel.closeConversation() },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp)
-            ) {
+            header = {
                 Text(
                     text = "Execution Conversation",
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
-
-                when {
-                    conversationLoading -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                    conversationMessages.isEmpty() -> {
-                        Text(
-                            text = "No conversation data available",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)
-                        )
-                    }
-                    else -> {
-                        val toolResultsMap = remember(conversationMessages) {
-                            conversationMessages
-                                .filter { it.role == "tool" && it.toolCallId != null }
-                                .associateBy { it.toolCallId!! }
-                        }
-                        val displayItems = remember(conversationMessages) {
-                            val filtered = conversationMessages.filter { it.role != "tool" }
-                            buildList<Pair<List<MessageEntity>, Boolean>> {
-                                var i = 0
-                                while (i < filtered.size) {
-                                    val msg = filtered[i]
-                                    if (msg.role == "assistant" && !msg.toolCalls.isNullOrEmpty()) {
-                                        val group = mutableListOf(msg)
-                                        while (i + 1 < filtered.size) {
-                                            val next = filtered[i + 1]
-                                            if (next.role == "assistant" && !next.toolCalls.isNullOrEmpty()) {
-                                                i++
-                                                group.add(next)
-                                            } else break
-                                        }
-                                        add(group to true)
-                                    } else {
-                                        add(listOf(msg) to false)
-                                    }
-                                    i++
-                                }
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f, fill = false)
-                        ) {
-                            displayItems.forEach { (msgs, isToolGroup) ->
-                                if (isToolGroup) {
-                                    ToolCallGroupBubble(
-                                        messages = msgs,
-                                        toolResults = toolResultsMap
-                                    )
-                                } else {
-                                    MessageBubble(
-                                        message = msgs.first(),
-                                        toolResults = toolResultsMap
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider()
             }
+        ) {
+            MessagePreviewContent(
+                messages = conversationMessages,
+                isLoading = conversationLoading,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

@@ -16,8 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Info
@@ -50,9 +48,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.tomandy.oneclaw.data.entity.ConversationEntity
 import com.tomandy.oneclaw.data.entity.MessageEntity
 import com.tomandy.oneclaw.ui.HandleDismissBottomSheet
-import com.tomandy.oneclaw.ui.chat.MessageBubble
-import com.tomandy.oneclaw.ui.chat.ToolCallGroupBubble
-import com.tomandy.oneclaw.ui.drawColumnScrollbar
+import com.tomandy.oneclaw.ui.MessagePreviewContent
 import com.tomandy.oneclaw.ui.drawScrollbar
 import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
 import com.tomandy.oneclaw.ui.theme.Dimens
@@ -307,110 +303,15 @@ private fun ConversationPreviewSheet(
     onLoad: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    // Build tool results map (same as MessageList)
-    val toolResultsMap = remember(messages) {
-        messages
-            .filter { it.role == "tool" && it.toolCallId != null }
-            .associateBy { it.toolCallId!! }
-    }
-    val displayItems = remember(messages) {
-        val filtered = messages.filter { it.role != "tool" }
-        buildList<Pair<List<MessageEntity>, Boolean>> {
-            var i = 0
-            while (i < filtered.size) {
-                val msg = filtered[i]
-                if (msg.role == "assistant" && !msg.toolCalls.isNullOrEmpty()) {
-                    val group = mutableListOf(msg)
-                    while (i + 1 < filtered.size) {
-                        val next = filtered[i + 1]
-                        if (next.role == "assistant" && !next.toolCalls.isNullOrEmpty()) {
-                            i++
-                            group.add(next)
-                        } else break
-                    }
-                    add(group to true)
-                } else {
-                    add(listOf(msg) to false)
-                }
-                i++
-            }
-        }
-    }
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 32.dp)
     ) {
-        // Message preview -- use Column + verticalScroll to avoid nested LazyColumn conflict
-        if (displayItems.isEmpty()) {
-            Text(
-                text = "No messages",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)
-            )
-        } else {
-            val scrollState = rememberScrollState()
-            val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f, fill = false)
-                    .drawColumnScrollbar(scrollState, scrollbarColor)
-                    .verticalScroll(scrollState)
-            ) {
-                displayItems.forEach { (msgs, isToolGroup) ->
-                    if (isToolGroup) {
-                        ToolCallGroupBubble(
-                            messages = msgs,
-                            toolResults = toolResultsMap
-                        )
-                    } else {
-                        val message = msgs.first()
-                        if (message.role == "meta" && message.toolName == "stopped") {
-                            Text(
-                                text = "[stopped]",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                            )
-                        } else if (message.role == "meta" && message.toolName == "summary") {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                HorizontalDivider(
-                                    modifier = Modifier.weight(1f),
-                                    color = MaterialTheme.colorScheme.outlineVariant
-                                )
-                                Text(
-                                    text = "Earlier messages summarized",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                    modifier = Modifier.padding(horizontal = 12.dp)
-                                )
-                                HorizontalDivider(
-                                    modifier = Modifier.weight(1f),
-                                    color = MaterialTheme.colorScheme.outlineVariant
-                                )
-                            }
-                        } else {
-                            MessageBubble(
-                                message = message,
-                                toolResults = toolResultsMap
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        MessagePreviewContent(
+            messages = messages,
+            modifier = Modifier.weight(1f, fill = false)
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 

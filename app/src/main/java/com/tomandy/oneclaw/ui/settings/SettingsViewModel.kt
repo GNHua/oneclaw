@@ -41,7 +41,6 @@ class SettingsViewModel(
             "google-docs", "google-sheets", "google-slides", "google-forms"
         )
 
-        private val PLUGIN_CREDENTIAL_IDS = setOf("web", "smart-home", "notion")
     }
 
     private val _providers = MutableStateFlow<List<String>>(emptyList())
@@ -95,7 +94,6 @@ class SettingsViewModel(
     private suspend fun refreshPluginStates() {
         val hasOpenAiKey = !credentialVault.getApiKey("OpenAI").isNullOrBlank()
         val googleSignedIn = googleAuthProvider.isSignedIn()
-        val hasGoogleMapsKey = !credentialVault.getApiKey("GoogleMaps").isNullOrBlank()
 
         _plugins.value = _plugins.value.map { state ->
             when {
@@ -107,16 +105,12 @@ class SettingsViewModel(
                     toggleable = false,
                     toggleDisabledReason = "Requires Google sign-in"
                 )
-                state.metadata.id == "google-places" && !hasGoogleMapsKey -> state.copy(
-                    toggleable = false,
-                    toggleDisabledReason = "Requires GoogleMaps API key"
-                )
                 state.metadata.id == "device_control" &&
                     !DeviceControlManager.isServiceConnected() -> state.copy(
                     toggleable = false,
                     toggleDisabledReason = "Enable OneClaw in Settings > Accessibility > Installed apps"
                 )
-                state.metadata.id in PLUGIN_CREDENTIAL_IDS &&
+                state.metadata.credentials.isNotEmpty() &&
                     isPluginMissingCredentials(state) -> state.copy(
                     toggleable = true,
                     toggleDisabledReason = null,
@@ -368,7 +362,7 @@ class SettingsViewModel(
             } else {
                 credentialVault.saveApiKey(fullKey, value)
             }
-            if (pluginId in PLUGIN_CREDENTIAL_IDS) {
+            if (_plugins.value.any { it.metadata.id == pluginId && it.metadata.credentials.isNotEmpty() }) {
                 val pluginState = _plugins.value.find { it.metadata.id == pluginId }
                 if (pluginState != null) {
                     val missing = isPluginMissingCredentials(pluginState)

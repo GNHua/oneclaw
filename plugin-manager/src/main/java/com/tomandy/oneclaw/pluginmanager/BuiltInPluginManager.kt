@@ -28,15 +28,6 @@ class BuiltInPluginManager(
             "google-docs", "google-sheets", "google-slides", "google-forms"
         )
 
-        private val PLUGIN_CREDENTIAL_KEYS = mapOf(
-            "smart-home" to "api_key",
-            "notion" to "api_key"
-        )
-
-        private val PROVIDER_KEY_PLUGIN_IDS = mapOf(
-            "google-places" to "GoogleMaps"
-        )
-
         private val BUILT_IN_PLUGIN_PATHS = listOf(
             "plugins/time",
             "plugins/web-fetch",
@@ -87,20 +78,15 @@ class BuiltInPluginManager(
                     }
 
                     // Auto-disable plugins with missing per-plugin credentials
-                    PLUGIN_CREDENTIAL_KEYS[loadedPlugin.metadata.id]?.let { credKey ->
-                        val hasKey = !credentialVault.getApiKey("plugin.${loadedPlugin.metadata.id}.$credKey").isNullOrBlank()
-                        if (!hasKey && pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {
-                            pluginPreferences.setPluginEnabled(loadedPlugin.metadata.id, false)
-                            Log.i(TAG, "Auto-disabled ${loadedPlugin.metadata.id}: API key not configured")
+                    if (loadedPlugin.metadata.credentials.isNotEmpty() &&
+                        pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {
+                        val missing = loadedPlugin.metadata.credentials.any { cred ->
+                            cred.options.isEmpty() &&
+                                credentialVault.getApiKey("plugin.${loadedPlugin.metadata.id}.${cred.key}").isNullOrBlank()
                         }
-                    }
-
-                    // Auto-disable plugins that require a provider API key
-                    PROVIDER_KEY_PLUGIN_IDS[loadedPlugin.metadata.id]?.let { provider ->
-                        val hasKey = !credentialVault.getApiKey(provider).isNullOrBlank()
-                        if (!hasKey && pluginPreferences.isPluginEnabled(loadedPlugin.metadata.id)) {
+                        if (missing) {
                             pluginPreferences.setPluginEnabled(loadedPlugin.metadata.id, false)
-                            Log.i(TAG, "Auto-disabled ${loadedPlugin.metadata.id}: $provider API key not configured")
+                            Log.i(TAG, "Auto-disabled ${loadedPlugin.metadata.id}: credentials not configured")
                         }
                     }
 

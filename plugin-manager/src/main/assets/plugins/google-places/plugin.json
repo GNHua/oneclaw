@@ -1,11 +1,18 @@
 {
   "id": "google-places",
-  "name": "Google Places",
+  "name": "Google Places (New)",
   "version": "1.0.0",
   "description": "Search for places, get place details, and resolve locations using Google Places API",
   "author": "OneClaw Team",
   "entryPoint": "GooglePlacesPlugin",
   "category": "location",
+  "credentials": [
+    {
+      "key": "api_key",
+      "label": "API Key",
+      "description": "Google Maps API key with Places API enabled. Get one at console.cloud.google.com."
+    }
+  ],
   "tools": [
     {
       "name": "places_search",

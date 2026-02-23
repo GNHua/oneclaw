@@ -50,9 +50,9 @@ for (var k in PRICE_LEVEL_TO_ENUM) {
 var PRICE_LABEL = ["Free", "Inexpensive", "Moderate", "Expensive", "Very Expensive"];
 
 async function getApiKey() {
-    var key = await oneclaw.credentials.getProviderKey("GoogleMaps");
+    var key = await oneclaw.credentials.get("api_key");
     if (!key) {
-        throw new Error("Google Maps API key not configured. Please set the GoogleMaps API key in Settings > API Keys.");
+        throw new Error("Google Maps API key not configured. Please set it in Settings > Plugins > Google Places.");
     }
     return key;
 }

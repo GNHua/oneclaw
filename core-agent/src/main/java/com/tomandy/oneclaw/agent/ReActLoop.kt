@@ -236,7 +236,8 @@ class ReActLoop(
                         Message(
                             role = "assistant",
                             content = message.content,
-                            tool_calls = toolCalls
+                            tool_calls = toolCalls,
+                            providerMeta = message.providerMeta
                         )
                     )
 

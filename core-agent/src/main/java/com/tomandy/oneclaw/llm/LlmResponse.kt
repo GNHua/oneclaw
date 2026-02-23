@@ -20,7 +20,9 @@ data class Choice(
 data class MessageResponse(
     val role: String,
     val content: String?,
-    val tool_calls: List<ToolCall>? = null
+    val tool_calls: List<ToolCall>? = null,
+    @kotlinx.serialization.Transient
+    val providerMeta: Any? = null           // Opaque provider data (e.g., Gemini Content with thoughtSignature)
 )
 
 @Serializable

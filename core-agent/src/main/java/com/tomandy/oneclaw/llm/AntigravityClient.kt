@@ -25,13 +25,15 @@ import java.io.InputStreamReader
 /**
  * LLM client for Google Antigravity (Cloud Code Assist).
  *
- * Communicates with the Cloud Code Assist API using OAuth2 Bearer tokens.
- * The API accepts Gemini-format payloads wrapped in a Cloud Code Assist envelope
- * and returns Server-Sent Events (SSE).
+ * Fully stateless: every [complete] call rebuilds the Gemini-format Content
+ * list from the supplied [Message] list, including function-call and
+ * tool-result messages.  This makes the client safe for concurrent use by
+ * multiple agent executions sharing a single instance.
  *
- * Preserves thought signatures across function-call round-trips by storing the
- * raw model content JSON (including thoughtSignature fields) and replaying it
- * in the next request.
+ * Trade-off: thoughtSignature fields from thinking-model responses are not
+ * preserved across round-trips because the intermediate Message format does
+ * not carry them.  This has no effect on non-thinking models and only
+ * disables server-side thought-chain verification for thinking models.
  *
  * Auth is handled externally via the [tokenProvider] and [projectIdProvider]
  * lambdas, keeping this class free of Android dependencies.
@@ -59,11 +61,6 @@ class AntigravityClient(
         .writeTimeout(NetworkConfig.DEFAULT_WRITE_TIMEOUT, NetworkConfig.TIMEOUT_UNIT)
         .build()
 
-    // State for function-call round-trips:
-    // Store the raw model content JSON (preserves thoughtSignature) and conversation history
-    private var pendingModelContent: JsonObject? = null
-    private var conversationContents: MutableList<JsonElement> = mutableListOf()
-
     override fun setApiKey(apiKey: String) { /* no-op: uses tokenProvider */ }
     override fun setBaseUrl(baseUrl: String) { /* no-op: fixed endpoint */ }
 
@@ -89,22 +86,11 @@ class AntigravityClient(
 
             val apiModel = model.removePrefix(MODEL_PREFIX)
 
-            // Build conversation contents with thought signature preservation
-            if (pendingModelContent != null) {
-                // Follow-up after function call: add stored model content + function responses
-                val toolMessages = messages.filter { it.role == "tool" }
-                if (toolMessages.isNotEmpty()) {
-                    conversationContents.add(pendingModelContent!!)
-                    conversationContents.add(buildFunctionResponseContent(toolMessages))
-                    pendingModelContent = null
-                }
-            } else {
-                // New conversation turn: rebuild from messages
-                conversationContents = buildContentsJson(messages)
-            }
+            // Stateless: rebuild the full Gemini Content list from messages every call
+            val contents = buildContentsJson(messages)
 
             val requestBody = buildRequestBody(
-                conversationContents, messages, apiModel, temperature,
+                contents, messages, apiModel, temperature,
                 maxTokens, tools, projectId
             )
 
@@ -165,23 +151,10 @@ class AntigravityClient(
 
             val sseResult = parseSseResponse(response)
 
-            // If the response has function calls, store the raw content for the next round-trip
-            val hasToolCalls = sseResult.choices.firstOrNull()
-                ?.message?.tool_calls?.isNotEmpty() == true
-            if (hasToolCalls) {
-                // pendingModelContent was set during parseSseResponse
-            } else {
-                // Final answer: add to conversation history and clear pending
-                pendingModelContent?.let { conversationContents.add(it) }
-                pendingModelContent = null
-            }
-
             Result.success(sseResult)
         } catch (e: CancellationException) {
-            pendingModelContent = null
             throw e
         } catch (e: Exception) {
-            pendingModelContent = null
             val msg = e.message?.lowercase() ?: ""
             if (msg.contains("request payload size exceeds") ||
                 msg.contains("too many tokens") ||
@@ -252,12 +225,15 @@ class AntigravityClient(
 
     /**
      * Build Gemini Content list from Message list.
-     * Only used for the initial turn (not function-call follow-ups).
+     * Handles all message types: system (skipped -- handled via systemInstruction),
+     * user, assistant (with/without tool_calls), and tool.
      */
-    private fun buildContentsJson(messages: List<Message>): MutableList<JsonElement> {
+    private fun buildContentsJson(messages: List<Message>): List<JsonElement> {
         val contents = mutableListOf<JsonElement>()
 
-        for (msg in messages) {
+        var i = 0
+        while (i < messages.size) {
+            val msg = messages[i]
             when (msg.role) {
                 "system" -> {
                     // Handled separately via systemInstruction
@@ -297,62 +273,125 @@ class AntigravityClient(
                     }
                 }
                 "assistant" -> {
-                    val parts = mutableListOf<JsonElement>()
-                    // Only include text content (skip tool_calls -- handled via pendingModelContent)
-                    if (!msg.content.isNullOrBlank() &&
-                        (msg.tool_calls == null || msg.tool_calls.isEmpty())
-                    ) {
-                        parts.add(
-                            JsonObject(mapOf("text" to JsonPrimitive(msg.content)))
-                        )
-                    }
-                    if (parts.isNotEmpty()) {
+                    val tcList = msg.tool_calls
+                    if (!tcList.isNullOrEmpty()) {
+                        // Prefer the original raw JSON (preserves thoughtSignature)
+                        val rawContent = msg.providerMeta as? JsonObject
+                        if (rawContent != null) {
+                            contents.add(rawContent)
+                        } else {
+                            // Reconstruct from tool_calls (thoughtSignature lost)
+                            val parts = mutableListOf<JsonElement>()
+                            if (!msg.content.isNullOrBlank()) {
+                                parts.add(JsonObject(mapOf("text" to JsonPrimitive(msg.content))))
+                            }
+                            for (tc in tcList) {
+                                val argsObj = try {
+                                    json.parseToJsonElement(tc.function.arguments).jsonObject
+                                } catch (_: Exception) {
+                                    JsonObject(emptyMap())
+                                }
+                                parts.add(
+                                    JsonObject(
+                                        mapOf(
+                                            "functionCall" to JsonObject(
+                                                mapOf(
+                                                    "name" to JsonPrimitive(tc.function.name),
+                                                    "args" to argsObj
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            }
+                            contents.add(
+                                JsonObject(
+                                    mapOf(
+                                        "role" to JsonPrimitive("model"),
+                                        "parts" to JsonArray(parts)
+                                    )
+                                )
+                            )
+                        }
+
+                        // Collect immediately following tool-result messages
+                        val responseParts = mutableListOf<JsonElement>()
+                        while (i + 1 < messages.size && messages[i + 1].role == "tool") {
+                            i++
+                            val toolMsg = messages[i]
+                            responseParts.add(
+                                JsonObject(
+                                    mapOf(
+                                        "functionResponse" to JsonObject(
+                                            mapOf(
+                                                "name" to JsonPrimitive(toolMsg.name ?: "unknown"),
+                                                "response" to JsonObject(
+                                                    mapOf(
+                                                        "result" to JsonPrimitive(toolMsg.content ?: "")
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        }
+                        if (responseParts.isNotEmpty()) {
+                            contents.add(
+                                JsonObject(
+                                    mapOf(
+                                        "role" to JsonPrimitive("user"),
+                                        "parts" to JsonArray(responseParts)
+                                    )
+                                )
+                            )
+                        }
+                    } else if (!msg.content.isNullOrBlank()) {
                         contents.add(
                             JsonObject(
                                 mapOf(
                                     "role" to JsonPrimitive("model"),
-                                    "parts" to JsonArray(parts)
+                                    "parts" to JsonArray(
+                                        listOf(JsonObject(mapOf("text" to JsonPrimitive(msg.content))))
+                                    )
                                 )
                             )
                         )
                     }
                 }
-                // Skip "tool" messages -- handled via pendingModelContent flow
-            }
-        }
-
-        return contents
-    }
-
-    /**
-     * Build function response Content from tool messages.
-     */
-    private fun buildFunctionResponseContent(toolMessages: List<Message>): JsonObject {
-        val parts = toolMessages.map { toolMsg ->
-            JsonObject(
-                mapOf(
-                    "functionResponse" to JsonObject(
-                        mapOf(
-                            "name" to JsonPrimitive(toolMsg.name ?: "unknown"),
-                            "response" to JsonObject(
-                                mapOf(
-                                    "result" to JsonPrimitive(
-                                        toolMsg.content ?: ""
+                "tool" -> {
+                    // Orphaned tool message (not preceded by an assistant with tool_calls)
+                    contents.add(
+                        JsonObject(
+                            mapOf(
+                                "role" to JsonPrimitive("user"),
+                                "parts" to JsonArray(
+                                    listOf(
+                                        JsonObject(
+                                            mapOf(
+                                                "functionResponse" to JsonObject(
+                                                    mapOf(
+                                                        "name" to JsonPrimitive(msg.name ?: "unknown"),
+                                                        "response" to JsonObject(
+                                                            mapOf(
+                                                                "result" to JsonPrimitive(msg.content ?: "")
+                                                            )
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        )
                                     )
                                 )
                             )
                         )
                     )
-                )
-            )
+                }
+            }
+            i++
         }
 
-        return JsonObject(
-            mapOf(
-                "role" to JsonPrimitive("user"),
-                "parts" to JsonArray(parts)
-            )
-        )
+        return contents
     }
 
     private fun buildSystemInstructionJson(
@@ -403,7 +442,6 @@ class AntigravityClient(
     private fun parseSseResponse(response: okhttp3.Response): LlmResponse {
         val textParts = StringBuilder()
         val toolCalls = mutableListOf<ToolCall>()
-        // Accumulate ALL raw parts (including thought + thoughtSignature) for preservation
         val rawModelParts = mutableListOf<JsonElement>()
         var promptTokens = 0
         var completionTokens = 0
@@ -428,9 +466,7 @@ class AntigravityClient(
                             Log.d(TAG, "SSE chunk $chunkCount: no 'response' key. Keys: ${chunk.keys}")
                             continue
                         }
-                        parseResponseChunk(
-                            resp, textParts, toolCalls, rawModelParts
-                        )
+                        parseResponseChunk(resp, textParts, toolCalls, rawModelParts)
 
                         resp["usageMetadata"]?.jsonObject?.let { usage ->
                             usage["promptTokenCount"]
@@ -453,21 +489,21 @@ class AntigravityClient(
         Log.d(
             TAG,
             "SSE done: chunks=$chunkCount, textLen=${textParts.length}, " +
-                "toolCalls=${toolCalls.size}, rawParts=${rawModelParts.size}"
+                "toolCalls=${toolCalls.size}"
         )
 
         val hasFunctionCalls = toolCalls.isNotEmpty()
         val finishReason = if (hasFunctionCalls) "tool_calls" else "stop"
 
-        // Store raw model content with thought signatures for function-call round-trips
-        if (rawModelParts.isNotEmpty()) {
-            pendingModelContent = JsonObject(
+        // Build providerMeta for function-call responses (preserves thoughtSignature)
+        val meta: JsonObject? = if (hasFunctionCalls && rawModelParts.isNotEmpty()) {
+            JsonObject(
                 mapOf(
                     "role" to JsonPrimitive("model"),
                     "parts" to JsonArray(rawModelParts)
                 )
             )
-        }
+        } else null
 
         return LlmResponse(
             id = "antigravity-${System.currentTimeMillis()}",
@@ -477,7 +513,8 @@ class AntigravityClient(
                     message = MessageResponse(
                         role = "assistant",
                         content = textParts.toString().ifEmpty { null },
-                        tool_calls = toolCalls.takeIf { it.isNotEmpty() }
+                        tool_calls = toolCalls.takeIf { it.isNotEmpty() },
+                        providerMeta = meta
                     ),
                     finish_reason = finishReason
                 )

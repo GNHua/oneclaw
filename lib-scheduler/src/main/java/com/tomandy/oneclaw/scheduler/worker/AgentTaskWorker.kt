@@ -16,6 +16,9 @@ import com.tomandy.oneclaw.scheduler.CronjobManager
 import com.tomandy.oneclaw.scheduler.R
 import com.tomandy.oneclaw.scheduler.TaskExecutionResult
 import com.tomandy.oneclaw.scheduler.data.ExecutionStatus
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 class AgentTaskWorker(
     context: Context,
@@ -63,6 +66,16 @@ class AgentTaskWorker(
             }
 
             Result.success()
+        } catch (e: CancellationException) {
+            // Worker was cancelled (e.g., WorkManager replacing a running task).
+            // Use NonCancellable to ensure the DB update completes.
+            withContext(NonCancellable) {
+                cronjobManager.recordExecutionComplete(
+                    logId = logId,
+                    status = ExecutionStatus.CANCELLED
+                )
+            }
+            throw e
         } catch (e: Exception) {
             // Record failed execution
             cronjobManager.recordExecutionComplete(

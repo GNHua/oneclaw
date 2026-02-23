@@ -13,8 +13,11 @@ import com.tomandy.oneclaw.scheduler.TaskExecutionResult
 import com.tomandy.oneclaw.service.MemoryBootstrap
 import com.tomandy.oneclaw.skill.SkillRepository
 import com.tomandy.oneclaw.skill.SystemPromptBuilder
+import com.tomandy.oneclaw.skill.SlashCommandRouter
 import java.io.File
 import java.util.UUID
+
+private val SKILL_REF_PATTERN = Regex("""/skill:\S+""")
 
 class ScheduledAgentExecutor(
     private val database: AppDatabase,
@@ -26,6 +29,38 @@ class ScheduledAgentExecutor(
     private val agentProfileRepository: AgentProfileRepository,
     private val filesDir: File
 ) : AgentExecutor {
+
+    private val slashCommandRouter = SlashCommandRouter(skillRepository)
+
+    /**
+     * Expand /skill:name references in the instruction to their full skill body.
+     * This mirrors what ChatViewModel does for interactive slash commands.
+     */
+    private fun resolveSkillReferences(instruction: String): String {
+        val refs = SKILL_REF_PATTERN.findAll(instruction).toList()
+        if (refs.isEmpty()) return instruction
+
+        val skillBlocks = StringBuilder()
+        for (ref in refs) {
+            val command = slashCommandRouter.parse(ref.value) ?: continue
+            val skill = slashCommandRouter.resolve(command) ?: continue
+            val body = skillRepository.loadBody(skill) ?: continue
+            val location = skill.filePath ?: "skills/${skill.metadata.name}/SKILL.md"
+            val baseDir = skill.baseDir ?: "skills/${skill.metadata.name}"
+            skillBlocks.appendLine("<skill name=\"${skill.metadata.name}\" location=\"$location\">")
+            skillBlocks.appendLine("References are relative to $baseDir.")
+            skillBlocks.appendLine()
+            skillBlocks.appendLine(body)
+            skillBlocks.appendLine("</skill>")
+            skillBlocks.appendLine()
+        }
+
+        return if (skillBlocks.isEmpty()) {
+            instruction
+        } else {
+            skillBlocks.toString() + instruction
+        }
+    }
 
     override suspend fun executeTask(
         instruction: String,
@@ -99,18 +134,22 @@ class ScheduledAgentExecutor(
                     memoryContext = memoryContext
                 )
 
+                // Resolve /skill:* references in the instruction so the agent
+                // receives the full skill body instead of an opaque slash command.
+                val resolvedInstruction = resolveSkillReferences(instruction)
+
                 // Persist user message to the temp conversation
                 messageStore.insert(
                     MessageRecord(
                         id = UUID.randomUUID().toString(),
                         conversationId = tempConversationId,
                         role = "user",
-                        content = instruction
+                        content = resolvedInstruction
                     )
                 )
 
                 val result = coordinator.execute(
-                    userMessage = instruction,
+                    userMessage = resolvedInstruction,
                     systemPrompt = systemPrompt,
                     model = model,
                     maxIterations = if (maxIter >= 500) Int.MAX_VALUE else maxIter,

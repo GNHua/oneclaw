@@ -178,7 +178,7 @@ class CronjobManager(
         val log = ExecutionLog(
             cronjobId = cronjobId,
             startedAt = System.currentTimeMillis(),
-            status = ExecutionStatus.SUCCESS,
+            status = ExecutionStatus.CANCELLED,
             conversationId = conversationId
         )
         return executionLogDao.insert(log)

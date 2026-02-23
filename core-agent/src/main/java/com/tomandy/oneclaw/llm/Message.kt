@@ -10,5 +10,7 @@ data class Message(
     val tool_call_id: String? = null,        // For tool role messages
     val name: String? = null,                // Tool name for tool role messages
     @kotlinx.serialization.Transient
-    val mediaData: List<MediaData>? = null   // Not serialized -- used in-memory for media attachments (images, audio)
+    val mediaData: List<MediaData>? = null,  // Not serialized -- used in-memory for media attachments (images, audio)
+    @kotlinx.serialization.Transient
+    val providerMeta: Any? = null            // Not serialized -- opaque provider data (e.g., Gemini Content with thoughtSignature)
 )

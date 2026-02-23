@@ -118,6 +118,14 @@ class AgentExecutionService : Service(), KoinComponent {
                 sendCompletionNotification(cronjob.instruction, taskResult.summary, cronjob.conversationId)
             }
 
+        } catch (e: CancellationException) {
+            withContext(NonCancellable) {
+                cronjobManager.recordExecutionComplete(
+                    logId = logId,
+                    status = ExecutionStatus.CANCELLED
+                )
+            }
+            throw e
         } catch (e: Exception) {
             // Record failed execution
             cronjobManager.recordExecutionComplete(

@@ -9,6 +9,7 @@ import com.google.genai.types.Part
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import com.google.genai.types.Tool as GeminiTool
@@ -16,10 +17,15 @@ import com.google.genai.types.Tool as GeminiTool
 /**
  * Google Gemini client using the official java-genai SDK.
  *
- * Uses manual history management (not Chat) to accumulate Content objects.
- * The SDK's Part class preserves thoughtSignature fields natively, so
- * adding the model's response Content back to history works correctly
- * with thinking models (e.g., gemini-3-flash-preview).
+ * Fully stateless: every [complete] call rebuilds the Gemini Content list
+ * from the supplied [Message] list, including function-call and tool-result
+ * messages.  This makes the client safe for concurrent use by multiple
+ * agent executions sharing a single instance.
+ *
+ * Trade-off: thoughtSignature fields from thinking-model responses are not
+ * preserved across round-trips because the intermediate Message format does
+ * not carry them.  This has no effect on non-thinking models and only
+ * disables server-side thought-chain verification for thinking models.
  */
 class GeminiClient(
     private var apiKey: String = "",
@@ -27,11 +33,6 @@ class GeminiClient(
 ) : LlmClient {
 
     private var client: Client? = null
-
-    // State for function call round-trips:
-    // Store the model's response Content (preserves thoughtSignature) and conversation history
-    private var pendingModelContent: Content? = null
-    private var conversationContents: MutableList<Content> = mutableListOf()
 
     @Synchronized
     override fun setApiKey(apiKey: String) {
@@ -61,18 +62,8 @@ class GeminiClient(
 
             val modelName = if (model.isNotEmpty()) model else baseModel
 
-            if (pendingModelContent != null) {
-                // Follow-up after function call: add stored model content + function response
-                val toolMessages = messages.filter { it.role == "tool" }
-                if (toolMessages.isNotEmpty()) {
-                    conversationContents.add(pendingModelContent!!)
-                    conversationContents.add(buildFunctionResponseContent(toolMessages))
-                    pendingModelContent = null
-                }
-            } else {
-                // New conversation turn: rebuild from messages
-                conversationContents = buildContentsFromMessages(messages)
-            }
+            // Stateless: rebuild the full Gemini Content list from messages every call
+            val contents = buildContentsFromMessages(messages)
 
             // Build tools
             val geminiTools = tools?.takeIf { it.isNotEmpty() }?.let { buildGeminiTools(it) }
@@ -85,7 +76,7 @@ class GeminiClient(
             // Make API call
             val response = genaiClient.models.generateContent(
                 modelName,
-                conversationContents,
+                contents,
                 config
             )
 
@@ -99,15 +90,6 @@ class GeminiClient(
             // Check for function calls
             val functionCalls = response.functionCalls() ?: emptyList()
             val hasFunctionCalls = functionCalls.isNotEmpty()
-
-            if (hasFunctionCalls) {
-                // Store the model's Content for the next round-trip (preserves thoughtSignature)
-                pendingModelContent = contentObj
-            } else {
-                // Final answer - add to conversation history
-                contentObj?.let { conversationContents.add(it) }
-                pendingModelContent = null
-            }
 
             // Extract text content
             val textContent = parts
@@ -152,7 +134,8 @@ class GeminiClient(
                             message = MessageResponse(
                                 role = "assistant",
                                 content = textContent.ifEmpty { null },
-                                tool_calls = toolCalls.takeIf { it.isNotEmpty() }
+                                tool_calls = toolCalls.takeIf { it.isNotEmpty() },
+                                providerMeta = if (hasFunctionCalls) contentObj else null
                             ),
                             finish_reason = finishReason
                         )
@@ -161,10 +144,8 @@ class GeminiClient(
                 )
             )
         } catch (e: CancellationException) {
-            pendingModelContent = null
             throw e
         } catch (e: Exception) {
-            pendingModelContent = null
             val msg = e.message?.lowercase() ?: ""
             if (msg.contains("request payload size exceeds") ||
                 msg.contains("too many tokens") ||
@@ -180,12 +161,14 @@ class GeminiClient(
 
     /**
      * Build Gemini Content list from our Message list.
-     * Only includes text messages (system/user/assistant).
+     * Handles all message types: system, user, assistant (with/without tool_calls), and tool.
      */
-    private fun buildContentsFromMessages(messages: List<Message>): MutableList<Content> {
+    private fun buildContentsFromMessages(messages: List<Message>): List<Content> {
         val contents = mutableListOf<Content>()
 
-        for (msg in messages) {
+        var i = 0
+        while (i < messages.size) {
+            val msg = messages[i]
             when (msg.role) {
                 "system" -> {
                     if (!msg.content.isNullOrBlank()) {
@@ -222,8 +205,57 @@ class GeminiClient(
                     }
                 }
                 "assistant" -> {
-                    // Only include text content (skip tool_calls - handled via pendingModelContent)
-                    if (!msg.content.isNullOrBlank() && (msg.tool_calls == null || msg.tool_calls.isEmpty())) {
+                    val tcList = msg.tool_calls
+                    if (!tcList.isNullOrEmpty()) {
+                        // Prefer the original Content (preserves thoughtSignature)
+                        val rawContent = msg.providerMeta as? Content
+                        if (rawContent != null) {
+                            contents.add(rawContent)
+                        } else {
+                            // Reconstruct from tool_calls (thoughtSignature lost)
+                            val parts = mutableListOf<Part>()
+                            if (!msg.content.isNullOrBlank()) {
+                                parts.add(Part.fromText(msg.content))
+                            }
+                            for (tc in tcList) {
+                                val argsMap = parseJsonToMap(tc.function.arguments)
+                                parts.add(
+                                    Part.fromFunctionCall(tc.function.name, argsMap)
+                                )
+                            }
+                            contents.add(
+                                Content.builder()
+                                    .role("model")
+                                    .parts(parts)
+                                    .build()
+                            )
+                        }
+
+                        // Collect the immediately following tool-result messages
+                        val responseParts = mutableListOf<Part>()
+                        while (i + 1 < messages.size && messages[i + 1].role == "tool") {
+                            i++
+                            val toolMsg = messages[i]
+                            responseParts.add(
+                                Part.builder()
+                                    .functionResponse(
+                                        FunctionResponse.builder()
+                                            .name(toolMsg.name ?: "unknown")
+                                            .response(mapOf("result" to (toolMsg.content ?: "")))
+                                            .build()
+                                    )
+                                    .build()
+                            )
+                        }
+                        if (responseParts.isNotEmpty()) {
+                            contents.add(
+                                Content.builder()
+                                    .role("user")
+                                    .parts(responseParts)
+                                    .build()
+                            )
+                        }
+                    } else if (!msg.content.isNullOrBlank()) {
                         contents.add(
                             Content.builder()
                                 .role("model")
@@ -232,32 +264,44 @@ class GeminiClient(
                         )
                     }
                 }
-                // Skip "tool" messages - handled via pendingModelContent flow
+                "tool" -> {
+                    // Orphaned tool message (not preceded by an assistant with tool_calls).
+                    // Shouldn't happen in normal flow, but handle gracefully.
+                    contents.add(
+                        Content.builder()
+                            .role("user")
+                            .parts(
+                                Part.builder()
+                                    .functionResponse(
+                                        FunctionResponse.builder()
+                                            .name(msg.name ?: "unknown")
+                                            .response(mapOf("result" to (msg.content ?: "")))
+                                            .build()
+                                    )
+                                    .build()
+                            )
+                            .build()
+                    )
+                }
             }
+            i++
         }
 
         return contents
     }
 
     /**
-     * Build function response Content from tool messages.
+     * Parse a JSON arguments string into a Map for Part.fromFunctionCall.
      */
-    private fun buildFunctionResponseContent(toolMessages: List<Message>): Content {
-        val parts = toolMessages.map { toolMsg ->
-            Part.builder()
-                .functionResponse(
-                    FunctionResponse.builder()
-                        .name(toolMsg.name ?: "unknown")
-                        .response(mapOf("result" to (toolMsg.content ?: "")))
-                        .build()
-                )
-                .build()
+    private fun parseJsonToMap(jsonStr: String): Map<String, String> {
+        return try {
+            val obj = Json.parseToJsonElement(jsonStr) as? JsonObject ?: return emptyMap()
+            obj.entries.associate { (k, v) ->
+                k to v.toString().removeSurrounding("\"")
+            }
+        } catch (_: Exception) {
+            emptyMap()
         }
-
-        return Content.builder()
-            .role("user")
-            .parts(parts)
-            .build()
     }
 
     /**

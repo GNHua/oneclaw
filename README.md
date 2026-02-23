@@ -49,7 +49,7 @@ All data stays on your device. You provide your own API keys. Nothing is collect
 
 ## Features
 
-**Multi-provider LLM support** -- OpenAI, Anthropic Claude, Google Gemini, and any OpenAI-compatible API.
+**Multi-provider LLM support** -- OpenAI, Anthropic Claude, Google Gemini, Google Antigravity (via OAuth), and any OpenAI-compatible API.
 
 **Tool execution** -- The agent calls tools mid-conversation: read/write files, run commands, search memory, manage calendar events, send emails, and more. Tools activate on demand so the agent only sees what it needs.
 
@@ -90,6 +90,9 @@ OneClaw is a multi-module Kotlin project:
 | `lib-qrcode` | QR code handling |
 | `lib-location` | Location services |
 | `lib-notification-media` | Notification and media control |
+| `lib-camera` | Headless photo capture via CameraX |
+| `lib-sms-phone` | SMS, phone dial, call log |
+| `lib-voice-memo` | Audio recording and transcription |
 
 ### Key data flow
 
@@ -143,6 +146,7 @@ cd oneclaw
 | OpenAI | https://platform.openai.com/api-keys |
 | Anthropic | https://console.anthropic.com/settings/keys |
 | Google Gemini | https://aistudio.google.com/apikey |
+| Google Antigravity | OAuth login (no API key needed) |
 
 Any OpenAI-compatible API endpoint is also supported via custom base URL configuration.
 

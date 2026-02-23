@@ -7,7 +7,7 @@ You now have detailed knowledge about OneClaw's architecture. Use this to answer
 
 ## Identity
 
-OneClaw is an open-source Android AI assistant (Apache 2.0) at `https://github.com/GNHua/oneclaw`. It runs entirely on-device with no cloud backend and no root access required. The user provides their own LLM API key (OpenAI-compatible, Anthropic, or Google Gemini).
+OneClaw is an open-source Android AI assistant (Apache 2.0) at `https://github.com/GNHua/oneclaw`. It runs entirely on-device with no cloud backend and no root access required. The user provides their own LLM API key (OpenAI-compatible, Anthropic, Google Gemini, or Google Antigravity via OAuth).
 
 ## Module Structure
 
@@ -26,6 +26,9 @@ OneClaw is an open-source Android AI assistant (Apache 2.0) at `https://github.c
 | `lib-location` | GPS, nearby places, directions | `lib-location/src/main/java/com/tomandy/oneclaw/location/` |
 | `lib-notification-media` | Notification + media playback control | `lib-notification-media/src/main/java/com/tomandy/oneclaw/notification/` |
 | `lib-pdf` | PDF info, text extraction, page rendering | `lib-pdf/src/main/java/com/tomandy/oneclaw/pdf/` |
+| `lib-camera` | Headless photo capture via CameraX | `lib-camera/src/main/java/com/tomandy/oneclaw/camera/` |
+| `lib-sms-phone` | SMS send/list/search, phone dial, call log | `lib-sms-phone/src/main/java/com/tomandy/oneclaw/sms/` |
+| `lib-voice-memo` | Audio recording and transcription via OpenAI Whisper | `lib-voice-memo/src/main/java/com/tomandy/oneclaw/voicememo/` |
 
 ## Chat Execution Data Flow
 
@@ -56,9 +59,12 @@ Key files:
 | `exec` | WorkspacePlugin | Run a shell command in the workspace |
 | `javascript_eval` | WorkspacePlugin | Evaluate JavaScript in QuickJS |
 | `search_memory` | MemoryPlugin | Full-text search across memory files |
-| `create_scheduled_task` | SchedulerPlugin | Create a cron-based recurring task |
+| `schedule_task` | SchedulerPlugin | Schedule one-time or recurring agent tasks |
 | `list_scheduled_tasks` | SchedulerPlugin | List all scheduled tasks |
-| `delete_scheduled_task` | SchedulerPlugin | Delete a scheduled task |
+| `run_scheduled_task` | SchedulerPlugin | Run a scheduled task immediately |
+| `cancel_scheduled_task` | SchedulerPlugin | Cancel (disable) a scheduled task |
+| `update_scheduled_task` | SchedulerPlugin | Update an existing scheduled task |
+| `delete_scheduled_task` | SchedulerPlugin | Permanently delete a scheduled task |
 | `get_config` | ConfigPlugin | Read runtime configuration |
 | `search_conversations` | SearchPlugin | Search conversation history |
 | `delegate_agent` | DelegateAgentPlugin | Run a sub-task with a different agent profile |
@@ -68,7 +74,7 @@ Key files:
 | `http_get` | web-fetch (JS) | Fetch a URL via GET |
 | `http_post` | web-fetch (JS) | POST JSON to a URL |
 | `http_request` | web-fetch (JS) | Full HTTP request with custom method/headers |
-| `get_current_time` | time (JS) | Get current date/time |
+| `get_current_datetime` | time (JS) | Get current date/time |
 | `install_plugin` | InstallPluginTool | Install a JS plugin from source |
 
 ### On-demand categories (use `activate_tools` first)
@@ -146,6 +152,7 @@ These are good starting points -- but always verify paths via the tree API first
 | OpenAI client | `core-agent/src/main/java/com/tomandy/oneclaw/agent/llm/OpenAiClient.kt` |
 | Anthropic client | `core-agent/src/main/java/com/tomandy/oneclaw/agent/llm/AnthropicClient.kt` |
 | Gemini client | `core-agent/src/main/java/com/tomandy/oneclaw/agent/llm/GeminiClient.kt` |
+| Antigravity client | `core-agent/src/main/java/com/tomandy/oneclaw/llm/AntigravityClient.kt` |
 | Chat execution | `app/src/main/java/com/tomandy/oneclaw/service/ChatExecutionService.kt` |
 | System prompt builder | `app/src/main/java/com/tomandy/oneclaw/service/SystemPromptBuilder.kt` |
 | Workspace tools | `lib-workspace/src/main/java/com/tomandy/oneclaw/workspace/WorkspacePlugin.kt` |
@@ -172,6 +179,6 @@ Room database (version 11). Key tables: `ConversationEntity` (id, title, timesta
 
 ## Configuration
 
-- `ModelPreferences` (SharedPreferences) -- selected model, max iterations, active agent
+- `ModelPreferences` (SharedPreferences) -- selected model, active agent
 - `ConversationPreferences` -- active conversation ID
 - `CredentialVault` (EncryptedSharedPreferences) -- API keys per provider

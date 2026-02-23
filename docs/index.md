@@ -46,6 +46,7 @@ layout: default
 | OpenAI | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
 | Anthropic | [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) |
 | Google Gemini | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+| Google Antigravity | OAuth login (no API key needed) |
 
 Any OpenAI-compatible API endpoint is also supported via custom base URL configuration.
 
@@ -73,7 +74,7 @@ The debug APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Documentation
 
-- [Plugin & Skill Reference](plugins-skills) -- Complete reference for all 35 plugins and 168 tools
+- [Plugin & Skill Reference](plugins-skills) -- Complete reference for all 35 plugins and 170 tools
 - [Memory System](memory) -- How OneClaw stores and retrieves context across conversations
 - [Skill Loading Architecture](skill-loading) -- How skills are discovered, loaded, and injected
 

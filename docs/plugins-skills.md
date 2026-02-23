@@ -225,11 +225,37 @@ Uses AlarmManager for exact timing and WorkManager for recurring tasks. Minimum 
 
 Returns: ID, title, instruction, schedule, status, execution count.
 
-**`cancel_scheduled_task`** -- Cancel a scheduled task.
+**`run_scheduled_task`** -- Run a scheduled task immediately in the background.
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `task_id` | string | yes | -- | Task ID to run |
+
+**`cancel_scheduled_task`** -- Cancel (disable) a scheduled task. The task remains in the list but will no longer execute.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `task_id` | string | yes | -- | Task ID to cancel |
+
+**`update_scheduled_task`** -- Update an existing scheduled task. Only provided fields are changed; omitted fields keep their current values.
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `task_id` | string | yes | -- | Task ID to update |
+| `title` | string | no | -- | New title |
+| `instruction` | string | no | -- | New instruction |
+| `schedule_type` | enum | no | -- | `one_time` or `recurring` |
+| `execute_at` | string | no | -- | ISO 8601 datetime for one-time |
+| `interval_minutes` | integer | no | -- | Interval for recurring (min 15) |
+| `cron_expression` | string | no | -- | Unix cron expression |
+| `max_executions` | integer | no | -- | Limit total runs |
+| `enabled` | boolean | no | -- | Enable or disable the task |
+
+**`delete_scheduled_task`** -- Permanently delete a scheduled task and all its execution history.
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `task_id` | string | yes | -- | Task ID to delete |
 
 ---
 
@@ -1172,12 +1198,11 @@ Supports all HTTP methods (GET, POST, PUT, PATCH, DELETE). Returns status code a
 | Version | 1.0.0 |
 | Category | none (always available) |
 
-#### Tools (3)
+#### Tools (2)
 
 | Tool | Description | Returns |
 |---|---|---|
-| `get_current_time` | Current time | `HH:mm:ss` |
-| `get_current_date` | Current date | `yyyy-MM-dd` |
+| `get_current_datetime` | Current date and time | ISO 8601 datetime |
 | `get_timestamp` | Full timestamp | ISO 8601 + Unix milliseconds |
 
 ---
@@ -1258,38 +1283,6 @@ Instructs the LLM to:
 
 ---
 
-### Skill: Code Review
-
-| Field | Value |
-|---|---|
-| Name | code-review |
-| Slash command | `/skill:code-review` |
-| Description | Review code for bugs, style issues, and improvements |
-| Depends on | None (uses LLM analysis) |
-
-Instructs the LLM to perform expert code review covering:
-1. Bugs and logic errors
-2. Style and convention issues
-3. Performance problems
-4. Security vulnerabilities
-
-References line numbers and suggests concrete fixes.
-
----
-
-### Skill: Explain
-
-| Field | Value |
-|---|---|
-| Name | explain |
-| Slash command | `/skill:explain` |
-| Description | Explain a concept clearly and concisely |
-| Depends on | None (uses LLM knowledge) |
-
-Instructs the LLM to explain topics clearly with analogies, structured from simple to complex. Includes brief examples for technical topics while keeping explanations concise.
-
----
-
 ### Skill: About OneClaw
 
 | Field | Value |
@@ -1316,15 +1309,28 @@ Instructs the LLM to act as an expert plugin author. Provides the full plugin.js
 
 ---
 
+### Skill: Create Skill
+
+| Field | Value |
+|---|---|
+| Name | create-skill |
+| Slash command | `/skill:create-skill` |
+| Description | Create a new OneClaw skill with correct format and best practices |
+| Depends on | `write_file` (from WorkspacePlugin) |
+
+Instructs the LLM to act as an expert skill author. Provides the SKILL.md file format (YAML frontmatter + markdown body), required and optional frontmatter fields, naming conventions, and best practices for writing effective skill instructions.
+
+---
+
 ## Tool Count Summary
 
 | Category | Plugin Count | Tool Count |
 |---|---|---|
-| Kotlin core (workspace, memory, scheduler, config, search, delegate, activate, summarization, plugin_management) | 9 | 19 |
+| Kotlin core (workspace, memory, scheduler, config, search, delegate, activate, summarization, plugin_management) | 9 | 22 |
 | Kotlin device (device_control, location, qrcode, sms-phone, camera, voice_memo, notifications, media_control) | 8 | 27 |
 | Kotlin utility (web, pdf-tools) | 2 | 5 |
 | Google Workspace (calendar, contacts, docs, drive, forms, gmail, gmail-settings, places, sheets, slides, tasks) | 11 | 99 |
 | Third-party JS (image-gen, notion, smart-home) | 3 | 12 |
-| Utility JS (web-fetch, time) | 2 | 6 |
-| Skills | 8 | -- |
-| **Total** | **35 plugins + 8 skills** | **168 tools** |
+| Utility JS (web-fetch, time) | 2 | 5 |
+| Skills | 7 | -- |
+| **Total** | **35 plugins + 7 skills** | **170 tools** |

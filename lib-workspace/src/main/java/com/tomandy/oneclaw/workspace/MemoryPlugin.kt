@@ -12,7 +12,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import kotlin.math.sqrt
 
-class MemoryPlugin : Plugin {
+class MemoryPlugin : Plugin, WorkspaceWriteListener {
 
     private lateinit var workspaceRoot: File
     private lateinit var memoryDir: File
@@ -41,6 +41,17 @@ class MemoryPlugin : Plugin {
 
     override suspend fun onUnload() {
         embeddingStore?.close()
+    }
+
+    override suspend fun onFileWritten(relativePath: String) {
+        val indexer = memoryIndexer ?: return
+        try {
+            val file = File(workspaceRoot, relativePath)
+            indexer.syncFile(relativePath, file)
+            Log.d(TAG, "Indexed memory file: $relativePath")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to index $relativePath: ${e.message}")
+        }
     }
 
     private suspend fun initEmbeddings() {
@@ -97,8 +108,9 @@ class MemoryPlugin : Plugin {
         val service = embeddingService ?: return emptyList()
 
         try {
-            // Lazy indexing: sync if empty or stale
-            if (indexer.isEmpty() || indexer.isStale()) {
+            // Initial indexing on cold start (empty index).
+            // Subsequent updates are handled eagerly via onFileWritten.
+            if (indexer.isEmpty()) {
                 indexer.syncAll()
             }
 

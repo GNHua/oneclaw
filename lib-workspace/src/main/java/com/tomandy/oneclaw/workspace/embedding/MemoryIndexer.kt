@@ -10,18 +10,12 @@ class MemoryIndexer(
 ) {
 
     suspend fun syncAll() {
-        val lastSync = store.getMeta(META_LAST_SYNC)?.toLongOrNull() ?: 0L
         val memoryFiles = collectMemoryFiles()
         val indexedPaths = store.getIndexedFilePaths()
 
         for (file in memoryFiles) {
             val relativePath = file.relativeTo(workspaceRoot).path
-            // Only sync files that are new or modified since last sync
-            val isNew = relativePath !in indexedPaths
-            val isModified = file.lastModified() > lastSync
-            if (isNew || isModified) {
-                syncFile(relativePath, file)
-            }
+            syncFile(relativePath, file)
         }
 
         // Remove chunks for deleted files
@@ -29,8 +23,6 @@ class MemoryIndexer(
         for (stalePath in indexedPaths - currentPaths) {
             store.deleteChunksForFile(stalePath)
         }
-
-        store.setMeta(META_LAST_SYNC, System.currentTimeMillis().toString())
     }
 
     suspend fun syncFile(relativePath: String, file: File) {
@@ -78,12 +70,6 @@ class MemoryIndexer(
         store.deleteStaleChunks(relativePath, validIndices)
     }
 
-    fun isStale(): Boolean {
-        val lastSync = store.getMeta(META_LAST_SYNC)?.toLongOrNull() ?: return true
-        val memoryFiles = collectMemoryFiles()
-        return memoryFiles.any { it.lastModified() > lastSync }
-    }
-
     fun isEmpty(): Boolean = store.getStats().chunkCount == 0
 
     private fun collectMemoryFiles(): List<File> {
@@ -104,6 +90,5 @@ class MemoryIndexer(
 
     companion object {
         private const val TAG = "MemoryIndexer"
-        private const val META_LAST_SYNC = "last_sync_ms"
     }
 }

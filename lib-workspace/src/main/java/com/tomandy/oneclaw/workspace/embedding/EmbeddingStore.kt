@@ -51,17 +51,10 @@ class EmbeddingStore(context: Context, dbDir: File) : SQLiteOpenHelper(
             )"""
         )
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_chunks_file ON chunks(file_path)")
-        db.execSQL(
-            """CREATE TABLE IF NOT EXISTS meta (
-                key TEXT PRIMARY KEY,
-                value TEXT
-            )"""
-        )
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         db.execSQL("DROP TABLE IF EXISTS chunks")
-        db.execSQL("DROP TABLE IF EXISTS meta")
         onCreate(db)
     }
 
@@ -157,26 +150,6 @@ class EmbeddingStore(context: Context, dbDir: File) : SQLiteOpenHelper(
             if (c.moveToFirst()) c.getInt(0) else 0
         }
         return StoreStats(chunkCount, fileCount)
-    }
-
-    fun getMeta(key: String): String? {
-        return readableDatabase.query(
-            "meta", arrayOf("value"),
-            "key = ?", arrayOf(key),
-            null, null, null
-        ).use { cursor ->
-            if (cursor.moveToFirst()) cursor.getString(0) else null
-        }
-    }
-
-    fun setMeta(key: String, value: String) {
-        val values = ContentValues().apply {
-            put("key", key)
-            put("value", value)
-        }
-        writableDatabase.insertWithOnConflict(
-            "meta", null, values, SQLiteDatabase.CONFLICT_REPLACE
-        )
     }
 
     private fun cursorToRecord(cursor: android.database.Cursor): ChunkRecord {

@@ -2,7 +2,6 @@ package com.tomandy.oneclaw.workspace
 
 import android.content.res.AssetManager
 import com.dokar.quickjs.QuickJs
-import com.dokar.quickjs.evaluate
 import com.tomandy.oneclaw.engine.Plugin
 import com.tomandy.oneclaw.engine.PluginContext
 import com.tomandy.oneclaw.engine.ToolResult
@@ -15,6 +14,11 @@ class WorkspacePlugin : Plugin {
     private lateinit var workspaceRoot: File
     private lateinit var ops: WorkspaceOperations
     private lateinit var assets: AssetManager
+    private var writeListener: WorkspaceWriteListener? = null
+
+    fun setWriteListener(listener: WorkspaceWriteListener?) {
+        writeListener = listener
+    }
 
     override suspend fun onLoad(context: PluginContext) {
         workspaceRoot = File(
@@ -25,7 +29,7 @@ class WorkspacePlugin : Plugin {
     }
 
     override suspend fun execute(toolName: String, arguments: JsonObject): ToolResult {
-        return when (toolName) {
+        val result = when (toolName) {
             "read_file" -> readFile(arguments)
             "write_file" -> writeFile(arguments)
             "edit_file" -> editFile(arguments)
@@ -34,6 +38,15 @@ class WorkspacePlugin : Plugin {
             "javascript_eval" -> evalJavascript(arguments)
             else -> ToolResult.Failure("Unknown tool: $toolName")
         }
+
+        if (result is ToolResult.Success && toolName in WRITE_TOOLS) {
+            val path = arguments["path"]?.jsonPrimitive?.content
+            if (path != null && isMemoryPath(path)) {
+                writeListener?.onFileWritten(path)
+            }
+        }
+
+        return result
     }
 
     override suspend fun onUnload() {}
@@ -285,5 +298,10 @@ class WorkspacePlugin : Plugin {
 
     companion object {
         const val BUNDLED_PREFIX = "bundled-skills/"
+        private val WRITE_TOOLS = setOf("write_file", "edit_file")
+
+        private fun isMemoryPath(path: String): Boolean {
+            return path == "MEMORY.md" || path.startsWith("memory/")
+        }
     }
 }

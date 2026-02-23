@@ -104,9 +104,12 @@ class PluginCoordinator(
             e.printStackTrace()
         }
 
-        // Register WorkspacePlugin
+        // Register WorkspacePlugin and MemoryPlugin (wired together for eager indexing)
+        var workspacePlugin: WorkspacePlugin? = null
+        var memoryPlugin: MemoryPlugin? = null
+
         try {
-            val workspacePlugin = WorkspacePlugin()
+            workspacePlugin = WorkspacePlugin()
             val workspaceContext = PluginContext.create(
                 androidContext = context,
                 pluginId = "workspace",
@@ -123,9 +126,8 @@ class PluginCoordinator(
             e.printStackTrace()
         }
 
-        // Register MemoryPlugin
         try {
-            val memoryPlugin = MemoryPlugin()
+            memoryPlugin = MemoryPlugin()
             val memoryContext = PluginContext.create(
                 androidContext = context,
                 pluginId = "memory",
@@ -140,6 +142,11 @@ class PluginCoordinator(
             pluginEngine.registerLoadedPlugin(memoryLoaded)
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+
+        // Wire: notify MemoryPlugin when WorkspacePlugin writes memory files
+        if (workspacePlugin != null && memoryPlugin != null) {
+            workspacePlugin.setWriteListener(memoryPlugin)
         }
 
         // Register config plugin

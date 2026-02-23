@@ -32,6 +32,7 @@ import com.tomandy.oneclaw.llm.Message
 import com.tomandy.oneclaw.llm.NetworkConfig
 import com.tomandy.oneclaw.llm.ToolCall
 import com.tomandy.oneclaw.notification.ChatNotificationHelper
+import com.tomandy.oneclaw.scheduler.CronjobManager
 import com.tomandy.oneclaw.skill.SkillRepository
 import com.tomandy.oneclaw.skill.SystemPromptBuilder
 import com.tomandy.oneclaw.util.DocumentStorageHelper
@@ -60,6 +61,7 @@ class ChatExecutionService : Service(), KoinComponent {
     private val skillRepository: SkillRepository by inject()
     private val agentProfileRepository: AgentProfileRepository by inject()
     private val executionManager: ChatExecutionManager by inject()
+    private val cronjobManager: CronjobManager by inject()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -321,7 +323,7 @@ class ChatExecutionService : Service(), KoinComponent {
         return result
     }
 
-    private fun buildSystemPrompt(
+    private suspend fun buildSystemPrompt(
         basePrompt: String,
         profile: AgentProfileEntry? = null
     ): String {
@@ -334,10 +336,14 @@ class ChatExecutionService : Service(), KoinComponent {
         }
         val workspaceRoot = File(filesDir, "workspace")
         val memoryContext = MemoryBootstrap.loadMemoryContext(workspaceRoot)
+        val schedulerContext = SchedulerBootstrap.loadSchedulerContext(cronjobManager)
+        val combinedContext = listOf(memoryContext, schedulerContext)
+            .filter { it.isNotBlank() }
+            .joinToString("\n\n")
         return SystemPromptBuilder.buildFullSystemPrompt(
             basePrompt = basePrompt,
             skills = enabledSkills,
-            memoryContext = memoryContext
+            memoryContext = combinedContext
         )
     }
 

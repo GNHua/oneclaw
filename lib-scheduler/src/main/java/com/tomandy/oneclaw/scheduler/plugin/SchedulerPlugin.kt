@@ -1,8 +1,10 @@
 package com.tomandy.oneclaw.scheduler.plugin
 
+import android.content.Intent
 import com.tomandy.oneclaw.engine.Plugin
 import com.tomandy.oneclaw.engine.PluginContext
 import com.tomandy.oneclaw.engine.ToolResult
+import com.tomandy.oneclaw.scheduler.service.AgentExecutionService
 import com.tomandy.oneclaw.scheduler.CronjobManager
 import com.tomandy.oneclaw.scheduler.util.formatCronExpression
 import com.tomandy.oneclaw.scheduler.util.formatIntervalMinutes
@@ -33,6 +35,7 @@ class SchedulerPlugin : Plugin {
         return when (toolName) {
             "schedule_task" -> scheduleTask(arguments)
             "list_scheduled_tasks" -> listScheduledTasks(arguments)
+            "run_scheduled_task" -> runScheduledTask(arguments)
             "cancel_scheduled_task" -> cancelScheduledTask(arguments)
             "update_scheduled_task" -> updateScheduledTask(arguments)
             "delete_scheduled_task" -> deleteScheduledTask(arguments)
@@ -235,6 +238,43 @@ class SchedulerPlugin : Plugin {
         } catch (e: Exception) {
             ToolResult.Failure(
                 error = "Failed to list tasks: ${e.message}",
+                exception = e
+            )
+        }
+    }
+
+    /**
+     * Run a scheduled task immediately
+     */
+    private suspend fun runScheduledTask(arguments: JsonObject): ToolResult {
+        return try {
+            val taskId = arguments["task_id"]?.jsonPrimitive?.content
+                ?: return ToolResult.Failure("Missing required field: task_id")
+
+            val cronjob = cronjobManager.getById(taskId)
+                ?: return ToolResult.Failure("Task not found: $taskId")
+
+            if (!cronjob.enabled) {
+                return ToolResult.Failure(
+                    "Task '$taskId' is disabled. Enable it first with update_scheduled_task."
+                )
+            }
+
+            val appContext = context.getApplicationContext()
+            val serviceIntent = Intent(appContext, AgentExecutionService::class.java).apply {
+                action = AgentExecutionService.ACTION_EXECUTE_TASK
+                putExtra(AgentExecutionService.EXTRA_CRONJOB_ID, taskId)
+            }
+            appContext.startForegroundService(serviceIntent)
+
+            val titleInfo = if (cronjob.title.isNotBlank()) " ('${cronjob.title}')" else ""
+            ToolResult.Success(
+                output = "Task '$taskId'$titleInfo has been triggered to run immediately. " +
+                    "It will execute in the background and you'll see a notification when it completes."
+            )
+        } catch (e: Exception) {
+            ToolResult.Failure(
+                error = "Failed to trigger task: ${e.message}",
                 exception = e
             )
         }

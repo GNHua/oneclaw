@@ -23,6 +23,7 @@ object SchedulerPluginMetadata {
             tools = listOf(
                 scheduleTaskTool(),
                 listScheduledTasksTool(),
+                runScheduledTaskTool(),
                 cancelScheduledTaskTool(),
                 updateScheduledTaskTool(),
                 deleteScheduledTaskTool()
@@ -131,6 +132,33 @@ object SchedulerPluginMetadata {
                     put("type", JsonPrimitive("boolean"))
                     put("description", JsonPrimitive("Whether to include disabled tasks in the list (default: false)"))
                 }
+            }
+        }
+    )
+
+    /**
+     * Tool definition for run_scheduled_task
+     */
+    private fun runScheduledTaskTool() = ToolDefinition(
+        name = "run_scheduled_task",
+        description = """Run a scheduled task immediately.
+            |
+            |Triggers the task to execute right now, as if its scheduled time had arrived.
+            |The task runs in the background in its own conversation (same as normal scheduled execution).
+            |You will get a confirmation that the task was triggered; results appear in the task's conversation.
+            |
+            |The task must exist and be enabled. Use list_scheduled_tasks to find task IDs.
+        """.trimMargin(),
+        parameters = buildJsonObject {
+            put("type", JsonPrimitive("object"))
+            putJsonObject("properties") {
+                putJsonObject("task_id") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive("The ID of the scheduled task to run immediately"))
+                }
+            }
+            putJsonArray("required") {
+                add(JsonPrimitive("task_id"))
             }
         }
     )

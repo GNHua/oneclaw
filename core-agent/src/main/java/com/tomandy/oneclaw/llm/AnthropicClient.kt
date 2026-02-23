@@ -4,11 +4,14 @@ import android.util.Log
 import com.anthropic.client.AnthropicClient as SdkClient
 import com.anthropic.client.okhttp.AnthropicOkHttpClient
 import com.anthropic.core.JsonValue
+import com.anthropic.models.messages.ContentBlock
 import com.anthropic.models.messages.ContentBlockParam
 import com.anthropic.models.messages.MessageCreateParams
 import com.anthropic.models.messages.MessageParam
+import com.anthropic.models.messages.RedactedThinkingBlockParam
 import com.anthropic.models.messages.StopReason
 import com.anthropic.models.messages.TextBlockParam
+import com.anthropic.models.messages.ThinkingBlockParam
 import com.anthropic.models.messages.Base64ImageSource
 import com.anthropic.models.messages.Base64PdfSource
 import com.anthropic.models.messages.DocumentBlockParam
@@ -32,6 +35,10 @@ import com.anthropic.models.messages.Tool as AnthropicTool
  * Converts between our internal Message/Tool format and the Anthropic SDK types.
  * System messages are extracted and passed via the `system()` parameter.
  * Tool results are sent as user messages with ToolResultBlockParam content.
+ *
+ * When [thinkingBudget] is provided, extended thinking is enabled.  Thinking
+ * blocks (with signatures) are preserved via [MessageResponse.providerMeta]
+ * and restored in multi-turn tool-use conversations.
  */
 class AnthropicClient(
     private var apiKey: String = "",
@@ -80,7 +87,18 @@ class AnthropicClient(
                 )
 
             val modelToUse = model.ifEmpty { "claude-sonnet-4-5" }
-            val effectiveMaxTokens = (maxTokens ?: 4096).toLong()
+
+            // Auto-detect thinking support from model metadata
+            val modelInfo = LlmProvider.getModel(modelToUse)
+            val thinkingBudget = if (modelInfo.supportsThinking) DEFAULT_THINKING_BUDGET else null
+            val thinkingEnabled = thinkingBudget != null
+
+            // When thinking is enabled, maxTokens must be > thinkingBudget
+            val effectiveMaxTokens = if (thinkingEnabled) {
+                maxOf((maxTokens ?: 16384).toLong(), thinkingBudget!! + 4096)
+            } else {
+                (maxTokens ?: 4096).toLong()
+            }
 
             // Separate system messages from conversation messages
             val systemText = messages
@@ -94,6 +112,11 @@ class AnthropicClient(
             val paramsBuilder = MessageCreateParams.builder()
                 .model(modelToUse)
                 .maxTokens(effectiveMaxTokens)
+
+            // Enable extended thinking
+            if (thinkingEnabled) {
+                paramsBuilder.enabledThinking(thinkingBudget!!)
+            }
 
             if (systemText.isNotBlank()) {
                 paramsBuilder.systemOfTextBlockParams(
@@ -115,25 +138,29 @@ class AnthropicClient(
                 sdkClient.messages().create(params)
             }
 
-            // Extract text content and tool use blocks from response
+            // Extract content blocks from response
             val textParts = mutableListOf<String>()
             val toolCalls = mutableListOf<ToolCall>()
+            val thinkingBlocks = mutableListOf<ContentBlock>()
 
             for (block in response.content()) {
-                if (block.isText()) {
-                    textParts.add(block.asText().text())
-                } else if (block.isToolUse()) {
-                    val toolUse = block.asToolUse()
-                    toolCalls.add(
-                        ToolCall(
-                            id = toolUse.id(),
-                            type = "function",
-                            function = FunctionCall(
-                                name = toolUse.name(),
-                                arguments = jsonValueToString(toolUse._input())
+                when {
+                    block.isThinking() -> thinkingBlocks.add(block)
+                    block.isRedactedThinking() -> thinkingBlocks.add(block)
+                    block.isText() -> textParts.add(block.asText().text())
+                    block.isToolUse() -> {
+                        val toolUse = block.asToolUse()
+                        toolCalls.add(
+                            ToolCall(
+                                id = toolUse.id(),
+                                type = "function",
+                                function = FunctionCall(
+                                    name = toolUse.name(),
+                                    arguments = jsonValueToString(toolUse._input())
+                                )
                             )
                         )
-                    )
+                    }
                 }
             }
 
@@ -157,7 +184,8 @@ class AnthropicClient(
                             message = MessageResponse(
                                 role = "assistant",
                                 content = textContent,
-                                tool_calls = toolCalls.takeIf { it.isNotEmpty() }
+                                tool_calls = toolCalls.takeIf { it.isNotEmpty() },
+                                providerMeta = thinkingBlocks.takeIf { it.isNotEmpty() }
                             ),
                             finish_reason = finishReason
                         )
@@ -195,6 +223,7 @@ class AnthropicClient(
      * Build SDK MessageParam list from our internal Message list.
      * Skips system messages (handled separately).
      * Groups consecutive tool messages into a single user message with ToolResultBlockParams.
+     * Restores thinking blocks from providerMeta for assistant messages.
      */
     private fun buildMessageParams(messages: List<Message>): List<MessageParam> {
         val params = mutableListOf<MessageParam>()
@@ -265,6 +294,34 @@ class AnthropicClient(
                 }
                 "assistant" -> {
                     val contentBlocks = mutableListOf<ContentBlockParam>()
+
+                    // Restore thinking blocks from providerMeta (must come before text/tool_use)
+                    @Suppress("UNCHECKED_CAST")
+                    val thinkingBlocks = msg.providerMeta as? List<ContentBlock>
+                    thinkingBlocks?.forEach { block ->
+                        when {
+                            block.isThinking() -> {
+                                val tb = block.asThinking()
+                                contentBlocks.add(
+                                    ContentBlockParam.ofThinking(
+                                        ThinkingBlockParam.builder()
+                                            .thinking(tb.thinking())
+                                            .signature(tb.signature())
+                                            .build()
+                                    )
+                                )
+                            }
+                            block.isRedactedThinking() -> {
+                                contentBlocks.add(
+                                    ContentBlockParam.ofRedactedThinking(
+                                        RedactedThinkingBlockParam.builder()
+                                            .data(block.asRedactedThinking().data())
+                                            .build()
+                                    )
+                                )
+                            }
+                        }
+                    }
 
                     // Add text content if present
                     if (!msg.content.isNullOrBlank()) {
@@ -450,5 +507,6 @@ class AnthropicClient(
     companion object {
         private const val MAX_RETRIES = 3
         private const val RETRY_DELAY_MS = 2_000L
+        private const val DEFAULT_THINKING_BUDGET = 10_000L
     }
 }

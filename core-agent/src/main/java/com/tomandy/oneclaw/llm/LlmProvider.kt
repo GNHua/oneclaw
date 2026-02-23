@@ -1,25 +1,34 @@
 package com.tomandy.oneclaw.llm
 
 /**
+ * Metadata for a specific LLM model.
+ */
+data class LlmModel(
+    val name: String,
+    val contextWindow: Int,
+    val supportsThinking: Boolean = false
+)
+
+/**
  * Supported LLM providers
  */
 enum class LlmProvider(
     val displayName: String,
     val apiKeyLabel: String,
     val defaultModel: String,
-    val availableModels: List<String>,
+    val models: List<LlmModel>,
     val supportsAudioInput: Boolean = false
 ) {
     OPENAI(
         displayName = "OpenAI",
         apiKeyLabel = "OpenAI API Key",
         defaultModel = "gpt-4.1-mini",
-        availableModels = listOf(
-            "gpt-4.1",
-            "gpt-4.1-mini",
-            "gpt-4.1-nano",
-            "gpt-4o",
-            "gpt-4o-mini"
+        models = listOf(
+            LlmModel("gpt-4.1", 1_000_000),
+            LlmModel("gpt-4.1-mini", 1_000_000),
+            LlmModel("gpt-4.1-nano", 1_000_000),
+            LlmModel("gpt-4o", 128_000),
+            LlmModel("gpt-4o-mini", 128_000)
         ),
         supportsAudioInput = true
     ),
@@ -27,11 +36,11 @@ enum class LlmProvider(
         displayName = "Google Gemini",
         apiKeyLabel = "Google AI API Key",
         defaultModel = "gemini-2.5-flash",
-        availableModels = listOf(
-            "gemini-2.5-pro",
-            "gemini-2.5-flash",
-            "gemini-3-pro-preview",
-            "gemini-3-flash-preview"
+        models = listOf(
+            LlmModel("gemini-2.5-pro", 1_000_000),
+            LlmModel("gemini-2.5-flash", 1_000_000),
+            LlmModel("gemini-3-pro-preview", 1_000_000),
+            LlmModel("gemini-3-flash-preview", 1_000_000)
         ),
         supportsAudioInput = true
     ),
@@ -39,10 +48,10 @@ enum class LlmProvider(
         displayName = "Anthropic",
         apiKeyLabel = "Anthropic API Key",
         defaultModel = "claude-sonnet-4-5",
-        availableModels = listOf(
-            "claude-sonnet-4-5",
-            "claude-opus-4-6",
-            "claude-haiku-4-5"
+        models = listOf(
+            LlmModel("claude-sonnet-4-5", 200_000, supportsThinking = true),
+            LlmModel("claude-opus-4-6", 200_000, supportsThinking = true),
+            LlmModel("claude-haiku-4-5", 200_000)
         ),
         supportsAudioInput = false
     ),
@@ -50,45 +59,32 @@ enum class LlmProvider(
         displayName = "Antigravity",
         apiKeyLabel = "Google Account",
         defaultModel = "ag/claude-sonnet-4-5",
-        availableModels = listOf(
-            "ag/claude-opus-4-6-thinking",
-            "ag/claude-sonnet-4-5",
-            "ag/claude-sonnet-4-5-thinking",
-            "ag/gemini-3-flash",
-            "ag/gemini-3-pro-high",
-            "ag/gemini-3-pro-low"
+        models = listOf(
+            LlmModel("ag/claude-opus-4-6-thinking", 200_000, supportsThinking = true),
+            LlmModel("ag/claude-sonnet-4-5", 200_000, supportsThinking = true),
+            LlmModel("ag/claude-sonnet-4-5-thinking", 200_000, supportsThinking = true),
+            LlmModel("ag/gemini-3-flash", 1_000_000),
+            LlmModel("ag/gemini-3-pro-high", 1_000_000),
+            LlmModel("ag/gemini-3-pro-low", 1_000_000)
         ),
         supportsAudioInput = false
     );
 
+    val availableModels: List<String> get() = models.map { it.name }
+
     companion object {
-        private val contextWindows = mapOf(
-            // OpenAI
-            "gpt-4.1" to 1_000_000,
-            "gpt-4.1-mini" to 1_000_000,
-            "gpt-4.1-nano" to 1_000_000,
-            "gpt-4o" to 128_000,
-            "gpt-4o-mini" to 128_000,
-            // Gemini
-            "gemini-2.5-pro" to 1_000_000,
-            "gemini-2.5-flash" to 1_000_000,
-            "gemini-3-pro-preview" to 1_000_000,
-            "gemini-3-flash-preview" to 1_000_000,
-            // Anthropic
-            "claude-sonnet-4-5" to 200_000,
-            "claude-opus-4-6" to 200_000,
-            "claude-haiku-4-5" to 200_000,
-            // Antigravity (Cloud Code Assist)
-            "ag/claude-opus-4-6-thinking" to 200_000,
-            "ag/claude-sonnet-4-5" to 200_000,
-            "ag/claude-sonnet-4-5-thinking" to 200_000,
-            "ag/gemini-3-flash" to 1_000_000,
-            "ag/gemini-3-pro-high" to 1_000_000,
-            "ag/gemini-3-pro-low" to 1_000_000
-        )
+        private val allModels: Map<String, LlmModel> by lazy {
+            entries.flatMap { it.models }.associateBy { it.name }
+        }
+
+        private val fallbackModel = LlmModel("unknown", 200_000)
+
+        fun getModel(model: String): LlmModel {
+            return allModels[model] ?: fallbackModel
+        }
 
         fun getContextWindow(model: String): Int {
-            return contextWindows[model] ?: 200_000
+            return getModel(model).contextWindow
         }
 
         fun fromDisplayName(name: String): LlmProvider? {

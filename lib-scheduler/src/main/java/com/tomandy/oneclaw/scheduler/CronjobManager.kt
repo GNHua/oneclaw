@@ -5,14 +5,10 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import androidx.work.*
 import com.tomandy.oneclaw.scheduler.data.*
 import com.tomandy.oneclaw.scheduler.receiver.CronjobAlarmReceiver
-import com.tomandy.oneclaw.scheduler.worker.AgentTaskWorker
 import com.tomandy.oneclaw.scheduler.util.nextCronOccurrence
 import kotlinx.coroutines.flow.Flow
-import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 private var exactAlarmCallback: ExactAlarmCallback? = null
 
@@ -34,7 +30,6 @@ class CronjobManager(
 
     private val cronjobDao = database.cronjobDao()
     private val executionLogDao = database.executionLogDao()
-    private val workManager = WorkManager.getInstance(context)
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     /**
@@ -67,17 +62,7 @@ class CronjobManager(
      * Cancel a scheduled cronjob
      */
     suspend fun cancel(cronjobId: String) {
-        val cronjob = cronjobDao.getById(cronjobId) ?: return
-
-        // Cancel WorkManager job if exists
-        cronjob.workManagerId?.let { workId ->
-            workManager.cancelWorkById(UUID.fromString(workId))
-        }
-
-        // Cancel AlarmManager alarm
         cancelAlarm(cronjobId)
-
-        // Disable the cronjob
         cronjobDao.updateEnabled(cronjobId, false)
     }
 
@@ -87,6 +72,13 @@ class CronjobManager(
     suspend fun setEnabled(cronjobId: String, enabled: Boolean) {
         if (enabled) {
             cronjobDao.updateEnabled(cronjobId, true)
+            // Re-schedule the task
+            val cronjob = cronjobDao.getById(cronjobId) ?: return
+            when (cronjob.scheduleType) {
+                ScheduleType.ONE_TIME -> scheduleOneTime(cronjob)
+                ScheduleType.RECURRING -> scheduleRecurring(cronjob)
+                ScheduleType.CONDITIONAL -> scheduleRecurring(cronjob.copy(cronExpression = "*/15 * * * *"))
+            }
         } else {
             cancel(cronjobId)
         }

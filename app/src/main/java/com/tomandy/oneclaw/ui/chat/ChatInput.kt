@@ -222,10 +222,11 @@ fun ChatInput(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    // Right side: mic / send / stop
+                    // Right side: send or mic, plus stop when processing
                     if (isProcessing) {
                         StopButton(onClick = onStop)
-                    } else if (canSend) {
+                    }
+                    if (canSend) {
                         FilledIconButton(
                             onClick = onSend,
                             modifier = Modifier.size(40.dp),

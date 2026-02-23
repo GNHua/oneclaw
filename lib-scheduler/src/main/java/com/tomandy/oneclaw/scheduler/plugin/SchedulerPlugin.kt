@@ -106,12 +106,16 @@ class SchedulerPlugin : Plugin {
                         return ToolResult.Failure("Minimum interval is 15 minutes for battery optimization")
                     }
 
+                    // Normalize interval_minutes to a cron expression so all
+                    // recurring tasks use the same AlarmManager scheduling path.
+                    val effectiveCron = cronExpression
+                        ?: "*/$intervalMinutes * * * *"
+
                     CronjobEntity(
                         title = title,
                         instruction = instruction,
                         scheduleType = ScheduleType.RECURRING,
-                        intervalMinutes = intervalMinutes,
-                        cronExpression = cronExpression
+                        cronExpression = effectiveCron
                     )
                 }
 
@@ -150,13 +154,9 @@ class SchedulerPlugin : Plugin {
                     "once at $localTime"
                 }
                 ScheduleType.RECURRING -> {
-                    when {
-                        finalCronjob.cronExpression != null ->
-                            "on schedule: ${finalCronjob.cronExpression}"
-                        finalCronjob.intervalMinutes != null ->
-                            "every ${finalCronjob.intervalMinutes} minutes"
-                        else -> "on a recurring schedule"
-                    }
+                    if (finalCronjob.cronExpression != null)
+                        "on schedule: ${finalCronjob.cronExpression}"
+                    else "on a recurring schedule"
                 }
                 else -> "as configured"
             }
@@ -212,11 +212,9 @@ class SchedulerPlugin : Plugin {
                         } ?: "unknown"
                         "One-time at $time"
                     }
-                    ScheduleType.RECURRING -> when {
-                        task.cronExpression != null -> formatCronExpression(task.cronExpression!!)
-                        task.intervalMinutes != null -> formatIntervalMinutes(task.intervalMinutes!!)
-                        else -> "Recurring"
-                    }
+                    ScheduleType.RECURRING ->
+                        if (task.cronExpression != null) formatCronExpression(task.cronExpression!!)
+                        else "Recurring"
                     ScheduleType.CONDITIONAL -> "Conditional"
                 }
 
@@ -337,12 +335,13 @@ class SchedulerPlugin : Plugin {
 
             val newIntervalMinutes = if (arguments.containsKey("interval_minutes")) {
                 arguments["interval_minutes"]?.jsonPrimitive?.intOrNull
-            } else {
-                existing.intervalMinutes
-            }
+            } else null
 
             val newCronExpression = if (arguments.containsKey("cron_expression")) {
                 arguments["cron_expression"]?.jsonPrimitive?.content
+            } else if (newIntervalMinutes != null) {
+                // Convert interval to cron
+                null // will be set below
             } else {
                 existing.cronExpression
             }
@@ -359,13 +358,17 @@ class SchedulerPlugin : Plugin {
                 return ToolResult.Failure("Minimum interval is 15 minutes for battery optimization")
             }
 
+            // Normalize: interval_minutes -> cron expression
+            val effectiveCron = newCronExpression
+                ?: if (newIntervalMinutes != null) "*/$newIntervalMinutes * * * *"
+                else existing.cronExpression
+
             val updated = existing.copy(
                 title = newTitle,
                 instruction = newInstruction,
                 scheduleType = newScheduleType,
                 executeAt = newExecuteAt,
-                intervalMinutes = newIntervalMinutes,
-                cronExpression = newCronExpression,
+                cronExpression = effectiveCron,
                 maxExecutions = newMaxExecutions,
                 enabled = newEnabled
             )

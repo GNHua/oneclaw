@@ -23,8 +23,9 @@ fun setExactAlarmCallback(callback: ExactAlarmCallback) {
 /**
  * Main API for scheduling and managing cronjobs
  *
- * This manager coordinates between WorkManager (for recurring tasks)
- * and AlarmManager (for exact-time tasks) to provide a unified scheduling interface.
+ * All tasks use AlarmManager with exact alarms for precise scheduling.
+ * Recurring tasks compute the next fire time from their cron expression
+ * and reschedule after each execution.
  */
 class CronjobManager(
     private val context: Context,
@@ -54,8 +55,8 @@ class CronjobManager(
             ScheduleType.ONE_TIME -> scheduleOneTime(cronjob)
             ScheduleType.RECURRING -> scheduleRecurring(cronjob)
             ScheduleType.CONDITIONAL -> {
-                // Future enhancement - for now, treat as recurring with short interval
-                scheduleRecurring(cronjob.copy(intervalMinutes = 15))
+                // Future enhancement - for now, treat as recurring every 15 min
+                scheduleRecurring(cronjob.copy(cronExpression = "*/15 * * * *"))
             }
         }
 
@@ -102,7 +103,7 @@ class CronjobManager(
             when (updated.scheduleType) {
                 ScheduleType.ONE_TIME -> scheduleOneTime(updated)
                 ScheduleType.RECURRING -> scheduleRecurring(updated)
-                ScheduleType.CONDITIONAL -> scheduleRecurring(updated.copy(intervalMinutes = 15))
+                ScheduleType.CONDITIONAL -> scheduleRecurring(updated.copy(cronExpression = "*/15 * * * *"))
             }
         }
     }
@@ -209,13 +210,12 @@ class CronjobManager(
         // Update cronjob's last execution time
         cronjobDao.updateLastExecution(log.cronjobId, System.currentTimeMillis())
 
-        // Reschedule next cron alarm for recurring cron-based tasks
+        // Reschedule next alarm for recurring tasks
         val cronjob = cronjobDao.getById(log.cronjobId)
         if (cronjob != null && cronjob.enabled &&
-            cronjob.scheduleType == ScheduleType.RECURRING &&
-            cronjob.cronExpression != null
+            cronjob.scheduleType == ScheduleType.RECURRING
         ) {
-            scheduleCronAlarm(cronjob)
+            scheduleRecurring(cronjob)
         }
 
         // Check if max executions reached
@@ -276,71 +276,25 @@ class CronjobManager(
     }
 
     /**
-     * Schedule a recurring task.
+     * Schedule a recurring task via AlarmManager.
      *
-     * Cron-based tasks use AlarmManager for exact clock-time execution,
-     * then reschedule after each run.  Interval-based tasks use WorkManager.
+     * All recurring tasks use cron expressions (interval_minutes is converted
+     * to cron at creation time).  Computes the next fire time and sets an
+     * exact alarm; after execution, [recordExecutionComplete] reschedules.
      */
-    private suspend fun scheduleRecurring(cronjob: CronjobEntity) {
-        require(cronjob.intervalMinutes != null || cronjob.cronExpression != null) {
-            "Either intervalMinutes or cronExpression must be set for RECURRING cronjobs"
-        }
-
-        if (cronjob.cronExpression != null) {
-            // Cron-based: compute next fire time and use AlarmManager
-            scheduleCronAlarm(cronjob)
-        } else {
-            // Interval-based: use WorkManager periodic work
-            scheduleIntervalWork(cronjob)
-        }
-    }
-
-    /**
-     * Schedule the next AlarmManager alarm for a cron-based recurring task.
-     */
-    private fun scheduleCronAlarm(cronjob: CronjobEntity) {
-        val nextMillis = nextCronOccurrence(cronjob.cronExpression!!)
-            ?: return // unparseable expression
-
+    private fun scheduleRecurring(cronjob: CronjobEntity) {
+        val cron = cronjob.cronExpression
+            ?: return
+        val nextMillis = nextCronOccurrence(cron)
+            ?: return
         scheduleAlarmAt(cronjob.id, nextMillis)
     }
 
     /**
-     * Schedule an interval-based recurring task via WorkManager.
-     */
-    private suspend fun scheduleIntervalWork(cronjob: CronjobEntity) {
-        val intervalMinutes = cronjob.intervalMinutes ?: 60
-
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-
-        val workRequest = PeriodicWorkRequestBuilder<AgentTaskWorker>(
-            intervalMinutes.toLong(),
-            TimeUnit.MINUTES
-        )
-            .setConstraints(constraints)
-            .setInputData(
-                workDataOf(
-                    AgentTaskWorker.KEY_CRONJOB_ID to cronjob.id
-                )
-            )
-            .addTag(cronjob.id)
-            .build()
-
-        workManager.enqueueUniquePeriodicWork(
-            "cronjob_${cronjob.id}",
-            ExistingPeriodicWorkPolicy.REPLACE,
-            workRequest
-        )
-
-        cronjobDao.updateWorkManagerId(cronjob.id, workRequest.id.toString())
-    }
-
-    /**
      * Re-schedule all AlarmManager alarms that were lost (e.g., after device reboot).
-     * WorkManager tasks survive reboots automatically, so only ONE_TIME alarm-based
-     * tasks need to be restored.
+     *
+     * All task types use AlarmManager: ONE_TIME uses executeAt, RECURRING uses
+     * cron-computed next fire time.
      *
      * @return the number of alarms re-scheduled
      */
@@ -348,22 +302,25 @@ class CronjobManager(
         var count = 0
         val now = System.currentTimeMillis()
 
-        // One-time tasks: reschedule if not yet expired
-        for (task in cronjobDao.getByType(ScheduleType.ONE_TIME)) {
-            val executeAt = task.executeAt ?: continue
-            if (executeAt > now) {
-                scheduleOneTime(task)
-                count++
-            } else {
-                cronjobDao.updateEnabled(task.id, false)
+        for (task in cronjobDao.getAllEnabledSnapshot()) {
+            when (task.scheduleType) {
+                ScheduleType.ONE_TIME -> {
+                    val executeAt = task.executeAt ?: continue
+                    if (executeAt > now) {
+                        scheduleOneTime(task)
+                        count++
+                    } else {
+                        cronjobDao.updateEnabled(task.id, false)
+                    }
+                }
+                ScheduleType.RECURRING -> {
+                    if (task.cronExpression != null) {
+                        scheduleRecurring(task)
+                        count++
+                    }
+                }
+                ScheduleType.CONDITIONAL -> { /* future */ }
             }
-        }
-
-        // Cron-based recurring tasks: compute next fire time and reschedule
-        for (task in cronjobDao.getByType(ScheduleType.RECURRING)) {
-            if (!task.enabled || task.cronExpression == null) continue
-            scheduleCronAlarm(task)
-            count++
         }
 
         return count
@@ -402,13 +359,8 @@ class CronjobManager(
                 }
             }
             ScheduleType.RECURRING -> {
-                require(cronjob.intervalMinutes != null || cronjob.cronExpression != null) {
-                    "Either intervalMinutes or cronExpression must be set for RECURRING cronjobs"
-                }
-                cronjob.intervalMinutes?.let { interval ->
-                    require(interval >= 15) {
-                        "Minimum interval is 15 minutes for battery optimization"
-                    }
+                require(cronjob.cronExpression != null) {
+                    "cronExpression must be set for RECURRING cronjobs"
                 }
             }
             ScheduleType.CONDITIONAL -> {

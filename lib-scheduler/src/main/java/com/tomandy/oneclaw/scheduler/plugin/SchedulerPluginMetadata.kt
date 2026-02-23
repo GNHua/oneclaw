@@ -53,9 +53,9 @@ object SchedulerPluginMetadata {
             |
             |For recurring tasks:
             |- Use schedule_type: "recurring"
-            |- Provide either interval_minutes (minimum 15) OR cron_expression
-            |- Examples: "Check email every 30 minutes", "Every Monday at 9 AM"
-            |- Note: The minimum interval for recurring tasks is 15 minutes due to Android battery optimization.
+            |- Provide cron_expression (preferred) or interval_minutes (minimum 15, converted to cron internally)
+            |- Cron format: "minute hour day-of-month month day-of-week" (e.g., '0 9 * * MON' for every Monday at 9 AM)
+            |- All recurring tasks use exact alarms for precise clock-time execution.
         """.trimMargin(),
         parameters = buildJsonObject {
             put("type", JsonPrimitive("object"))
@@ -80,14 +80,14 @@ object SchedulerPluginMetadata {
                     put("type", JsonPrimitive("string"))
                     put("description", JsonPrimitive("For one_time tasks: local datetime without timezone suffix (e.g., '2026-02-12T18:00:00')"))
                 }
-                putJsonObject("interval_minutes") {
-                    put("type", JsonPrimitive("integer"))
-                    put("description", JsonPrimitive("For recurring tasks: Interval in minutes (minimum 15)"))
-                    put("minimum", JsonPrimitive(15))
-                }
                 putJsonObject("cron_expression") {
                     put("type", JsonPrimitive("string"))
-                    put("description", JsonPrimitive("For recurring tasks: Unix cron expression (e.g., '0 9 * * MON' for every Monday at 9 AM)"))
+                    put("description", JsonPrimitive("For recurring tasks: Unix cron expression (e.g., '0 9 * * MON' for Monday 9 AM, '0 0 * * *' for daily midnight, '*/30 * * * *' for every 30 min)"))
+                }
+                putJsonObject("interval_minutes") {
+                    put("type", JsonPrimitive("integer"))
+                    put("description", JsonPrimitive("For recurring tasks: shorthand for every-N-minutes (converted to cron internally, minimum 15)"))
+                    put("minimum", JsonPrimitive(15))
                 }
                 putJsonObject("max_executions") {
                     put("type", JsonPrimitive("integer"))
@@ -225,14 +225,14 @@ object SchedulerPluginMetadata {
                     put("type", JsonPrimitive("string"))
                     put("description", JsonPrimitive("For one_time tasks: local datetime without timezone suffix (e.g., '2026-02-12T18:00:00')"))
                 }
-                putJsonObject("interval_minutes") {
-                    put("type", JsonPrimitive("integer"))
-                    put("description", JsonPrimitive("For recurring tasks: interval in minutes (minimum 15)"))
-                    put("minimum", JsonPrimitive(15))
-                }
                 putJsonObject("cron_expression") {
                     put("type", JsonPrimitive("string"))
                     put("description", JsonPrimitive("For recurring tasks: Unix cron expression"))
+                }
+                putJsonObject("interval_minutes") {
+                    put("type", JsonPrimitive("integer"))
+                    put("description", JsonPrimitive("For recurring tasks: shorthand for every-N-minutes (converted to cron internally, minimum 15)"))
+                    put("minimum", JsonPrimitive(15))
                 }
                 putJsonObject("max_executions") {
                     put("type", JsonPrimitive("integer"))

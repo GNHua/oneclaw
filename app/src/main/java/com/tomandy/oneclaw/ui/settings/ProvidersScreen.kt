@@ -1,154 +1,353 @@
 package com.tomandy.oneclaw.ui.settings
 
+import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.tomandy.oneclaw.google.AntigravityAuthManager
 import com.tomandy.oneclaw.llm.LlmProvider
-import com.tomandy.oneclaw.ui.theme.Dimens
+import com.tomandy.oneclaw.ui.drawColumnScrollbar
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProvidersScreen(
     viewModel: SettingsViewModel,
+    antigravityAuthManager: AntigravityAuthManager,
     modifier: Modifier = Modifier
 ) {
     val providers by viewModel.providers.collectAsState()
     val saveStatus by viewModel.saveStatus.collectAsState()
     val deleteStatus by viewModel.deleteStatus.collectAsState()
 
-    var selectedProvider by remember { mutableStateOf(LlmProvider.OPENAI) }
-    var isProviderDropdownExpanded by remember { mutableStateOf(false) }
-    var apiKey by remember { mutableStateOf("") }
-    var baseUrl by remember { mutableStateOf("") }
-    var isApiKeyVisible by remember { mutableStateOf(false) }
-    val keyboardController = LocalSoftwareKeyboardController.current
+    var expandedProvider by remember { mutableStateOf<LlmProvider?>(null) }
 
-    LaunchedEffect(selectedProvider) {
-        baseUrl = viewModel.getBaseUrl(selectedProvider.displayName)
-    }
+    val scrollState = rememberScrollState()
+    val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
 
-    LazyColumn(
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = Dimens.ScreenPadding),
-        verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
-        contentPadding = PaddingValues(top = Dimens.ScreenPadding, bottom = Dimens.ScreenPadding)
+            .drawColumnScrollbar(scrollState, scrollbarColor)
+            .verticalScroll(scrollState)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Add new API key section
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = Dimens.CardElevation)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Dimens.CardInnerPadding),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Add API Key",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+        LlmProvider.entries.forEach { provider ->
+            if (provider == LlmProvider.ANTIGRAVITY) {
+                AntigravityProviderGroup(
+                    isConfigured = provider.displayName in providers,
+                    isExpanded = expandedProvider == provider,
+                    onToggle = {
+                        expandedProvider =
+                            if (expandedProvider == provider) null else provider
+                    },
+                    antigravityAuthManager = antigravityAuthManager,
+                    viewModel = viewModel
+                )
+            } else {
+                ProviderGroup(
+                    provider = provider,
+                    isConfigured = provider.displayName in providers,
+                    isExpanded = expandedProvider == provider,
+                    onToggle = {
+                        expandedProvider =
+                            if (expandedProvider == provider) null else provider
+                    },
+                    viewModel = viewModel,
+                    saveStatus = saveStatus,
+                    deleteStatus = deleteStatus
+                )
+            }
+        }
+    }
+}
 
-                    // Provider dropdown
-                    ExposedDropdownMenuBox(
-                        expanded = isProviderDropdownExpanded,
-                        onExpandedChange = {
-                            if (saveStatus !is SaveStatus.Saving) {
-                                isProviderDropdownExpanded = !isProviderDropdownExpanded
-                            }
-                        }
+@Composable
+private fun AntigravityProviderGroup(
+    isConfigured: Boolean,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    antigravityAuthManager: AntigravityAuthManager,
+    viewModel: SettingsViewModel
+) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var isAuthInProgress by remember { mutableStateOf(false) }
+    var authError by remember { mutableStateOf<String?>(null) }
+    var email by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(isExpanded) {
+        if (isExpanded) {
+            email = antigravityAuthManager.getAccountEmail()
+        }
+    }
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(if (isConfigured || isExpanded) 1f else 0.5f)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggle)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Antigravity",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = if (isConfigured) "Connected" else "Not connected",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.rotate(
+                        if (isExpanded) 180f else 0f
+                    )
+                )
+            }
+
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Column(
+                        modifier = Modifier.padding(
+                            horizontal = 16.dp,
+                            vertical = 12.dp
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        OutlinedTextField(
-                            value = selectedProvider.displayName,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("LLM Provider") },
-                            trailingIcon = {
-                                Icon(
-                                    Icons.Default.ArrowDropDown,
-                                    contentDescription = "Select provider"
-                                )
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                            enabled = saveStatus !is SaveStatus.Saving,
-                            colors = OutlinedTextFieldDefaults.colors()
+                        Text(
+                            text = "Access Claude and Gemini models " +
+                                "via Google Cloud Code Assist",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
-                        ExposedDropdownMenu(
-                            expanded = isProviderDropdownExpanded,
-                            onDismissRequest = { isProviderDropdownExpanded = false }
-                        ) {
-                            LlmProvider.entries.forEach { provider ->
-                                DropdownMenuItem(
-                                    text = { Text(provider.displayName) },
-                                    onClick = {
-                                        selectedProvider = provider
-                                        isProviderDropdownExpanded = false
+                        if (isConfigured && email != null) {
+                            Text(
+                                text = "Signed in as $email",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            OutlinedButton(
+                                onClick = {
+                                    scope.launch {
+                                        antigravityAuthManager.signOut()
+                                        viewModel.deleteApiKey(
+                                            LlmProvider.ANTIGRAVITY.displayName
+                                        )
+                                        email = null
                                     }
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Text("Disconnect")
+                            }
+                        } else {
+                            Button(
+                                onClick = {
+                                    isAuthInProgress = true
+                                    authError = null
+                                    scope.launch {
+                                        val error =
+                                            antigravityAuthManager.authorize { intent ->
+                                                context.startActivity(
+                                                    intent.addFlags(
+                                                        Intent.FLAG_ACTIVITY_NEW_TASK
+                                                    )
+                                                )
+                                            }
+                                        isAuthInProgress = false
+                                        if (error != null) {
+                                            authError = error
+                                        } else {
+                                            viewModel.saveApiKey(
+                                                LlmProvider.ANTIGRAVITY
+                                                    .displayName,
+                                                "oauth-connected"
+                                            )
+                                            email = antigravityAuthManager
+                                                .getAccountEmail()
+                                        }
+                                    }
+                                },
+                                enabled = !isAuthInProgress
+                            ) {
+                                if (isAuthInProgress) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme
+                                            .onPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Signing in...")
+                                } else {
+                                    Text("Sign in with Google")
+                                }
+                            }
+
+                            if (authError != null) {
+                                Text(
+                                    text = authError!!,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
                                 )
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
 
-                    OutlinedTextField(
-                        value = apiKey,
-                        onValueChange = { apiKey = it },
-                        label = { Text(selectedProvider.apiKeyLabel) },
-                        placeholder = { Text("Enter your ${selectedProvider.displayName} API key") },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = saveStatus !is SaveStatus.Saving,
-                        singleLine = true,
-                        visualTransformation = if (isApiKeyVisible) {
-                            VisualTransformation.None
-                        } else {
-                            PasswordVisualTransformation()
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = { isApiKeyVisible = !isApiKeyVisible }) {
-                                Icon(
-                                    imageVector = if (isApiKeyVisible) Icons.Default.VisibilityOff
-                                        else Icons.Default.Visibility,
-                                    contentDescription = if (isApiKeyVisible) "Hide" else "Show"
-                                )
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Next
+@Composable
+private fun ProviderGroup(
+    provider: LlmProvider,
+    isConfigured: Boolean,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    viewModel: SettingsViewModel,
+    saveStatus: SaveStatus,
+    deleteStatus: DeleteStatus
+) {
+    var apiKey by remember(provider) { mutableStateOf("") }
+    var baseUrl by remember(provider) { mutableStateOf("") }
+    var isApiKeyVisible by remember(provider) { mutableStateOf(false) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(provider, isExpanded) {
+        if (isExpanded) {
+            apiKey = viewModel.getApiKey(provider.displayName)
+            baseUrl = viewModel.getBaseUrl(provider.displayName)
+            isApiKeyVisible = false
+        }
+    }
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(if (isConfigured || isExpanded) 1f else 0.5f)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Collapsed header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggle)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = provider.displayName,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = if (isConfigured) "Configured" else "Not configured",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.rotate(if (isExpanded) 180f else 0f)
+                )
+            }
+
+            // Expanded content
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = apiKey,
+                            onValueChange = { apiKey = it },
+                            label = { Text(provider.apiKeyLabel) },
+                            placeholder = { Text("Enter your ${provider.displayName} API key") },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = saveStatus !is SaveStatus.Saving,
+                            singleLine = true,
+                            visualTransformation = if (isApiKeyVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { isApiKeyVisible = !isApiKeyVisible }) {
+                                    Icon(
+                                        imageVector = if (isApiKeyVisible) Icons.Default.VisibilityOff
+                                            else Icons.Default.Visibility,
+                                        contentDescription = if (isApiKeyVisible) "Hide" else "Show"
+                                    )
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Next
+                            )
                         )
-                    )
 
-                    // Base URL field (optional, for custom endpoints)
-                    OutlinedTextField(
+                        OutlinedTextField(
                             value = baseUrl,
                             onValueChange = { baseUrl = it },
                             label = { Text("Base URL (optional)") },
-                            placeholder = { Text("https://api.anthropic.com (default)") },
+                            placeholder = { Text("Custom endpoint URL") },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = saveStatus !is SaveStatus.Saving,
                             singleLine = true,
@@ -160,8 +359,8 @@ fun ProvidersScreen(
                                 onDone = {
                                     keyboardController?.hide()
                                     if (apiKey.isNotBlank()) {
-                                        viewModel.saveApiKey(selectedProvider.displayName, apiKey)
-                                        viewModel.saveBaseUrl(selectedProvider.displayName, baseUrl)
+                                        viewModel.saveApiKey(provider.displayName, apiKey)
+                                        viewModel.saveBaseUrl(provider.displayName, baseUrl)
                                         apiKey = ""
                                         isApiKeyVisible = false
                                     }
@@ -169,138 +368,62 @@ fun ProvidersScreen(
                             )
                         )
 
-                    Button(
-                        onClick = {
-                            keyboardController?.hide()
-                            viewModel.saveApiKey(selectedProvider.displayName, apiKey)
-                            viewModel.saveBaseUrl(selectedProvider.displayName, baseUrl)
-                            apiKey = ""
-                            isApiKeyVisible = false
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = apiKey.isNotBlank() && saveStatus !is SaveStatus.Saving
-                    ) {
-                        when (saveStatus) {
-                            SaveStatus.Saving -> {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Saving...")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    keyboardController?.hide()
+                                    viewModel.saveApiKey(provider.displayName, apiKey)
+                                    viewModel.saveBaseUrl(provider.displayName, baseUrl)
+                                    apiKey = ""
+                                    isApiKeyVisible = false
+                                },
+                                enabled = apiKey.isNotBlank() && saveStatus !is SaveStatus.Saving
+                            ) {
+                                when (saveStatus) {
+                                    SaveStatus.Saving -> {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp,
+                                            color = MaterialTheme.colorScheme.onPrimary
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Saving...")
+                                    }
+                                    SaveStatus.Success -> Text("Saved!")
+                                    else -> Text("Save")
+                                }
                             }
-                            SaveStatus.Success -> {
-                                Text("Saved!")
-                            }
-                            else -> {
-                                Text("Save API Key")
+
+                            if (isConfigured) {
+                                Spacer(modifier = Modifier.weight(1f))
+                                OutlinedButton(
+                                    onClick = {
+                                        keyboardController?.hide()
+                                        viewModel.deleteApiKey(provider.displayName)
+                                        apiKey = ""
+                                        baseUrl = ""
+                                        isApiKeyVisible = false
+                                    },
+                                    enabled = deleteStatus !is DeleteStatus.Deleting,
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    if (deleteStatus is DeleteStatus.Deleting) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                    }
+                                    Text("Delete")
+                                }
                             }
                         }
                     }
-                }
-            }
-        }
-
-        // Saved providers section
-        item {
-            Text(
-                text = "Saved Providers",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
-
-        if (providers.isEmpty()) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No API keys saved yet",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        } else {
-            items(providers) { provider ->
-                var providerBaseUrl by remember { mutableStateOf("") }
-                LaunchedEffect(provider) {
-                    providerBaseUrl = viewModel.getBaseUrl(provider)
-                }
-                ProviderCard(
-                    provider = provider,
-                    baseUrl = providerBaseUrl,
-                    onDelete = { viewModel.deleteApiKey(provider) },
-                    isDeleting = deleteStatus is DeleteStatus.Deleting
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProviderCard(
-    provider: String,
-    baseUrl: String,
-    onDelete: () -> Unit,
-    isDeleting: Boolean,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = provider,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = if (baseUrl.isNotEmpty()) baseUrl else "API key configured",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            IconButton(
-                onClick = onDelete,
-                enabled = !isDeleting
-            ) {
-                if (isDeleting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete $provider API key",
-                        tint = MaterialTheme.colorScheme.error
-                    )
                 }
             }
         }

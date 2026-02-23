@@ -1,5 +1,6 @@
 package com.tomandy.oneclaw.llm
 
+import android.util.Log
 import com.anthropic.client.AnthropicClient as SdkClient
 import com.anthropic.client.okhttp.AnthropicOkHttpClient
 import com.anthropic.core.JsonValue
@@ -17,6 +18,7 @@ import com.anthropic.models.messages.ToolUseBlockParam
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
+import java.time.Duration
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -55,6 +57,8 @@ class AnthropicClient(
         client = if (apiKey.isNotEmpty()) {
             val builder = AnthropicOkHttpClient.builder()
                 .apiKey(apiKey)
+                .timeout(Duration.ofSeconds(NetworkConfig.LLM_REQUEST_TIMEOUT))
+                .maxRetries(3)
             if (baseUrl.isNotEmpty()) {
                 builder.baseUrl(baseUrl)
             }
@@ -107,7 +111,9 @@ class AnthropicClient(
             }
 
             val params = paramsBuilder.build()
-            val response = sdkClient.messages().create(params)
+            val response = retryOnServerError {
+                sdkClient.messages().create(params)
+            }
 
             // Extract text content and tool use blocks from response
             val textParts = mutableListOf<String>()
@@ -167,6 +173,19 @@ class AnthropicClient(
             )
         } catch (e: CancellationException) {
             throw e
+        } catch (e: com.anthropic.errors.BadRequestException) {
+            val msg = e.message ?: ""
+            if (msg.contains("prompt is too long", ignoreCase = true) ||
+                msg.contains("too many tokens", ignoreCase = true)
+            ) {
+                Result.failure(ContextOverflowException("Anthropic: $msg", e))
+            } else {
+                Result.failure(Exception("Anthropic API error: $msg", e))
+            }
+        } catch (e: com.anthropic.errors.InternalServerException) {
+            val msg = e.message ?: ""
+            Log.e("AnthropicClient", "Anthropic 500 error: $msg", e)
+            Result.failure(Exception("Anthropic server error (500): $msg", e))
         } catch (e: Exception) {
             Result.failure(Exception("Anthropic API error: ${e.message}", e))
         }
@@ -407,5 +426,29 @@ class AnthropicClient(
             "image/gif" -> Base64ImageSource.MediaType.IMAGE_GIF
             else -> Base64ImageSource.MediaType.IMAGE_JPEG
         }
+    }
+
+    private fun <T> retryOnServerError(block: () -> T): T {
+        var lastException: Exception? = null
+        for (attempt in 1..MAX_RETRIES) {
+            try {
+                return block()
+            } catch (e: com.anthropic.errors.InternalServerException) {
+                lastException = e
+                Log.w(
+                    "AnthropicClient",
+                    "Server error (attempt $attempt/$MAX_RETRIES): ${e.message}"
+                )
+                if (attempt < MAX_RETRIES) {
+                    Thread.sleep(RETRY_DELAY_MS * attempt)
+                }
+            }
+        }
+        throw lastException!!
+    }
+
+    companion object {
+        private const val MAX_RETRIES = 3
+        private const val RETRY_DELAY_MS = 2_000L
     }
 }

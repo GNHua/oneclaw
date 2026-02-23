@@ -47,26 +47,6 @@ class ModelPreferences(context: Context) {
             .apply()
     }
 
-    fun getMaxIterations(): Int {
-        return prefs.getInt("max_iterations", DEFAULT_MAX_ITERATIONS)
-    }
-
-    fun saveMaxIterations(value: Int) {
-        prefs.edit()
-            .putInt("max_iterations", value.coerceIn(1, 500))
-            .apply()
-    }
-
-    fun getTemperature(): Float {
-        return prefs.getFloat("temperature", DEFAULT_TEMPERATURE)
-    }
-
-    fun saveTemperature(value: Float) {
-        prefs.edit()
-            .putFloat("temperature", value.coerceIn(0f, 2f))
-            .apply()
-    }
-
     fun getSystemPrompt(): String {
         return prefs.getString("system_prompt", DEFAULT_SYSTEM_PROMPT) ?: DEFAULT_SYSTEM_PROMPT
     }
@@ -122,8 +102,6 @@ class ModelPreferences(context: Context) {
     }
 
     companion object {
-        const val DEFAULT_MAX_ITERATIONS = 200
-        const val DEFAULT_TEMPERATURE = 0.2f
         const val DEFAULT_SYSTEM_PROMPT = "You are a helpful AI assistant. Be concise and accurate."
     }
 }

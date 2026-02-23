@@ -26,6 +26,7 @@ fun SkillsScreen(
     modifier: Modifier = Modifier
 ) {
     val skills by viewModel.skills.collectAsState()
+    val enabledMap by viewModel.enabledMap.collectAsState()
     val importStatus by viewModel.importStatus.collectAsState()
 
     var showAddSheet by remember { mutableStateOf(false) }
@@ -33,7 +34,7 @@ fun SkillsScreen(
     var showDeleteConfirm by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        viewModel.skills // triggers reload in init
+        viewModel.refresh()
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -64,7 +65,7 @@ fun SkillsScreen(
                 skills.forEach { skill ->
                     SkillCard(
                         skill = skill,
-                        enabled = viewModel.isSkillEnabled(skill.metadata.name),
+                        enabled = enabledMap[skill.metadata.name] ?: true,
                         onToggle = { enabled ->
                             viewModel.toggleSkill(skill.metadata.name, enabled)
                         },
@@ -245,7 +246,7 @@ private fun SkillCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.primaryContainer
         )
     ) {
         Row(

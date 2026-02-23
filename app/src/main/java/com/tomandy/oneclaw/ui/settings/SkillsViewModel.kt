@@ -13,6 +13,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 import java.io.File
 import java.net.URL
@@ -26,6 +29,17 @@ class SkillsViewModel(
 
     val skills: StateFlow<List<SkillEntry>> = skillRepository.skills
 
+    /** Re-read skills from disk. Safe to call on every recomposition. */
+    fun refresh() {
+        skillRepository.reload()
+    }
+
+    /** Draft text shared with InstructionsEditorScreen via ViewModel scoping. */
+    var draftInstructionsBody: String by mutableStateOf("")
+
+    private val _enabledMap = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val enabledMap: StateFlow<Map<String, Boolean>> = _enabledMap.asStateFlow()
+
     private val _importStatus = MutableStateFlow<SkillImportStatus>(SkillImportStatus.Idle)
     val importStatus: StateFlow<SkillImportStatus> = _importStatus.asStateFlow()
 
@@ -34,14 +48,25 @@ class SkillsViewModel(
 
     init {
         skillRepository.reload()
+        refreshEnabledMap()
+        viewModelScope.launch {
+            skills.collect { refreshEnabledMap() }
+        }
+    }
+
+    private fun refreshEnabledMap() {
+        _enabledMap.value = skills.value.associate { skill ->
+            skill.metadata.name to skillPreferences.isSkillEnabled(skill.metadata.name)
+        }
     }
 
     fun toggleSkill(name: String, enabled: Boolean) {
         skillPreferences.setSkillEnabled(name, enabled)
+        _enabledMap.value = _enabledMap.value + (name to enabled)
     }
 
     fun isSkillEnabled(name: String): Boolean {
-        return skillPreferences.isSkillEnabled(name)
+        return _enabledMap.value[name] ?: skillPreferences.isSkillEnabled(name)
     }
 
     fun deleteSkill(skillName: String) {
@@ -119,20 +144,33 @@ class SkillsViewModel(
     }
 
     fun startAgentCreateFlow() {
-        val seedPrompt = buildString {
-            append("Help me create a new skill. ")
-            append("Skills are SKILL.md files with YAML frontmatter (name, description) ")
-            append("followed by markdown instructions. ")
-            append("The file should be saved to workspace/skills/{skill-name}/SKILL.md ")
-            append("using the write_file tool. ")
-            append("Start by asking me what the skill should do.")
+        val skill = skillRepository.findByCommand("/skill:create-skill")
+        val body = skill?.let { skillRepository.loadBody(it) }
+        val seedPrompt = if (body != null) {
+            buildString {
+                appendLine("<skill name=\"create-skill\" location=\"skills/create-skill/SKILL.md\">")
+                appendLine(body)
+                appendLine("</skill>")
+                appendLine()
+                append("Help me create a new skill. Start by asking me what the skill should do.")
+            }
+        } else {
+            "Help me create a new skill. Start by asking me what the skill should do."
         }
         navigationState.pendingSkillSeed.value = seedPrompt
     }
 
     fun startAgentEditFlow(skill: SkillEntry) {
         val path = "skills/${skill.metadata.name}/SKILL.md"
+        val createSkill = skillRepository.findByCommand("/skill:create-skill")
+        val body = createSkill?.let { skillRepository.loadBody(it) }
         val seedPrompt = buildString {
+            if (body != null) {
+                appendLine("<skill name=\"create-skill\" location=\"skills/create-skill/SKILL.md\">")
+                appendLine(body)
+                appendLine("</skill>")
+                appendLine()
+            }
             append("Help me edit the skill '${skill.metadata.name}'. ")
             append("First, read the current content with read_file at path=\"$path\", ")
             append("then ask me what changes I'd like to make. ")

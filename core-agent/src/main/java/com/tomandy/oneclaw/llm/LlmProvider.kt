@@ -45,6 +45,20 @@ enum class LlmProvider(
             "claude-haiku-4-5"
         ),
         supportsAudioInput = false
+    ),
+    ANTIGRAVITY(
+        displayName = "Antigravity",
+        apiKeyLabel = "Google Account",
+        defaultModel = "ag/claude-sonnet-4-5",
+        availableModels = listOf(
+            "ag/claude-opus-4-6-thinking",
+            "ag/claude-sonnet-4-5",
+            "ag/claude-sonnet-4-5-thinking",
+            "ag/gemini-3-flash",
+            "ag/gemini-3-pro-high",
+            "ag/gemini-3-pro-low"
+        ),
+        supportsAudioInput = false
     );
 
     companion object {
@@ -63,7 +77,14 @@ enum class LlmProvider(
             // Anthropic
             "claude-sonnet-4-5" to 200_000,
             "claude-opus-4-6" to 200_000,
-            "claude-haiku-4-5" to 200_000
+            "claude-haiku-4-5" to 200_000,
+            // Antigravity (Cloud Code Assist)
+            "ag/claude-opus-4-6-thinking" to 200_000,
+            "ag/claude-sonnet-4-5" to 200_000,
+            "ag/claude-sonnet-4-5-thinking" to 200_000,
+            "ag/gemini-3-flash" to 1_000_000,
+            "ag/gemini-3-pro-high" to 1_000_000,
+            "ag/gemini-3-pro-low" to 1_000_000
         )
 
         fun getContextWindow(model: String): Int {

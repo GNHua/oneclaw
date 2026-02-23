@@ -1,10 +1,7 @@
 package com.tomandy.oneclaw.ui.cronjobs
 
-import androidx.compose.animation.AnimatedVisibility
 import com.tomandy.oneclaw.scheduler.util.formatCronExpression
 import com.tomandy.oneclaw.scheduler.util.formatIntervalMinutes
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,16 +17,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,8 +48,6 @@ import com.tomandy.oneclaw.scheduler.data.CronjobEntity
 import com.tomandy.oneclaw.ui.drawScrollbar
 import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
 import com.tomandy.oneclaw.ui.theme.SuccessGreen
-import com.tomandy.oneclaw.scheduler.data.ExecutionLog
-import com.tomandy.oneclaw.scheduler.data.ExecutionStatus
 import com.tomandy.oneclaw.scheduler.data.ScheduleType
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -66,6 +56,7 @@ import java.util.Locale
 @Composable
 fun CronjobsScreen(
     viewModel: CronjobsViewModel,
+    onNavigateToDetail: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val cronjobs by viewModel.cronjobs.collectAsState()
@@ -124,7 +115,8 @@ fun CronjobsScreen(
                 isLoading = historyLoading,
                 onLoadMore = { viewModel.loadMoreHistory() },
                 onToggleEnabled = { viewModel.toggleEnabled(it) },
-                onDelete = { viewModel.requestDelete(it.id) }
+                onDelete = { viewModel.requestDelete(it.id) },
+                onClick = { onNavigateToDetail(it.id) }
             )
         }
     }
@@ -176,11 +168,9 @@ fun CronjobsScreen(
                     items(cronjobs, key = { it.id }) { cronjob ->
                         CronjobCard(
                             cronjob = cronjob,
-                            isExpanded = selectedCronjobId == cronjob.id,
-                            executionLogs = if (selectedCronjobId == cronjob.id) executionLogs else emptyList(),
                             onToggleEnabled = { viewModel.toggleEnabled(cronjob) },
-                            onToggleLogs = { viewModel.toggleExecutionLogs(cronjob.id) },
                             onDelete = { viewModel.requestDelete(cronjob.id) },
+                            onClick = { onNavigateToDetail(cronjob.id) },
                             modifier = Modifier.animateItem()
                         )
                     }
@@ -213,7 +203,8 @@ private fun HistorySheetContent(
     isLoading: Boolean,
     onLoadMore: () -> Unit,
     onToggleEnabled: (CronjobEntity) -> Unit,
-    onDelete: (CronjobEntity) -> Unit
+    onDelete: (CronjobEntity) -> Unit,
+    onClick: (CronjobEntity) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -267,6 +258,7 @@ private fun HistorySheetContent(
                         cronjob = cronjob,
                         onToggleEnabled = { onToggleEnabled(cronjob) },
                         onDelete = { onDelete(cronjob) },
+                        onClick = { onClick(cronjob) },
                         modifier = Modifier.animateItem()
                     )
                 }
@@ -293,12 +285,14 @@ private fun HistoryCard(
     cronjob: CronjobEntity,
     onToggleEnabled: () -> Unit,
     onDelete: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
+        onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.primaryContainer
         )
     ) {
         Column(
@@ -405,17 +399,16 @@ private fun HistoryCard(
 @Composable
 private fun CronjobCard(
     cronjob: CronjobEntity,
-    isExpanded: Boolean,
-    executionLogs: List<ExecutionLog>,
     onToggleEnabled: () -> Unit,
-    onToggleLogs: () -> Unit,
     onDelete: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
+        onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.primaryContainer
         )
     ) {
         Column(
@@ -491,116 +484,12 @@ private fun CronjobCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Row {
-                    IconButton(onClick = onToggleLogs) {
-                        Icon(
-                            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = if (isExpanded) "Hide logs" else "Show logs",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete task",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-            }
-
-            // Expandable execution logs
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                Column {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    if (executionLogs.isEmpty()) {
-                        Text(
-                            text = "No execution history",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    } else {
-                        executionLogs.take(10).forEach { log ->
-                            ExecutionLogItem(log = log)
-                            Spacer(modifier = Modifier.height(6.dp))
-                        }
-                        if (executionLogs.size > 10) {
-                            Text(
-                                text = "and ${executionLogs.size - 10} more...",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ExecutionLogItem(
-    log: ExecutionLog,
-    modifier: Modifier = Modifier
-) {
-    val (icon, tint) = when (log.status) {
-        ExecutionStatus.SUCCESS -> Icons.Default.Check to SuccessGreen
-        ExecutionStatus.FAILED -> Icons.Default.Close to MaterialTheme.colorScheme.error
-        ExecutionStatus.CANCELLED -> Icons.Default.Close to MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        shape = MaterialTheme.shapes.small
-    ) {
-        Row(
-            modifier = Modifier.padding(8.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = log.status.name,
-                tint = tint,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = log.status.name,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = tint
-                    )
-                    Text(
-                        text = formatTimestamp(log.startedAt),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                val summary = when {
-                    log.status == ExecutionStatus.FAILED && log.errorMessage != null -> log.errorMessage
-                    log.resultSummary != null -> log.resultSummary
-                    else -> null
-                }
-                if (summary != null) {
-                    Text(
-                        text = summary,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp)
+                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete task",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

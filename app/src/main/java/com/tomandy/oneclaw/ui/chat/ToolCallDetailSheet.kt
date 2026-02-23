@@ -7,11 +7,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -33,38 +35,51 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.tomandy.oneclaw.data.entity.MessageEntity
 import com.tomandy.oneclaw.llm.ToolCall
-import com.tomandy.oneclaw.ui.HandleDismissBottomSheet
+import com.tomandy.oneclaw.ui.drawScrollbar
+import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
 import com.tomandy.oneclaw.ui.theme.SuccessGreen
 
 @Composable
-fun ToolCallDetailSheet(
+fun ToolCallDetailDialog(
     toolCalls: List<ToolCall>,
     toolResults: Map<String, MessageEntity>,
     onDismiss: () -> Unit
 ) {
-    HandleDismissBottomSheet(
-        onDismissRequest = onDismiss,
-        header = {
-            Text(
-                text = "Tool Calls",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
-            )
-        }
-    ) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.85f)
         ) {
-            items(toolCalls, key = { it.id }) { toolCall ->
-                ToolCallDetailItem(
-                    toolCall = toolCall,
-                    toolResult = toolResults[toolCall.id]
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Tool Calls",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 12.dp)
                 )
+
+                val listState = rememberLazyListState()
+                val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                val heightCache = rememberLazyListHeightCache()
+
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .drawScrollbar(listState, scrollbarColor, heightCache),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(toolCalls, key = { it.id }) { toolCall ->
+                        ToolCallDetailItem(
+                            toolCall = toolCall,
+                            toolResult = toolResults[toolCall.id]
+                        )
+                    }
+                }
             }
         }
     }
@@ -109,7 +124,7 @@ private fun ToolCallDetailItem(
                 }
             }
 
-            // Arguments (collapsed by default if long)
+            // Arguments
             val args = toolCall.function.arguments
             if (args.isNotBlank() && args != "{}") {
                 Column(
@@ -139,7 +154,7 @@ private fun ToolCallDetailItem(
                 }
             }
 
-            // Result (collapsed by default)
+            // Result
             toolResult?.let { result ->
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 

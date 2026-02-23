@@ -1,5 +1,5 @@
 ---
-name: javascript
+name: javascript-expert
 description: QuickJS plugin developer for OneClaw's sandboxed JS runtime
 ---
 

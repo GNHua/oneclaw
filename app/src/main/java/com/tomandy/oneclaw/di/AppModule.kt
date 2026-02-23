@@ -14,6 +14,7 @@ import com.tomandy.oneclaw.navigation.NavigationState
 import com.tomandy.oneclaw.plugin.ConfigContributor
 import com.tomandy.oneclaw.plugin.ConfigRegistry
 import com.tomandy.oneclaw.plugin.PluginCoordinator
+import com.tomandy.oneclaw.service.ChatExecutionManager
 import com.tomandy.oneclaw.plugin.config.ModelConfigContributor
 import com.tomandy.oneclaw.plugin.config.ModelPreferencesConfigContributor
 import com.tomandy.oneclaw.plugin.config.PluginConfigContributor
@@ -24,6 +25,7 @@ import com.tomandy.oneclaw.pluginmanager.UserPluginManager
 import com.tomandy.oneclaw.scheduler.AgentExecutor
 import com.tomandy.oneclaw.scheduler.CronjobManager
 import com.tomandy.oneclaw.scheduler.data.CronjobDatabase
+import com.tomandy.oneclaw.google.AntigravityAuthManager
 import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
 import com.tomandy.oneclaw.security.CredentialVaultImpl
 import com.tomandy.oneclaw.skill.SkillLoader
@@ -59,6 +61,9 @@ val appModule = module {
     single { OAuthGoogleAuthManager(androidContext(), get<AppCredentialVault>()) }
     single<GoogleAuthProvider> { get<OAuthGoogleAuthManager>() }
 
+    // Antigravity Auth
+    single { AntigravityAuthManager(androidContext(), get<AppCredentialVault>()) }
+
     // Preferences
     single { ModelPreferences(androidContext()) }
     single { ConversationPreferences(androidContext()) }
@@ -72,7 +77,13 @@ val appModule = module {
             userSkillsDir = java.io.File(androidContext().filesDir, "workspace/skills")
         )
     }
-    single { SkillRepository(loader = get(), preferences = get()) }
+    single {
+        SkillRepository(
+            loader = get(),
+            preferences = get(),
+            userSkillsDir = java.io.File(androidContext().filesDir, "workspace/skills")
+        )
+    }
     single { SlashCommandRouter(repository = get()) }
 
     // Plugin Engine
@@ -84,8 +95,19 @@ val appModule = module {
     // Message Store
     single<MessageStore> { RoomMessageStore(get()) }
 
+    // Chat Execution Manager
+    single { ChatExecutionManager(messageDao = get()) }
+
     // LLM Client Provider
-    single { LlmClientProvider(credentialVault = get(), modelPreferences = get()) }
+    single {
+        val antigravityAuth: AntigravityAuthManager = get()
+        LlmClientProvider(
+            credentialVault = get(),
+            modelPreferences = get(),
+            antigravityTokenProvider = { antigravityAuth.getAccessToken() },
+            antigravityProjectIdProvider = { antigravityAuth.getProjectId() }
+        )
+    }
 
     // Cronjob Database & Manager
     single { CronjobDatabase.getDatabase(androidContext()) }
@@ -140,7 +162,8 @@ val appModule = module {
             llmClientProvider = get(),
             modelPreferences = get(),
             database = get(),
-            messageStore = get()
+            messageStore = get(),
+            executionManager = get()
         )
     }
 

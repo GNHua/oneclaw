@@ -1,6 +1,14 @@
 package com.tomandy.oneclaw.scheduler
 
 /**
+ * Result of a scheduled task execution.
+ */
+data class TaskExecutionResult(
+    val summary: String,
+    val conversationId: String? = null
+)
+
+/**
  * Interface for executing agent tasks from scheduled jobs.
  *
  * This interface allows the scheduler library to execute agent tasks
@@ -16,12 +24,12 @@ interface AgentExecutor {
      * @param cronjobId The ID of the cronjob being executed
      * @param triggerTime When the task was triggered (Unix timestamp in millis)
      * @param conversationId The original conversation to post results to (null = no posting)
-     * @return A summary of what the agent did
+     * @return A [TaskExecutionResult] containing summary and conversation ID
      */
     suspend fun executeTask(
         instruction: String,
         cronjobId: String,
         triggerTime: Long,
         conversationId: String? = null
-    ): Result<String>
+    ): Result<TaskExecutionResult>
 }

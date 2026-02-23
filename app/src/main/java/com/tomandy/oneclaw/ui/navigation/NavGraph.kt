@@ -1,17 +1,17 @@
 package com.tomandy.oneclaw.ui.navigation
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.unit.dp
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.tomandy.oneclaw.ui.settings.SystemPromptEditorScreen
+import com.tomandy.oneclaw.ui.settings.InstructionsEditorScreen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -31,6 +31,7 @@ import com.tomandy.oneclaw.llm.LlmProvider
 import com.tomandy.oneclaw.navigation.NavigationState
 import com.tomandy.oneclaw.ui.chat.ChatScreen
 import com.tomandy.oneclaw.ui.chat.ChatViewModel
+import com.tomandy.oneclaw.ui.cronjobs.CronjobDetailScreen
 import com.tomandy.oneclaw.ui.cronjobs.CronjobsScreen
 import com.tomandy.oneclaw.ui.cronjobs.CronjobsViewModel
 import com.tomandy.oneclaw.ui.history.ConversationHistoryScreen
@@ -52,7 +53,9 @@ import com.tomandy.oneclaw.ui.settings.AgentProfilesViewModel
 import com.tomandy.oneclaw.ui.settings.GoogleAccountScreen
 import com.tomandy.oneclaw.ui.settings.SkillsScreen
 import com.tomandy.oneclaw.ui.settings.SkillsViewModel
+import com.tomandy.oneclaw.google.AntigravityAuthManager
 import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -74,9 +77,12 @@ enum class Screen(val route: String) {
     Backup("settings/backup"),
     AgentProfiles("settings/agents"),
     AgentProfileEditor("settings/agents/editor"),
+    SystemPromptEditor("settings/agents/editor/system-prompt"),
+    SkillInstructionsEditor("settings/skills/editor/instructions"),
     GoogleAccount("settings/google-account"),
     Appearance("settings/appearance"),
     Cronjobs("cronjobs"),
+    CronjobDetail("cronjobs/detail"),
     History("history")
 }
 
@@ -102,10 +108,6 @@ fun OneClawNavGraph(
     var availableModels by remember { mutableStateOf<List<Pair<String, LlmProvider>>>(emptyList()) }
     var selectedModel by remember { mutableStateOf(modelPreferences.getSelectedModel() ?: "gpt-4o-mini") }
 
-    // History screen is shown as an overlay instead of a NavHost destination,
-    // so the Chat composable never leaves composition during Chat<->History cycles.
-    var showHistory by remember { mutableStateOf(false) }
-
     val providers by settingsViewModel.providers.collectAsState()
 
     LaunchedEffect(providers) {
@@ -122,7 +124,6 @@ fun OneClawNavGraph(
     LaunchedEffect(pendingConvId) {
         pendingConvId?.let { convId ->
             chatViewModel.loadConversation(convId)
-            showHistory = false
             navController.popBackStack(Screen.Chat.route, inclusive = false)
             navigationState.pendingConversationId.value = null
         }
@@ -135,7 +136,6 @@ fun OneClawNavGraph(
             chatViewModel.newConversation()
             kotlinx.coroutines.delay(100)
             chatViewModel.sendMessage(seed)
-            showHistory = false
             navController.popBackStack(Screen.Chat.route, inclusive = false)
             navigationState.pendingSkillSeed.value = null
         }
@@ -146,17 +146,15 @@ fun OneClawNavGraph(
     val pendingSharedText by navigationState.pendingSharedText.collectAsState()
     LaunchedEffect(pendingSharedText) {
         if (pendingSharedText != null) {
-            showHistory = false
             navController.popBackStack(Screen.Chat.route, inclusive = false)
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Chat.route,
-            modifier = Modifier.fillMaxSize()
-        ) {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Chat.route,
+        modifier = modifier.fillMaxSize()
+    ) {
             composable(Screen.Chat.route) {
                 ChatScreen(
                     viewModel = chatViewModel,
@@ -167,7 +165,10 @@ fun OneClawNavGraph(
                         navController.navigate(Screen.Cronjobs.route) { launchSingleTop = true }
                     },
                     onNavigateToHistory = {
-                        showHistory = true
+                        navController.navigate(Screen.History.route) { launchSingleTop = true }
+                    },
+                    onNewConversation = {
+                        chatViewModel.newConversation()
                     }
                 )
             }
@@ -178,7 +179,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Settings") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.popBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -186,7 +187,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         SettingsScreen(
                             onNavigateToProviders = {
                                 navController.navigate(Screen.Providers.route) { launchSingleTop = true }
@@ -231,7 +232,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Providers") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.popBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -239,9 +240,10 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         ProvidersScreen(
                             viewModel = settingsViewModel,
+                            antigravityAuthManager = koinInject<AntigravityAuthManager>(),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -255,7 +257,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Plugins (${pluginsList.size})") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.popBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -263,7 +265,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         PluginsScreen(
                             viewModel = settingsViewModel,
                             modifier = Modifier.weight(1f)
@@ -281,7 +283,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Skills (${skillsList.size})") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.popBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -289,7 +291,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         SkillsScreen(
                             viewModel = skillsViewModel,
                             onNavigateToEditor = { skillName ->
@@ -325,9 +327,14 @@ fun OneClawNavGraph(
                 SkillEditorScreen(
                     viewModel = skillsViewModel,
                     skillName = skillName,
-                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateBack = dropUnlessResumed { navController.popBackStack() },
                     onNavigateToChat = {
                         navController.popBackStack(Screen.Chat.route, inclusive = false)
+                    },
+                    onNavigateToInstructions = { readOnly ->
+                        navController.navigate(
+                            "${Screen.SkillInstructionsEditor.route}?readOnly=$readOnly"
+                        ) { launchSingleTop = true }
                     }
                 )
             }
@@ -340,7 +347,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Memory") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.popBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -348,7 +355,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         MemoryScreen(
                             viewModel = memoryViewModel,
                             onNavigateToDetail = { relativePath, displayName ->
@@ -378,25 +385,38 @@ fun OneClawNavGraph(
                     backStackEntry.arguments?.getString("name") ?: "", "UTF-8"
                 )
                 val memoryViewModel: MemoryViewModel = koinViewModel()
+                var showRawMarkdown by remember { mutableStateOf(false) }
 
                 Scaffold(
                     topBar = {
                         TopAppBar(
                             title = { Text(displayName) },
                             navigationIcon = {
-                                IconButton(onClick = { navController.popBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = { showRawMarkdown = !showRawMarkdown }) {
+                                    Icon(
+                                        imageVector = if (showRawMarkdown)
+                                            Icons.Default.Description
+                                        else
+                                            Icons.Default.Code,
+                                        contentDescription = if (showRawMarkdown) "Show rendered" else "Show raw"
+                                    )
                                 }
                             }
                         )
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         MemoryDetailScreen(
                             viewModel = memoryViewModel,
                             relativePath = relativePath,
-                            onDelete = { navController.popBackStack() },
+                            showRaw = showRawMarkdown,
+                            onDelete = dropUnlessResumed { navController.popBackStack() },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -411,7 +431,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Backup & Restore") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.popBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -419,7 +439,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         BackupScreen(
                             viewModel = backupViewModel,
                             modifier = Modifier.weight(1f)
@@ -436,7 +456,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Agent Profiles") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.popBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -444,7 +464,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         AgentProfilesScreen(
                             viewModel = agentProfilesViewModel,
                             onNavigateToEditor = { profileName ->
@@ -477,7 +497,42 @@ fun OneClawNavGraph(
                 AgentProfileEditorScreen(
                     viewModel = agentProfilesViewModel,
                     profileName = profileName,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = dropUnlessResumed { navController.popBackStack() },
+                    onNavigateToSystemPrompt = dropUnlessResumed {
+                        navController.navigate(Screen.SystemPromptEditor.route) { launchSingleTop = true }
+                    }
+                )
+            }
+
+            composable(Screen.SystemPromptEditor.route) {
+                val parentEntry = navController.previousBackStackEntry!!
+                val viewModel: AgentProfilesViewModel = koinViewModel(
+                    viewModelStoreOwner = parentEntry
+                )
+                SystemPromptEditorScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = dropUnlessResumed { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = "${Screen.SkillInstructionsEditor.route}?readOnly={readOnly}",
+                arguments = listOf(
+                    navArgument("readOnly") {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    }
+                )
+            ) { backStackEntry ->
+                val readOnly = backStackEntry.arguments?.getBoolean("readOnly") ?: false
+                val parentEntry = navController.previousBackStackEntry!!
+                val viewModel: SkillsViewModel = koinViewModel(
+                    viewModelStoreOwner = parentEntry
+                )
+                InstructionsEditorScreen(
+                    viewModel = viewModel,
+                    readOnly = readOnly,
+                    onNavigateBack = dropUnlessResumed { navController.popBackStack() }
                 )
             }
 
@@ -490,7 +545,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Google Account") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.popBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -498,7 +553,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         GoogleAccountScreen(
                             oauthAuthManager = oauthAuthManager,
                             onSignInChanged = { signedIn ->
@@ -516,7 +571,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Appearance") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.popBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -524,7 +579,7 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         AppearanceScreen(
                             modelPreferences = modelPreferences,
                             modifier = Modifier.weight(1f)
@@ -541,7 +596,7 @@ fun OneClawNavGraph(
                         TopAppBar(
                             title = { Text("Scheduled Tasks") },
                             navigationIcon = {
-                                IconButton(onClick = { navController.popBackStack() }) {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             }
@@ -549,49 +604,80 @@ fun OneClawNavGraph(
                     }
                 ) { paddingValues ->
                     Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
                         CronjobsScreen(
                             viewModel = viewModel,
+                            onNavigateToDetail = { cronjobId ->
+                                navController.navigate(
+                                    "${Screen.CronjobDetail.route}?id=$cronjobId"
+                                ) { launchSingleTop = true }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
+            composable(
+                route = "${Screen.CronjobDetail.route}?id={cronjobId}",
+                arguments = listOf(
+                    navArgument("cronjobId") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val cronjobId = backStackEntry.arguments?.getString("cronjobId") ?: return@composable
+                val viewModel: CronjobsViewModel = koinViewModel()
+
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Task Details") },
+                            navigationIcon = {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
+                            }
+                        )
+                    }
+                ) { paddingValues ->
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+
+                        CronjobDetailScreen(
+                            viewModel = viewModel,
+                            cronjobId = cronjobId,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
+            composable(Screen.History.route) {
+                val historyViewModel: ConversationHistoryViewModel = koinViewModel()
+
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Conversation History") },
+                            navigationIcon = {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
+                            }
+                        )
+                    }
+                ) { paddingValues ->
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+
+                        ConversationHistoryScreen(
+                            viewModel = historyViewModel,
+                            currentConversationId = chatViewModel.conversationId,
+                            onConversationSelected = { convId ->
+                                chatViewModel.loadConversation(convId)
+                                navController.popBackStack(Screen.Chat.route, inclusive = false)
+                            },
                             modifier = Modifier.weight(1f)
                         )
                     }
                 }
             }
         }
-
-        // History screen shown as an overlay so the Chat composable never leaves
-        // composition during Chat<->History navigation cycles.
-        if (showHistory) {
-            val historyViewModel: ConversationHistoryViewModel = koinViewModel()
-
-            BackHandler { showHistory = false }
-
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Conversation History") },
-                        navigationIcon = {
-                            IconButton(onClick = { showHistory = false }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                            }
-                        }
-                    )
-                },
-                modifier = Modifier.fillMaxSize()
-            ) { paddingValues ->
-                Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                    ConversationHistoryScreen(
-                        viewModel = historyViewModel,
-                        currentConversationId = chatViewModel.conversationId,
-                        onConversationSelected = { convId ->
-                            chatViewModel.loadConversation(convId)
-                            showHistory = false
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        }
-    }
 }

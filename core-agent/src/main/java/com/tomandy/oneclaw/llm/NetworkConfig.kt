@@ -9,6 +9,8 @@ object NetworkConfig {
     const val DEFAULT_CONNECT_TIMEOUT = 60L
     const val DEFAULT_READ_TIMEOUT = 60L
     const val DEFAULT_WRITE_TIMEOUT = 60L
+    /** Timeout for LLM API calls which can be slow with large prompts. */
+    const val LLM_REQUEST_TIMEOUT = 180L
     val TIMEOUT_UNIT = TimeUnit.SECONDS
 
     val json = Json {

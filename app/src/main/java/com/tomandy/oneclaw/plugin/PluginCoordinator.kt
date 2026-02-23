@@ -41,7 +41,7 @@ import com.tomandy.oneclaw.camera.CameraPlugin
 import com.tomandy.oneclaw.camera.CameraPluginMetadata
 import com.tomandy.oneclaw.voicememo.VoiceMemoPlugin
 import com.tomandy.oneclaw.voicememo.VoiceMemoPluginMetadata
-import com.tomandy.oneclaw.service.ChatExecutionService
+import com.tomandy.oneclaw.service.ChatExecutionManager
 import com.tomandy.oneclaw.service.ChatExecutionTracker
 
 class PluginCoordinator(
@@ -60,7 +60,8 @@ class PluginCoordinator(
     private val llmClientProvider: LlmClientProvider,
     private val modelPreferences: ModelPreferences,
     private val database: AppDatabase,
-    private val messageStore: MessageStore
+    private val messageStore: MessageStore,
+    private val executionManager: ChatExecutionManager
 ) {
     suspend fun initializePlugins() {
         registerBuiltInPlugins()
@@ -308,10 +309,7 @@ class PluginCoordinator(
         // Wire abort callback for hardware button abort
         DeviceControlManager.setAbortCallback(object : AbortCallback {
             override fun abortAllExecutions() {
-                val ids = synchronized(ChatExecutionService.activeCoordinators) {
-                    ChatExecutionService.activeCoordinators.keys.toList()
-                }
-                ids.forEach { ChatExecutionService.cancelExecutionDirect(it) }
+                executionManager.cancelAllExecutions()
             }
         })
 

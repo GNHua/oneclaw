@@ -2,14 +2,12 @@ package com.tomandy.oneclaw.ui.chat
 
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,22 +20,18 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.background
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,9 +44,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -66,14 +64,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupPositionProvider
-import androidx.compose.ui.window.PopupProperties
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -88,6 +79,7 @@ fun ChatInput(
     onTakeVideo: () -> Unit = {},
     onPickDocument: () -> Unit = {},
     onMicTap: () -> Unit = {},
+    onShowSkillPicker: () -> Unit = {},
     isProcessing: Boolean = false,
     isRecording: Boolean = false,
     micAvailable: Boolean = true,
@@ -101,13 +93,19 @@ fun ChatInput(
     onRemoveDocument: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val canSend = value.isNotBlank() || attachedImages.isNotEmpty() || attachedAudios.isNotEmpty() || attachedVideos.isNotEmpty() || attachedDocuments.isNotEmpty()
+    val canSend = value.isNotBlank() || attachedImages.isNotEmpty() ||
+        attachedAudios.isNotEmpty() || attachedVideos.isNotEmpty() ||
+        attachedDocuments.isNotEmpty()
 
-    var menuExpanded by remember { mutableStateOf(false) }
+    var showAttachmentSheet by remember { mutableStateOf(false) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val scope = rememberCoroutineScope()
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Attached previews (images + audio + video)
-        if (attachedImages.isNotEmpty() || attachedAudios.isNotEmpty() || attachedVideos.isNotEmpty() || attachedDocuments.isNotEmpty()) {
+        // Attached previews
+        if (attachedImages.isNotEmpty() || attachedAudios.isNotEmpty() ||
+            attachedVideos.isNotEmpty() || attachedDocuments.isNotEmpty()
+        ) {
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -128,177 +126,151 @@ fun ChatInput(
                     AttachedVideoPreview(filePath = path, onRemove = { onRemoveVideo(index) })
                 }
                 itemsIndexed(attachedDocuments) { index, (_, displayName) ->
-                    AttachedDocumentPreview(displayName = displayName, onRemove = { onRemoveDocument(index) })
+                    AttachedDocumentPreview(
+                        displayName = displayName,
+                        onRemove = { onRemoveDocument(index) }
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
         }
 
-        Row(
+        // Two-row input bar
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.Bottom
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHighest
         ) {
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                modifier = Modifier.weight(1f),
-                maxLines = 4,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    color = MaterialTheme.colorScheme.onSurface
-                ),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences,
-                    imeAction = ImeAction.Default
-                ),
-                decorationBox = { innerTextField ->
-                    Row(
-                        modifier = Modifier
-                            .background(
-                                MaterialTheme.colorScheme.surfaceContainerHighest,
-                                RoundedCornerShape(20.dp)
-                            )
-                            .height(40.dp)
-                            .padding(start = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(modifier = Modifier.weight(1f)) {
+            Column {
+                // Row 1: Text field
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        imeAction = ImeAction.Default
+                    ),
+                    decorationBox = { innerTextField ->
+                        Box {
+                            if (value.isEmpty()) {
+                                Text(
+                                    text = "Ask OneClaw",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                        alpha = 0.6f
+                                    )
+                                )
+                            }
                             innerTextField()
                         }
-                        if (isProcessing) {
-                            StopButton(onClick = onStop)
-                        } else if (!canSend) {
-                            IconButton(onClick = onTakePhoto, modifier = Modifier.size(36.dp)) {
-                                Icon(
-                                    imageVector = Icons.Default.CameraAlt,
-                                    contentDescription = "Take photo",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            if (micAvailable || isRecording) {
-                                IconButton(onClick = onMicTap, modifier = Modifier.size(36.dp)) {
-                                    Icon(
-                                        imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
-                                        contentDescription = if (isRecording) "Stop recording" else "Voice input",
-                                        modifier = Modifier.size(20.dp),
-                                        tint = if (isRecording) {
-                                            MaterialTheme.colorScheme.error
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
-                                    )
-                                }
-                            }
-                        } else {
-                            IconButton(onClick = { menuExpanded = !menuExpanded }, modifier = Modifier.size(36.dp)) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Attach",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
                     }
-                }
-            )
+                )
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Right-side button: Send (when content) or + attachment menu
-            Box {
-                if (canSend || isProcessing) {
-                    FilledIconButton(
-                        onClick = onSend,
-                        enabled = canSend,
-                        modifier = Modifier.size(40.dp),
-                        shape = CircleShape,
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Send message",
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                } else {
-                    FilledIconButton(
-                        onClick = { menuExpanded = !menuExpanded },
-                        modifier = Modifier.size(40.dp),
-                        shape = CircleShape,
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
+                // Row 2: Action buttons
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 4.dp, end = 4.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Attachment button
+                    IconButton(
+                        onClick = {
+                            keyboardController?.hide()
+                            scope.launch {
+                                delay(150)
+                                showAttachmentSheet = true
+                            }
+                        },
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Attach",
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(22.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
-                if (menuExpanded) {
-                    BackHandler { menuExpanded = false }
-                    Popup(
-                        onDismissRequest = { menuExpanded = false },
-                        popupPositionProvider = object : PopupPositionProvider {
-                            override fun calculatePosition(
-                                anchorBounds: IntRect,
-                                windowSize: IntSize,
-                                layoutDirection: LayoutDirection,
-                                popupContentSize: IntSize
-                            ): IntOffset {
-                                val x = anchorBounds.right - popupContentSize.width
-                                val y = anchorBounds.top - popupContentSize.height
-                                return IntOffset(x, y)
+
+                    // Skill picker button
+                    IconButton(
+                        onClick = {
+                            keyboardController?.hide()
+                            scope.launch {
+                                delay(150)
+                                onShowSkillPicker()
                             }
                         },
-                        properties = PopupProperties(focusable = false)
+                        modifier = Modifier.size(40.dp)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            shadowElevation = 3.dp,
-                            tonalElevation = 3.dp,
-                            color = MaterialTheme.colorScheme.surfaceContainer
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = "Skills",
+                            modifier = Modifier.size(22.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Right side: send or mic, plus stop when processing
+                    if (isProcessing) {
+                        StopButton(onClick = onStop)
+                    }
+                    if (canSend) {
+                        FilledIconButton(
+                            onClick = onSend,
+                            modifier = Modifier.size(40.dp),
+                            shape = CircleShape,
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         ) {
-                            Column(modifier = Modifier.width(IntrinsicSize.Max).padding(vertical = 4.dp)) {
-                                if (canSend) {
-                                    DropdownMenuItem(
-                                        text = { Text("Take Photo") },
-                                        onClick = { menuExpanded = false; onTakePhoto() },
-                                        leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) }
-                                    )
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "Send message",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    } else if (micAvailable || isRecording) {
+                        IconButton(
+                            onClick = onMicTap,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                                contentDescription = if (isRecording) "Stop recording" else "Voice input",
+                                modifier = Modifier.size(22.dp),
+                                tint = if (isRecording) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
                                 }
-                                DropdownMenuItem(
-                                    text = { Text("Take Video") },
-                                    onClick = { menuExpanded = false; onTakeVideo() },
-                                    leadingIcon = { Icon(Icons.Default.Videocam, contentDescription = null) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Gallery") },
-                                    onClick = { menuExpanded = false; onPickFromGallery() },
-                                    leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("File") },
-                                    onClick = { menuExpanded = false; onPickDocument() },
-                                    leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) }
-                                )
-                            }
+                            )
                         }
                     }
                 }
             }
         }
+    }
+
+    if (showAttachmentSheet) {
+        AttachmentBottomSheet(
+            onDismiss = { showAttachmentSheet = false },
+            onTakePhoto = { showAttachmentSheet = false; onTakePhoto() },
+            onPickFromGallery = { showAttachmentSheet = false; onPickFromGallery() },
+            onPickDocument = { showAttachmentSheet = false; onPickDocument() }
+        )
     }
 }
 
@@ -402,8 +374,9 @@ private fun AttachedVideoPreview(filePath: String, onRemove: () -> Unit) {
                 retriever.setDataSource(filePath)
                 val bmp = retriever.getFrameAtTime(0)
                 thumbnail = bmp?.asImageBitmap()
-                val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                    ?.toLongOrNull() ?: 0L
+                val durationMs = retriever.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_DURATION
+                )?.toLongOrNull() ?: 0L
                 val totalSec = durationMs / 1000
                 durationText = "%d:%02d".format(totalSec / 60, totalSec % 60)
                 retriever.release()
@@ -531,7 +504,7 @@ private fun StopButton(onClick: () -> Unit) {
 
     Box(
         modifier = Modifier
-            .size(36.dp)
+            .size(40.dp)
             .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {

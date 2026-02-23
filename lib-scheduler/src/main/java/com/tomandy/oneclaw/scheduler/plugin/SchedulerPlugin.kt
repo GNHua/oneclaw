@@ -1,8 +1,10 @@
 package com.tomandy.oneclaw.scheduler.plugin
 
+import android.content.Intent
 import com.tomandy.oneclaw.engine.Plugin
 import com.tomandy.oneclaw.engine.PluginContext
 import com.tomandy.oneclaw.engine.ToolResult
+import com.tomandy.oneclaw.scheduler.service.AgentExecutionService
 import com.tomandy.oneclaw.scheduler.CronjobManager
 import com.tomandy.oneclaw.scheduler.util.formatCronExpression
 import com.tomandy.oneclaw.scheduler.util.formatIntervalMinutes
@@ -33,7 +35,10 @@ class SchedulerPlugin : Plugin {
         return when (toolName) {
             "schedule_task" -> scheduleTask(arguments)
             "list_scheduled_tasks" -> listScheduledTasks(arguments)
+            "run_scheduled_task" -> runScheduledTask(arguments)
             "cancel_scheduled_task" -> cancelScheduledTask(arguments)
+            "update_scheduled_task" -> updateScheduledTask(arguments)
+            "delete_scheduled_task" -> deleteScheduledTask(arguments)
             else -> ToolResult.Failure("Unknown tool: $toolName")
         }
     }
@@ -239,6 +244,43 @@ class SchedulerPlugin : Plugin {
     }
 
     /**
+     * Run a scheduled task immediately
+     */
+    private suspend fun runScheduledTask(arguments: JsonObject): ToolResult {
+        return try {
+            val taskId = arguments["task_id"]?.jsonPrimitive?.content
+                ?: return ToolResult.Failure("Missing required field: task_id")
+
+            val cronjob = cronjobManager.getById(taskId)
+                ?: return ToolResult.Failure("Task not found: $taskId")
+
+            if (!cronjob.enabled) {
+                return ToolResult.Failure(
+                    "Task '$taskId' is disabled. Enable it first with update_scheduled_task."
+                )
+            }
+
+            val appContext = context.getApplicationContext()
+            val serviceIntent = Intent(appContext, AgentExecutionService::class.java).apply {
+                action = AgentExecutionService.ACTION_EXECUTE_TASK
+                putExtra(AgentExecutionService.EXTRA_CRONJOB_ID, taskId)
+            }
+            appContext.startForegroundService(serviceIntent)
+
+            val titleInfo = if (cronjob.title.isNotBlank()) " ('${cronjob.title}')" else ""
+            ToolResult.Success(
+                output = "Task '$taskId'$titleInfo has been triggered to run immediately. " +
+                    "It will execute in the background and you'll see a notification when it completes."
+            )
+        } catch (e: Exception) {
+            ToolResult.Failure(
+                error = "Failed to trigger task: ${e.message}",
+                exception = e
+            )
+        }
+    }
+
+    /**
      * Cancel a scheduled task
      */
     private suspend fun cancelScheduledTask(arguments: JsonObject): ToolResult {
@@ -255,6 +297,114 @@ class SchedulerPlugin : Plugin {
         } catch (e: Exception) {
             ToolResult.Failure(
                 error = "Failed to cancel task: ${e.message}",
+                exception = e
+            )
+        }
+    }
+
+    /**
+     * Update an existing scheduled task
+     */
+    private suspend fun updateScheduledTask(arguments: JsonObject): ToolResult {
+        return try {
+            val taskId = arguments["task_id"]?.jsonPrimitive?.content
+                ?: return ToolResult.Failure("Missing required field: task_id")
+
+            val existing = cronjobManager.getById(taskId)
+                ?: return ToolResult.Failure("Task not found: $taskId")
+
+            val newTitle = arguments["title"]?.jsonPrimitive?.content ?: existing.title
+            val newInstruction = arguments["instruction"]?.jsonPrimitive?.content ?: existing.instruction
+
+            val newScheduleType = arguments["schedule_type"]?.jsonPrimitive?.content?.let {
+                when (it) {
+                    "one_time" -> ScheduleType.ONE_TIME
+                    "recurring" -> ScheduleType.RECURRING
+                    else -> return ToolResult.Failure("Invalid schedule_type. Must be 'one_time' or 'recurring'")
+                }
+            } ?: existing.scheduleType
+
+            val newExecuteAt = arguments["execute_at"]?.jsonPrimitive?.content?.let { str ->
+                try {
+                    LocalDateTime.parse(str)
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli()
+                } catch (e: DateTimeParseException) {
+                    return ToolResult.Failure("Invalid execute_at format. Expected ISO 8601 local datetime (e.g., '2026-02-12T18:00:00')")
+                }
+            } ?: existing.executeAt
+
+            val newIntervalMinutes = if (arguments.containsKey("interval_minutes")) {
+                arguments["interval_minutes"]?.jsonPrimitive?.intOrNull
+            } else {
+                existing.intervalMinutes
+            }
+
+            val newCronExpression = if (arguments.containsKey("cron_expression")) {
+                arguments["cron_expression"]?.jsonPrimitive?.content
+            } else {
+                existing.cronExpression
+            }
+
+            val newMaxExecutions = if (arguments.containsKey("max_executions")) {
+                arguments["max_executions"]?.jsonPrimitive?.intOrNull
+            } else {
+                existing.maxExecutions
+            }
+
+            val newEnabled = arguments["enabled"]?.jsonPrimitive?.booleanOrNull ?: existing.enabled
+
+            if (newIntervalMinutes != null && newIntervalMinutes < 15) {
+                return ToolResult.Failure("Minimum interval is 15 minutes for battery optimization")
+            }
+
+            val updated = existing.copy(
+                title = newTitle,
+                instruction = newInstruction,
+                scheduleType = newScheduleType,
+                executeAt = newExecuteAt,
+                intervalMinutes = newIntervalMinutes,
+                cronExpression = newCronExpression,
+                maxExecutions = newMaxExecutions,
+                enabled = newEnabled
+            )
+
+            cronjobManager.update(updated)
+
+            ToolResult.Success(
+                output = "Task '$taskId' has been updated successfully."
+            )
+
+        } catch (e: Exception) {
+            ToolResult.Failure(
+                error = "Failed to update task: ${e.message}",
+                exception = e
+            )
+        }
+    }
+
+    /**
+     * Permanently delete a scheduled task
+     */
+    private suspend fun deleteScheduledTask(arguments: JsonObject): ToolResult {
+        return try {
+            val taskId = arguments["task_id"]?.jsonPrimitive?.content
+                ?: return ToolResult.Failure("Missing required field: task_id")
+
+            val existing = cronjobManager.getById(taskId)
+                ?: return ToolResult.Failure("Task not found: $taskId")
+
+            cronjobManager.delete(taskId)
+
+            val titleInfo = if (existing.title.isNotBlank()) " ('${existing.title}')" else ""
+            ToolResult.Success(
+                output = "Task '$taskId'$titleInfo has been permanently deleted along with its execution history."
+            )
+
+        } catch (e: Exception) {
+            ToolResult.Failure(
+                error = "Failed to delete task: ${e.message}",
                 exception = e
             )
         }

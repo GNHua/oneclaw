@@ -2,9 +2,9 @@ package com.tomandy.oneclaw.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
@@ -13,9 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.tomandy.oneclaw.ui.drawScrollbar
-import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
-import com.tomandy.oneclaw.ui.theme.Dimens
+import com.tomandy.oneclaw.ui.drawColumnScrollbar
 
 @Composable
 fun MemoryScreen(
@@ -25,6 +23,9 @@ fun MemoryScreen(
 ) {
     val files by viewModel.memoryFiles.collectAsState()
     var showDeleteConfirm by remember { mutableStateOf<MemoryFileEntry?>(null) }
+
+    val longTermFiles = files.filter { it.isLongTerm }
+    val shortTermFiles = files.filter { !it.isLongTerm }
 
     Box(modifier = modifier.fillMaxSize()) {
         if (files.isEmpty()) {
@@ -39,27 +40,71 @@ fun MemoryScreen(
                 )
             }
         } else {
-            val listState = rememberLazyListState()
+            val scrollState = rememberScrollState()
             val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            val heightCache = rememberLazyListHeightCache()
 
-            LazyColumn(
-                state = listState,
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .drawScrollbar(listState, scrollbarColor, heightCache)
-                    .padding(horizontal = Dimens.ScreenPadding),
-                verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
-                contentPadding = PaddingValues(top = Dimens.ScreenPadding, bottom = Dimens.ScreenPadding)
+                    .drawColumnScrollbar(scrollState, scrollbarColor)
+                    .verticalScroll(scrollState)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(files, key = { it.relativePath }) { entry ->
-                    MemoryFileCard(
-                        entry = entry,
-                        onClick = {
-                            onNavigateToDetail(entry.relativePath, entry.displayName)
-                        },
-                        onDelete = { showDeleteConfirm = entry }
+                if (longTermFiles.isNotEmpty()) {
+                    Text(
+                        text = "Long-term Memory",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 4.dp)
                     )
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            longTermFiles.forEachIndexed { index, entry ->
+                                if (index > 0) {
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                                }
+                                MemoryFileRow(
+                                    entry = entry,
+                                    onClick = {
+                                        onNavigateToDetail(entry.relativePath, entry.displayName)
+                                    },
+                                    onDelete = { showDeleteConfirm = entry }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (shortTermFiles.isNotEmpty()) {
+                    Text(
+                        text = "Short-term Memory",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            shortTermFiles.forEachIndexed { index, entry ->
+                                if (index > 0) {
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                                }
+                                MemoryFileRow(
+                                    entry = entry,
+                                    onClick = {
+                                        onNavigateToDetail(entry.relativePath, entry.displayName)
+                                    },
+                                    onDelete = { showDeleteConfirm = entry }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -91,64 +136,40 @@ fun MemoryScreen(
 }
 
 @Composable
-private fun MemoryFileCard(
+private fun MemoryFileRow(
     entry: MemoryFileEntry,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = entry.displayName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (entry.isLongTerm) {
-                        AssistChip(
-                            onClick = {},
-                            label = {
-                                Text(
-                                    text = "Curated",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            },
-                            modifier = Modifier.height(24.dp)
-                        )
-                    }
-                }
-                Text(
-                    text = formatFileSize(entry.size),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = entry.displayName,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = formatFileSize(entry.size),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = "Delete",
+                tint = MaterialTheme.colorScheme.error
+            )
         }
     }
 }

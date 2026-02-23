@@ -7,14 +7,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tomandy.oneclaw.ui.chat.ChatMarkdown
+import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.Dimens
 
 @Composable
 fun MemoryDetailScreen(
     viewModel: MemoryViewModel,
     relativePath: String,
+    showRaw: Boolean,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -25,29 +27,40 @@ fun MemoryDetailScreen(
         viewModel.readFile(relativePath)
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(Dimens.ScreenPadding)
-            .verticalScroll(rememberScrollState())
-    ) {
-        if (content.isEmpty()) {
-            Text(
-                text = "Empty file",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        } else {
-            Text(
-                text = content,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
+    val scrollState = rememberScrollState()
+    val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+
+    if (content.isEmpty()) {
+        Text(
+            text = "Empty file",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = modifier.padding(Dimens.ScreenPadding)
+        )
+    } else if (showRaw) {
+        Text(
+            text = content,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontFamily = FontFamily.Monospace,
+                fontSize = 14.sp,
+                lineHeight = 20.sp
+            ),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = modifier
+                .fillMaxSize()
+                .drawColumnScrollbar(scrollState, scrollbarColor)
+                .verticalScroll(scrollState)
+                .padding(Dimens.ScreenPadding)
+        )
+    } else {
+        ChatMarkdown(
+            text = content,
+            modifier = modifier
+                .fillMaxSize()
+                .drawColumnScrollbar(scrollState, scrollbarColor)
+                .verticalScroll(scrollState)
+                .padding(Dimens.ScreenPadding)
+        )
     }
 
     if (showDeleteConfirm) {

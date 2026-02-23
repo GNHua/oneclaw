@@ -9,7 +9,7 @@
   "tools": [
     {
       "name": "gmail_search",
-      "description": "Search Gmail messages using Gmail query syntax. Returns a list of matching emails with id, threadId, subject, from, date, and snippet. Example queries: 'from:user@example.com', 'subject:meeting', 'is:unread', 'newer_than:1d'.",
+      "description": "Search Gmail messages using Gmail query syntax. Returns a list of matching emails with id, threadId, subject, from, date, and snippet. Example queries: 'in:inbox' (list recent inbox), 'from:user@example.com', 'subject:meeting', 'is:unread', 'newer_than:1d'.",
       "parameters": {
         "type": "object",
         "properties": {

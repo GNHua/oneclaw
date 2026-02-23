@@ -14,6 +14,7 @@ import androidx.work.ForegroundInfo
 import com.tomandy.oneclaw.scheduler.AgentExecutor
 import com.tomandy.oneclaw.scheduler.CronjobManager
 import com.tomandy.oneclaw.scheduler.R
+import com.tomandy.oneclaw.scheduler.TaskExecutionResult
 import com.tomandy.oneclaw.scheduler.data.ExecutionStatus
 
 class AgentTaskWorker(
@@ -46,18 +47,19 @@ class AgentTaskWorker(
         val logId = cronjobManager.recordExecutionStart(cronjobId)
 
         return try {
-            val result = executeAgentTask(cronjob.instruction)
+            val taskResult = executeAgentTask(cronjob.instruction)
 
             // Record successful execution
             cronjobManager.recordExecutionComplete(
                 logId = logId,
                 status = ExecutionStatus.SUCCESS,
-                resultSummary = result
+                resultSummary = taskResult.summary,
+                conversationId = taskResult.conversationId
             )
 
             // Send notification if enabled
             if (cronjob.notifyOnCompletion) {
-                sendCompletionNotification(displayName, result, cronjob.conversationId)
+                sendCompletionNotification(displayName, taskResult.summary, cronjob.conversationId)
             }
 
             Result.success()
@@ -138,7 +140,7 @@ class AgentTaskWorker(
         notificationManager.deleteNotificationChannel("cronjob_result_channel")
     }
 
-    private suspend fun executeAgentTask(instruction: String): String {
+    private suspend fun executeAgentTask(instruction: String): TaskExecutionResult {
         val result = agentExecutor.executeTask(
             instruction = instruction,
             cronjobId = inputData.getString(KEY_CRONJOB_ID) ?: "",

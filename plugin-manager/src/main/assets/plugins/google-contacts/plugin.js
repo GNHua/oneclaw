@@ -22,6 +22,9 @@ async function peopleFetch(method, path, body) {
         headers
     );
     var resp = JSON.parse(raw);
+    if (resp.error) {
+        throw new Error("Contacts request failed: " + resp.error);
+    }
     if (resp.status >= 400) {
         throw new Error("People API error (HTTP " + resp.status + "): " + resp.body);
     }
@@ -286,7 +289,8 @@ async function execute(toolName, args) {
 
                     return { output: JSON.stringify(contacts, null, 2) };
                 } catch (e) {
-                    if (e.message.indexOf("403") !== -1 || e.message.indexOf("PERMISSION_DENIED") !== -1) {
+                    var emsg = (e && e.message) ? e.message : String(e || "");
+                    if (emsg.indexOf("403") !== -1 || emsg.indexOf("PERMISSION_DENIED") !== -1) {
                         return { output: "Directory listing is only available for Google Workspace accounts. This appears to be a consumer Google account." };
                     }
                     throw e;
@@ -297,7 +301,8 @@ async function execute(toolName, args) {
                 return { error: "Unknown tool: " + toolName };
         }
     } catch (e) {
-        oneclaw.log.error("contacts error: " + e.message);
-        return { error: e.message };
+        var msg = (e && e.message) ? e.message : String(e || "Unknown error");
+        oneclaw.log.error("contacts error: " + msg);
+        return { error: msg };
     }
 }

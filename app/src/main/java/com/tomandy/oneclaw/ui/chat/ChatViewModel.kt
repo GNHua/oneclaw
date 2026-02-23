@@ -14,6 +14,7 @@ import com.tomandy.oneclaw.data.dao.MessageDao
 import com.tomandy.oneclaw.data.entity.ConversationEntity
 import com.tomandy.oneclaw.data.entity.MessageEntity
 import com.tomandy.oneclaw.llm.NetworkConfig
+import com.tomandy.oneclaw.service.ChatExecutionManager
 import com.tomandy.oneclaw.service.ChatExecutionService
 import com.tomandy.oneclaw.service.ChatExecutionTracker
 import com.tomandy.oneclaw.skill.SkillRepository
@@ -35,6 +36,7 @@ class ChatViewModel(
     private val conversationPreferences: ConversationPreferences,
     private val modelPreferences: ModelPreferences,
     private val appContext: Context,
+    private val executionManager: ChatExecutionManager,
     private val slashCommandRouter: SlashCommandRouter,
     private val skillRepository: SkillRepository,
     private val agentProfileRepository: AgentProfileRepository,
@@ -317,7 +319,7 @@ class ChatViewModel(
     }
 
     fun cancelRequest() {
-        ChatExecutionService.cancelExecutionDirect(_conversationId.value)
+        executionManager.cancelExecution(_conversationId.value)
     }
 
     fun newConversation() {

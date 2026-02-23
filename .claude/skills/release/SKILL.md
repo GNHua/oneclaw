@@ -23,7 +23,8 @@ Usage: `/release <version>` (e.g., `/release 1.0.2`)
 
 ## Steps
 
-1. **Update docs** -- before building, review and update based on changes since the last release:
+1. **Update docs and skills** -- before building, review and update based on changes since the last release:
+   - `skill-engine/src/main/assets/skills/about-oneclaw/SKILL.md` -- the LLM's knowledge base about OneClaw; update to reflect any new modules, tools, architecture changes, data flow updates, or config changes
    - `README.md` -- ensure feature list, install instructions, and screenshots reflect the current state
    - `docs/index.md` -- landing page (install instructions, provider list, screenshots, doc links)
    - `docs/reference.md` -- plugin & skill reference (add new plugins/tools, update counts, fix categories)

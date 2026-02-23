@@ -27,6 +27,9 @@ class AgentProfilesViewModel(
 
     val profiles: StateFlow<List<AgentProfileEntry>> = agentProfileRepository.profiles
 
+    /** Draft text shared with SystemPromptEditorScreen via ViewModel scoping. */
+    var draftSystemPrompt: String = ""
+
     init {
         agentProfileRepository.reload()
     }
@@ -51,11 +54,13 @@ class AgentProfilesViewModel(
         model: String?,
         allowedTools: List<String>?,
         enabledSkills: List<String>?,
+        temperature: Float,
+        maxIterations: Int,
         originalName: String? = null
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val content = buildAgentMd(name, description, model, allowedTools, enabledSkills, systemPrompt)
+                val content = buildAgentMd(name, description, model, allowedTools, enabledSkills, temperature, maxIterations, systemPrompt)
                 AgentProfileParser.parse(content)
                 userAgentsDir.mkdirs()
                 // Handle rename: delete old file if name changed
@@ -100,6 +105,8 @@ class AgentProfilesViewModel(
         model: String?,
         allowedTools: List<String>?,
         enabledSkills: List<String>?,
+        temperature: Float,
+        maxIterations: Int,
         systemPrompt: String
     ): String = buildString {
         appendLine("---")
@@ -112,6 +119,8 @@ class AgentProfilesViewModel(
         if (enabledSkills != null) {
             appendLine("enabled-skills: [${enabledSkills.joinToString(", ") { "\"$it\"" }}]")
         }
+        appendLine("temperature: $temperature")
+        appendLine("max-iterations: $maxIterations")
         appendLine("---")
         appendLine()
         append(systemPrompt)

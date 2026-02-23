@@ -39,5 +39,10 @@ data class ExecutionLog(
     /**
      * Error message if execution failed
      */
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+
+    /**
+     * Conversation ID from the agent execution (for viewing the full conversation)
+     */
+    val conversationId: String? = null
 )

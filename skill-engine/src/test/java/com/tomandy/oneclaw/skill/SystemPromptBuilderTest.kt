@@ -11,11 +11,14 @@ class SystemPromptBuilderTest {
         name: String = "test",
         description: String = "A test skill",
         disableModelInvocation: Boolean = false,
-        filePath: String? = "/path/to/SKILL.md"
+        filePath: String? = "/path/to/SKILL.md",
+        source: SkillSource = SkillSource.BUNDLED,
+        baseDir: String? = null
     ) = SkillEntry(
         metadata = SkillMetadata(name, description, disableModelInvocation),
-        source = SkillSource.BUNDLED,
-        filePath = filePath
+        source = source,
+        filePath = filePath,
+        baseDir = baseDir
     )
 
     @Test
@@ -37,8 +40,8 @@ class SystemPromptBuilderTest {
     }
 
     @Test
-    fun `buildSkillsBlock generates XML with name description and location`() {
-        val skills = listOf(skill(name = "my-skill", description = "Does things", filePath = "/skills/my-skill/SKILL.md"))
+    fun `buildSkillsBlock generates XML with name and description`() {
+        val skills = listOf(skill(name = "my-skill", description = "Does things"))
 
         val result = SystemPromptBuilder.buildSkillsBlock(skills)
 
@@ -46,12 +49,46 @@ class SystemPromptBuilderTest {
         assertTrue(result.contains("</available_skills>"))
         assertTrue(result.contains("<name>my-skill</name>"))
         assertTrue(result.contains("<description>Does things</description>"))
-        assertTrue(result.contains("<location>/skills/my-skill/SKILL.md</location>"))
     }
 
     @Test
-    fun `buildSkillsBlock omits location tag when filePath is null`() {
-        val skills = listOf(skill(filePath = null))
+    fun `buildSkillsBlock includes workspace location for user skills`() {
+        val skills = listOf(skill(
+            name = "my-skill",
+            filePath = "skills/my-skill/SKILL.md",
+            source = SkillSource.USER
+        ))
+
+        val result = SystemPromptBuilder.buildSkillsBlock(skills)
+
+        assertTrue(result.contains("<location>skills/my-skill/SKILL.md</location>"))
+    }
+
+    @Test
+    fun `buildSkillsBlock includes bundled-skills location for bundled skills`() {
+        val skills = listOf(skill(
+            name = "explain",
+            source = SkillSource.BUNDLED,
+            baseDir = "explain"
+        ))
+
+        val result = SystemPromptBuilder.buildSkillsBlock(skills)
+
+        assertTrue(result.contains("<location>bundled-skills/skills/explain/SKILL.md</location>"))
+    }
+
+    @Test
+    fun `buildSkillsBlock omits location for bundled skills without baseDir`() {
+        val skills = listOf(skill(source = SkillSource.BUNDLED, baseDir = null))
+
+        val result = SystemPromptBuilder.buildSkillsBlock(skills)
+
+        assertFalse(result.contains("<location>"))
+    }
+
+    @Test
+    fun `buildSkillsBlock omits location when filePath is null for user skills`() {
+        val skills = listOf(skill(filePath = null, source = SkillSource.USER))
 
         val result = SystemPromptBuilder.buildSkillsBlock(skills)
 

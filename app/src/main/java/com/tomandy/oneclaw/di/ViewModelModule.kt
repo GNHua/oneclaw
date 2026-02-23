@@ -2,7 +2,6 @@ package com.tomandy.oneclaw.di
 
 import com.tomandy.oneclaw.backup.BackupViewModel
 import com.tomandy.oneclaw.engine.GoogleAuthProvider
-import com.tomandy.oneclaw.engine.PluginEngine
 import com.tomandy.oneclaw.llm.LlmClientProvider
 import com.tomandy.oneclaw.plugin.PluginCoordinator
 import com.tomandy.oneclaw.ui.chat.ChatViewModel
@@ -24,6 +23,7 @@ val viewModelModule = module {
             conversationPreferences = get(),
             modelPreferences = get(),
             appContext = androidContext(),
+            executionManager = get(),
             slashCommandRouter = get(),
             skillRepository = get(),
             agentProfileRepository = get(),
@@ -61,7 +61,7 @@ val viewModelModule = module {
         )
     }
 
-    viewModel { CronjobsViewModel(cronjobManager = get()) }
+    viewModel { CronjobsViewModel(cronjobManager = get(), messageDao = get()) }
 
     viewModel {
         ConversationHistoryViewModel(

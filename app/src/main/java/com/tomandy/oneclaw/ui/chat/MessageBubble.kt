@@ -55,7 +55,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import android.util.Log
 import androidx.core.content.FileProvider
@@ -146,114 +145,121 @@ fun MessageBubble(
         } ?: emptyList()
     }
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
-    ) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = if (isUser) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
-            },
-            modifier = Modifier
-                .widthIn(max = 340.dp)
-                .combinedClickable(
-                    onClick = {},
-                    onLongClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
-                        Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
-                    }
+    val contentColor = if (isUser) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onBackground
+    }
+
+    @Composable
+    fun MessageContent() {
+        // Show attached images
+        if (imagePaths.isNotEmpty()) {
+            imagePaths.forEach { path ->
+                MessageImageThumbnail(filePath = path)
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Show attached audio
+        if (audioPaths.isNotEmpty()) {
+            audioPaths.forEach { path ->
+                AudioPlayerBar(
+                    filePath = path,
+                    accentColor = contentColor,
+                    textColor = contentColor
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Show attached videos
+        if (videoPaths.isNotEmpty()) {
+            videoPaths.forEach { path ->
+                MessageVideoThumbnail(filePath = path)
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Show attached documents
+        if (documentMetas.isNotEmpty()) {
+            documentMetas.forEach { doc ->
+                MessageDocumentChip(
+                    filePath = doc.path,
+                    displayName = doc.name,
+                    mimeType = doc.mimeType,
+                    tintColor = contentColor
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        if (!toolCalls.isNullOrEmpty()) {
+            ToolCallsSection(
+                toolCalls = toolCalls,
+                toolResults = toolResults,
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else if (message.content.isNotBlank()) {
+            ChatMarkdown(
+                text = message.content,
+                textColor = contentColor
+            )
+        }
+    }
+
+    if (isUser) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.End
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                // Show attached images
-                if (imagePaths.isNotEmpty()) {
-                    imagePaths.forEach { path ->
-                        MessageImageThumbnail(filePath = path)
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                }
-
-                // Show attached audio
-                if (audioPaths.isNotEmpty()) {
-                    audioPaths.forEach { path ->
-                        AudioPlayerBar(
-                            filePath = path,
-                            accentColor = if (isUser) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                            textColor = if (isUser) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                }
-
-                // Show attached videos
-                if (videoPaths.isNotEmpty()) {
-                    videoPaths.forEach { path ->
-                        MessageVideoThumbnail(filePath = path)
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                }
-
-                // Show attached documents
-                if (documentMetas.isNotEmpty()) {
-                    documentMetas.forEach { doc ->
-                        MessageDocumentChip(
-                            filePath = doc.path,
-                            displayName = doc.name,
-                            mimeType = doc.mimeType,
-                            tintColor = if (isUser) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                }
-
-                if (!toolCalls.isNullOrEmpty()) {
-                    // Tool-call-only bubble
-                    ToolCallsSection(
-                        toolCalls = toolCalls,
-                        toolResults = toolResults,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else if (message.content.isNotBlank()) {
-                    CollapsibleMarkdown(
-                        text = message.content,
-                        textColor = if (isUser) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier
+                    .widthIn(max = 340.dp)
+                    .combinedClickable(
+                        onClick = {},
+                        onLongClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
+                            Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
                         }
                     )
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    MessageContent()
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = formatTimestamp(message.timestamp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Timestamp
-                Text(
-                    text = formatTimestamp(message.timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isUser) {
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    }
-                )
+            }
+        }
+    } else {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .combinedClickable(
+                        onClick = {},
+                        onLongClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
+                            Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+            ) {
+                MessageContent()
             }
         }
     }
@@ -515,44 +521,3 @@ private fun MessageDocumentChip(
     }
 }
 
-private const val COLLAPSE_THRESHOLD = 500
-
-@Composable
-private fun CollapsibleMarkdown(
-    text: String,
-    textColor: Color,
-    modifier: Modifier = Modifier
-) {
-    val isLong = text.length > COLLAPSE_THRESHOLD
-    var expanded by remember(text) { mutableStateOf(!isLong) }
-
-    val displayText = if (expanded) {
-        text
-    } else {
-        text.take(COLLAPSE_THRESHOLD).let {
-            // Trim to last newline or space to avoid cutting mid-word
-            val cutoff = it.lastIndexOf('\n').coerceAtLeast(it.lastIndexOf(' '))
-            if (cutoff > COLLAPSE_THRESHOLD / 2) it.take(cutoff) else it
-        } + "..."
-    }
-
-    Column(modifier = modifier) {
-        ChatMarkdown(
-            text = displayText,
-            textColor = textColor
-        )
-
-        if (isLong) {
-            Text(
-                text = if (expanded) "Show less" else "Show more",
-                style = MaterialTheme.typography.labelSmall,
-                color = textColor.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(top = 4.dp)
-            )
-        }
-    }
-}

@@ -46,6 +46,7 @@ layout: default
 | OpenAI | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
 | Anthropic | [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) |
 | Google Gemini | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+| Google Antigravity | OAuth login (no API key needed) |
 
 Any OpenAI-compatible API endpoint is also supported via custom base URL configuration.
 
@@ -62,24 +63,18 @@ The debug APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/chat-1.png" width="220" alt="Chat conversation">
+  <img src="screenshots/screenshot-1.png" width="220" alt="Chat with tool execution">
   &nbsp;&nbsp;
-  <img src="screenshots/chat-2.png" width="220" alt="Tool execution in chat">
+  <img src="screenshots/screenshot-2.png" width="220" alt="Conversation history">
   &nbsp;&nbsp;
-  <img src="screenshots/tool-call.png" width="220" alt="Tool call details">
-</p>
-
-<p align="center">
-  <img src="screenshots/scheduled-task.png" width="220" alt="Scheduled tasks">
+  <img src="screenshots/screenshot-3.png" width="220" alt="Scheduled tasks">
   &nbsp;&nbsp;
-  <img src="screenshots/settings.png" width="220" alt="Settings">
-  &nbsp;&nbsp;
-  <img src="screenshots/plugins.png" width="220" alt="Plugin management">
+  <img src="screenshots/screenshot-4.png" width="220" alt="Settings">
 </p>
 
 ## Documentation
 
-- [Plugin & Skill Reference](plugins-skills) -- Complete reference for all 35 plugins and 168 tools
+- [Plugin & Skill Reference](plugins-skills) -- Complete reference for all 35 plugins and 170 tools
 - [Memory System](memory) -- How OneClaw stores and retrieves context across conversations
 - [Skill Loading Architecture](skill-loading) -- How skills are discovered, loaded, and injected
 

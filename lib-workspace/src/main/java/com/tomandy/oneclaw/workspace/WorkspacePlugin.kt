@@ -1,5 +1,6 @@
 package com.tomandy.oneclaw.workspace
 
+import android.content.res.AssetManager
 import com.dokar.quickjs.QuickJs
 import com.dokar.quickjs.evaluate
 import com.tomandy.oneclaw.engine.Plugin
@@ -13,12 +14,14 @@ class WorkspacePlugin : Plugin {
 
     private lateinit var workspaceRoot: File
     private lateinit var ops: WorkspaceOperations
+    private lateinit var assets: AssetManager
 
     override suspend fun onLoad(context: PluginContext) {
         workspaceRoot = File(
             context.getApplicationContext().filesDir, "workspace"
         ).also { it.mkdirs() }
         ops = WorkspaceOperations(workspaceRoot)
+        assets = context.getApplicationContext().assets
     }
 
     override suspend fun execute(toolName: String, arguments: JsonObject): ToolResult {
@@ -39,6 +42,12 @@ class WorkspacePlugin : Plugin {
         return try {
             val path = arguments["path"]?.jsonPrimitive?.content
                 ?: return ToolResult.Failure("Missing required field: path")
+
+            // Bundled assets (read-only, from APK)
+            if (path.startsWith(BUNDLED_PREFIX)) {
+                return readBundledAsset(path, arguments)
+            }
+
             val offset = arguments["offset"]?.jsonPrimitive?.intOrNull ?: 1
             val limit = arguments["limit"]?.jsonPrimitive?.intOrNull
                 ?: WorkspaceOperations.MAX_READ_LINES
@@ -68,6 +77,38 @@ class WorkspacePlugin : Plugin {
             ToolResult.Failure("Security error: ${e.message}")
         } catch (e: Exception) {
             ToolResult.Failure("Failed to read file: ${e.message}", e)
+        }
+    }
+
+    private fun readBundledAsset(path: String, arguments: JsonObject): ToolResult {
+        return try {
+            val assetPath = path.removePrefix(BUNDLED_PREFIX)
+            val content = assets.open(assetPath).bufferedReader().use { it.readText() }
+
+            val offset = arguments["offset"]?.jsonPrimitive?.intOrNull ?: 1
+            val limit = arguments["limit"]?.jsonPrimitive?.intOrNull
+                ?: WorkspaceOperations.MAX_READ_LINES
+            val lines = content.lines()
+            val selected = lines.drop(offset - 1).take(limit)
+            val formatted = selected.mapIndexed { i, line ->
+                String.format("%6d\t%s", offset + i, line)
+            }.joinToString("\n")
+            val truncated = selected.size < lines.size - (offset - 1)
+
+            val truncationNote = if (truncated) {
+                "\n\n[Output truncated. Total lines: ${lines.size}. " +
+                    "Use offset/limit to read remaining content.]"
+            } else ""
+
+            ToolResult.Success(
+                output = formatted + truncationNote,
+                metadata = mapOf(
+                    "total_lines" to lines.size.toString(),
+                    "bytes_read" to content.length.toString()
+                )
+            )
+        } catch (e: Exception) {
+            ToolResult.Failure("File not found: $path")
         }
     }
 
@@ -240,5 +281,9 @@ class WorkspacePlugin : Plugin {
         } catch (e: Exception) {
             ToolResult.Failure("Failed to list files: ${e.message}", e)
         }
+    }
+
+    companion object {
+        const val BUNDLED_PREFIX = "bundled-skills/"
     }
 }

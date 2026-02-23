@@ -23,7 +23,10 @@ object SchedulerPluginMetadata {
             tools = listOf(
                 scheduleTaskTool(),
                 listScheduledTasksTool(),
-                cancelScheduledTaskTool()
+                runScheduledTaskTool(),
+                cancelScheduledTaskTool(),
+                updateScheduledTaskTool(),
+                deleteScheduledTaskTool()
             ),
             permissions = listOf(
                 "SCHEDULE_EXACT_ALARM",
@@ -134,6 +137,33 @@ object SchedulerPluginMetadata {
     )
 
     /**
+     * Tool definition for run_scheduled_task
+     */
+    private fun runScheduledTaskTool() = ToolDefinition(
+        name = "run_scheduled_task",
+        description = """Run a scheduled task immediately.
+            |
+            |Triggers the task to execute right now, as if its scheduled time had arrived.
+            |The task runs in the background in its own conversation (same as normal scheduled execution).
+            |You will get a confirmation that the task was triggered; results appear in the task's conversation.
+            |
+            |The task must exist and be enabled. Use list_scheduled_tasks to find task IDs.
+        """.trimMargin(),
+        parameters = buildJsonObject {
+            put("type", JsonPrimitive("object"))
+            putJsonObject("properties") {
+                putJsonObject("task_id") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive("The ID of the scheduled task to run immediately"))
+                }
+            }
+            putJsonArray("required") {
+                add(JsonPrimitive("task_id"))
+            }
+        }
+    )
+
+    /**
      * Tool definition for cancel_scheduled_task
      */
     private fun cancelScheduledTaskTool() = ToolDefinition(
@@ -149,6 +179,92 @@ object SchedulerPluginMetadata {
                 putJsonObject("task_id") {
                     put("type", JsonPrimitive("string"))
                     put("description", JsonPrimitive("The ID of the task to cancel"))
+                }
+            }
+            putJsonArray("required") {
+                add(JsonPrimitive("task_id"))
+            }
+        }
+    )
+
+    /**
+     * Tool definition for update_scheduled_task
+     */
+    private fun updateScheduledTaskTool() = ToolDefinition(
+        name = "update_scheduled_task",
+        description = """Update an existing scheduled task.
+            |
+            |Modify any combination of a task's title, instruction, schedule, max executions, or enabled status.
+            |Only provided fields are changed; omitted fields keep their current values.
+            |Use list_scheduled_tasks to get the task_id of tasks you want to update.
+        """.trimMargin(),
+        parameters = buildJsonObject {
+            put("type", JsonPrimitive("object"))
+            putJsonObject("properties") {
+                putJsonObject("task_id") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive("The ID of the task to update"))
+                }
+                putJsonObject("title") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive("New title for the task"))
+                }
+                putJsonObject("instruction") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive("New instruction for the task"))
+                }
+                putJsonObject("schedule_type") {
+                    put("type", JsonPrimitive("string"))
+                    putJsonArray("enum") {
+                        add(JsonPrimitive("one_time"))
+                        add(JsonPrimitive("recurring"))
+                    }
+                    put("description", JsonPrimitive("New schedule type"))
+                }
+                putJsonObject("execute_at") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive("For one_time tasks: local datetime without timezone suffix (e.g., '2026-02-12T18:00:00')"))
+                }
+                putJsonObject("interval_minutes") {
+                    put("type", JsonPrimitive("integer"))
+                    put("description", JsonPrimitive("For recurring tasks: interval in minutes (minimum 15)"))
+                    put("minimum", JsonPrimitive(15))
+                }
+                putJsonObject("cron_expression") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive("For recurring tasks: Unix cron expression"))
+                }
+                putJsonObject("max_executions") {
+                    put("type", JsonPrimitive("integer"))
+                    put("description", JsonPrimitive("Auto-disable after N executions (null to remove limit)"))
+                }
+                putJsonObject("enabled") {
+                    put("type", JsonPrimitive("boolean"))
+                    put("description", JsonPrimitive("Enable or disable the task"))
+                }
+            }
+            putJsonArray("required") {
+                add(JsonPrimitive("task_id"))
+            }
+        }
+    )
+
+    /**
+     * Tool definition for delete_scheduled_task
+     */
+    private fun deleteScheduledTaskTool() = ToolDefinition(
+        name = "delete_scheduled_task",
+        description = """Permanently delete a scheduled task and all its execution history.
+            |
+            |Unlike cancel_scheduled_task which only disables the task, this completely removes it.
+            |Use list_scheduled_tasks to get the task_id of tasks you want to delete.
+        """.trimMargin(),
+        parameters = buildJsonObject {
+            put("type", JsonPrimitive("object"))
+            putJsonObject("properties") {
+                putJsonObject("task_id") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive("The ID of the task to permanently delete"))
                 }
             }
             putJsonArray("required") {

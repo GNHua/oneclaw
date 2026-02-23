@@ -76,6 +76,10 @@ class SettingsViewModel(
         }
     }
 
+    fun refreshPlugins() {
+        loadPlugins()
+    }
+
     private fun loadPlugins() {
         val userPluginIds = userPluginManager.getUserPluginIds()
         _plugins.value = pluginEngine.getAllPlugins().map { loaded ->
@@ -114,10 +118,11 @@ class SettingsViewModel(
                 )
                 state.metadata.id in PLUGIN_CREDENTIAL_IDS &&
                     isPluginMissingCredentials(state) -> state.copy(
-                    toggleable = false,
-                    toggleDisabledReason = "Requires API key configuration"
+                    toggleable = true,
+                    toggleDisabledReason = null,
+                    needsCredentials = true
                 )
-                else -> state.copy(toggleable = true, toggleDisabledReason = null)
+                else -> state.copy(toggleable = true, toggleDisabledReason = null, needsCredentials = false)
             }
         }
     }
@@ -346,6 +351,13 @@ class SettingsViewModel(
     }
 
     /**
+     * Gets the saved API key for a specific provider.
+     */
+    suspend fun getApiKey(provider: String): String {
+        return credentialVault.getApiKey(provider) ?: ""
+    }
+
+    /**
      * Saves a plugin-specific credential.
      */
     fun savePluginCredential(pluginId: String, key: String, value: String) {
@@ -421,5 +433,6 @@ data class PluginUiState(
     val enabled: Boolean,
     val isUserPlugin: Boolean = false,
     val toggleable: Boolean = true,
-    val toggleDisabledReason: String? = null
+    val toggleDisabledReason: String? = null,
+    val needsCredentials: Boolean = false
 )

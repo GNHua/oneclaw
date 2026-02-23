@@ -91,6 +91,22 @@ class CronjobManager(
     }
 
     /**
+     * Update an existing cronjob: cancel old schedule, persist changes, reschedule if enabled
+     */
+    suspend fun update(updated: CronjobEntity) {
+        validate(updated)
+        cancel(updated.id)
+        cronjobDao.update(updated)
+        if (updated.enabled) {
+            when (updated.scheduleType) {
+                ScheduleType.ONE_TIME -> scheduleOneTime(updated)
+                ScheduleType.RECURRING -> scheduleRecurring(updated)
+                ScheduleType.CONDITIONAL -> scheduleRecurring(updated.copy(intervalMinutes = 15))
+            }
+        }
+    }
+
+    /**
      * Delete a cronjob completely
      */
     suspend fun delete(cronjobId: String) {
@@ -149,13 +165,21 @@ class CronjobManager(
     }
 
     /**
+     * Get execution logs for a specific cronjob with pagination
+     */
+    suspend fun getExecutionLogsPaged(cronjobId: String, limit: Int, offset: Int): List<ExecutionLog> {
+        return executionLogDao.getLogsForCronjobPaged(cronjobId, limit, offset)
+    }
+
+    /**
      * Record the start of a cronjob execution
      */
-    suspend fun recordExecutionStart(cronjobId: String): Long {
+    suspend fun recordExecutionStart(cronjobId: String, conversationId: String? = null): Long {
         val log = ExecutionLog(
             cronjobId = cronjobId,
             startedAt = System.currentTimeMillis(),
-            status = ExecutionStatus.SUCCESS
+            status = ExecutionStatus.SUCCESS,
+            conversationId = conversationId
         )
         return executionLogDao.insert(log)
     }
@@ -167,7 +191,8 @@ class CronjobManager(
         logId: Long,
         status: ExecutionStatus,
         resultSummary: String? = null,
-        errorMessage: String? = null
+        errorMessage: String? = null,
+        conversationId: String? = null
     ) {
         val log = executionLogDao.getById(logId) ?: return
         executionLogDao.update(
@@ -175,7 +200,8 @@ class CronjobManager(
                 completedAt = System.currentTimeMillis(),
                 status = status,
                 resultSummary = resultSummary,
-                errorMessage = errorMessage
+                errorMessage = errorMessage,
+                conversationId = conversationId ?: log.conversationId
             )
         )
 

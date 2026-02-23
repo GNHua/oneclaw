@@ -12,10 +12,10 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ConversationDao {
-    @Query("SELECT * FROM conversations ORDER BY updatedAt DESC")
+    @Query("SELECT * FROM conversations WHERE id NOT LIKE 'scheduled_%' ORDER BY updatedAt DESC")
     fun getAllConversations(): Flow<List<ConversationEntity>>
 
-    @Query("SELECT * FROM conversations ORDER BY updatedAt DESC")
+    @Query("SELECT * FROM conversations WHERE id NOT LIKE 'scheduled_%' ORDER BY updatedAt DESC")
     fun getAllConversationsPaged(): PagingSource<Int, ConversationEntity>
 
     @Query("SELECT * FROM conversations WHERE id = :id")

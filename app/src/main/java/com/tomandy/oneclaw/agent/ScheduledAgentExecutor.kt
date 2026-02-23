@@ -1,11 +1,15 @@
 package com.tomandy.oneclaw.agent
 
 import com.tomandy.oneclaw.agent.profile.AgentProfileRepository
+import com.tomandy.oneclaw.agent.profile.DEFAULT_MAX_ITERATIONS
+import com.tomandy.oneclaw.agent.profile.DEFAULT_TEMPERATURE
 import com.tomandy.oneclaw.data.AppDatabase
 import com.tomandy.oneclaw.data.ModelPreferences
 import com.tomandy.oneclaw.data.entity.ConversationEntity
 import com.tomandy.oneclaw.llm.LlmClientProvider
+import com.tomandy.oneclaw.llm.LlmProvider
 import com.tomandy.oneclaw.scheduler.AgentExecutor
+import com.tomandy.oneclaw.scheduler.TaskExecutionResult
 import com.tomandy.oneclaw.service.MemoryBootstrap
 import com.tomandy.oneclaw.skill.SkillRepository
 import com.tomandy.oneclaw.skill.SystemPromptBuilder
@@ -28,7 +32,7 @@ class ScheduledAgentExecutor(
         cronjobId: String,
         triggerTime: Long,
         conversationId: String?
-    ): Result<String> {
+    ): Result<TaskExecutionResult> {
         return try {
             skillRepository.reload()
             agentProfileRepository.reload()
@@ -61,12 +65,17 @@ class ScheduledAgentExecutor(
             val snapshotRegistry = toolRegistry.snapshot()
             val snapshotToolExecutor = ToolExecutor(snapshotRegistry, messageStore)
 
+            // Get preferences
+            val model = profile?.model
+                ?: modelPreferences.getSelectedModel() ?: ""
+
             val coordinator = AgentCoordinator(
                 clientProvider = { llmClientProvider.getCurrentLlmClient() },
                 toolRegistry = snapshotRegistry,
                 toolExecutor = snapshotToolExecutor,
                 messageStore = messageStore,
-                conversationId = tempConversationId
+                conversationId = tempConversationId,
+                contextWindow = LlmProvider.getContextWindow(model)
             )
 
             try {
@@ -75,11 +84,8 @@ class ScheduledAgentExecutor(
                     cronjobId = cronjobId,
                     triggerTime = triggerTime
                 )
-
-                // Get preferences
-                val model = profile?.model
-                    ?: modelPreferences.getSelectedModel() ?: ""
-                val temperature = modelPreferences.getTemperature()
+                val temperature = profile?.temperature ?: DEFAULT_TEMPERATURE
+                val maxIter = profile?.maxIterations ?: DEFAULT_MAX_ITERATIONS
 
                 // Build full system prompt with skills and memory
                 val basePrompt = profile?.systemPrompt
@@ -93,39 +99,46 @@ class ScheduledAgentExecutor(
                     memoryContext = memoryContext
                 )
 
+                // Persist user message to the temp conversation
+                messageStore.insert(
+                    MessageRecord(
+                        id = UUID.randomUUID().toString(),
+                        conversationId = tempConversationId,
+                        role = "user",
+                        content = instruction
+                    )
+                )
+
                 val result = coordinator.execute(
                     userMessage = instruction,
                     systemPrompt = systemPrompt,
                     model = model,
+                    maxIterations = if (maxIter >= 500) Int.MAX_VALUE else maxIter,
                     temperature = temperature,
                     context = context
                 )
 
-                // Post result to the original conversation
-                if (conversationId != null && result.isSuccess) {
+                // Persist final assistant response to the temp conversation
+                if (result.isSuccess) {
                     val summary = result.getOrNull() ?: ""
                     messageStore.insert(
                         MessageRecord(
                             id = UUID.randomUUID().toString(),
-                            conversationId = conversationId,
+                            conversationId = tempConversationId,
                             role = "assistant",
-                            content = "[Scheduled Task] $instruction\n\n$summary"
+                            content = summary
                         )
                     )
-                    // Update conversation metadata so the new message is visible
-                    conversationDao.getConversationOnce(conversationId)?.let { conv ->
-                        conversationDao.update(conv.copy(
-                            updatedAt = System.currentTimeMillis(),
-                            messageCount = conv.messageCount + 1,
-                            lastMessagePreview = summary.take(100)
-                        ))
-                    }
                 }
 
-                result
+                result.map { summary ->
+                    TaskExecutionResult(
+                        summary = summary,
+                        conversationId = tempConversationId
+                    )
+                }
             } finally {
                 coordinator.cleanup()
-                conversationDao.deleteById(tempConversationId)
             }
         } catch (e: Exception) {
             Result.failure(e)

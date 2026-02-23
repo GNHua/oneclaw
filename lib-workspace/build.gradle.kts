@@ -47,6 +47,9 @@ dependencies {
     // JSON Serialization
     implementation(libs.kotlinx.serialization.json)
 
+    // Gemini Embeddings (for semantic memory search)
+    implementation(libs.google.genai)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

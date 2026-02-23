@@ -25,11 +25,12 @@ object MemoryPluginMetadata {
 
     private fun searchMemoryTool() = ToolDefinition(
         name = "search_memory",
-        description = """Search across all memory files for a keyword or phrase.
+        description = """Search across all memory files using semantic similarity and keyword matching.
             |
             |Searches both the long-term memory (MEMORY.md) and all daily memory
-            |files (memory/*.md) for matching content. Returns snippets with
-            |file paths and line numbers.
+            |files (memory/*.md). When a Gemini API key is configured, uses vector
+            |embeddings for semantic search (e.g., "database choice" finds "PostgreSQL").
+            |Falls back to keyword matching when embeddings are unavailable.
         """.trimMargin(),
         parameters = buildJsonObject {
             put("type", JsonPrimitive("object"))
@@ -39,6 +40,22 @@ object MemoryPluginMetadata {
                     put(
                         "description",
                         JsonPrimitive("The search term or phrase to find in memory")
+                    )
+                }
+                putJsonObject("mode") {
+                    put("type", JsonPrimitive("string"))
+                    putJsonArray("enum") {
+                        add(JsonPrimitive("auto"))
+                        add(JsonPrimitive("keyword"))
+                        add(JsonPrimitive("semantic"))
+                    }
+                    put(
+                        "description",
+                        JsonPrimitive(
+                            "Search mode: auto (default, uses both semantic and keyword), " +
+                                "keyword (exact substring match only), " +
+                                "semantic (vector similarity only)"
+                        )
                     )
                 }
             }

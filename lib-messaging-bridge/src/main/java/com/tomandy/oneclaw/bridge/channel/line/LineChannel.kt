@@ -80,7 +80,8 @@ class LineChannel(
                     externalChatId = userId,
                     senderName = null,
                     senderId = userId,
-                    text = text
+                    text = text,
+                    messageId = message.id
                 )
             )
         }

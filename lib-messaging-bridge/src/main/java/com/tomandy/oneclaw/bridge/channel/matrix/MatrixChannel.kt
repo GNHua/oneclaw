@@ -133,7 +133,8 @@ class MatrixChannel(
                     externalChatId = roomId,
                     senderName = sender.substringBefore(':'),
                     senderId = sender,
-                    text = body
+                    text = body,
+                    messageId = event.eventId
                 )
             )
         }

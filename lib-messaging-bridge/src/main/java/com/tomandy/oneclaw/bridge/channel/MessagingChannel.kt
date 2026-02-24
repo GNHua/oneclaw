@@ -25,6 +25,8 @@ abstract class MessagingChannel(
     protected val conversationManager: BridgeConversationManager,
     protected val scope: CoroutineScope
 ) {
+    private val processedMessageIds = LinkedHashSet<String>()
+
     abstract suspend fun start()
     abstract suspend fun stop()
     abstract fun isRunning(): Boolean
@@ -32,6 +34,22 @@ abstract class MessagingChannel(
     protected open suspend fun sendTypingIndicator(externalChatId: String) {}
 
     protected suspend fun processInboundMessage(msg: ChannelMessage) {
+        // Deduplicate by message ID
+        val msgId = msg.messageId
+        if (msgId != null) {
+            synchronized(processedMessageIds) {
+                if (!processedMessageIds.add(msgId)) {
+                    Log.d(TAG, "Skipping duplicate message: $msgId")
+                    return
+                }
+                if (processedMessageIds.size > MAX_DEDUP_SIZE) {
+                    val iter = processedMessageIds.iterator()
+                    iter.next()
+                    iter.remove()
+                }
+            }
+        }
+
         // Persist last chat ID for broadcast
         preferences.setLastChatId(channelType, msg.externalChatId)
 
@@ -126,5 +144,6 @@ abstract class MessagingChannel(
     companion object {
         private const val TAG = "MessagingChannel"
         private const val TYPING_INTERVAL_MS = 4000L
+        private const val MAX_DEDUP_SIZE = 500
     }
 }

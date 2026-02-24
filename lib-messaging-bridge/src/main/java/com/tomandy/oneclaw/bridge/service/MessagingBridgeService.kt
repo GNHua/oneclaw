@@ -28,6 +28,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -38,6 +40,7 @@ class MessagingBridgeService : Service(), KoinComponent {
     private val conversationManager: BridgeConversationManager by inject()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val channelMutex = Mutex()
     private lateinit var preferences: BridgePreferences
     private val channels = mutableListOf<MessagingChannel>()
 
@@ -51,16 +54,18 @@ class MessagingBridgeService : Service(), KoinComponent {
         when (intent?.action) {
             ACTION_START -> {
                 startForeground(NOTIFICATION_ID, createNotification())
-                startEnabledChannels()
+                serviceScope.launch { startEnabledChannels() }
                 BridgeStateTracker.updateServiceRunning(true)
                 Log.i(TAG, "Messaging bridge service started")
             }
             ACTION_STOP -> {
-                stopAllChannels()
-                BridgeStateTracker.reset()
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
-                Log.i(TAG, "Messaging bridge service stopped")
+                serviceScope.launch {
+                    stopAllChannels()
+                    BridgeStateTracker.reset()
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                    Log.i(TAG, "Messaging bridge service stopped")
+                }
             }
         }
         return START_STICKY
@@ -74,8 +79,8 @@ class MessagingBridgeService : Service(), KoinComponent {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun startEnabledChannels() {
-        stopAllChannels()
+    private suspend fun startEnabledChannels() = channelMutex.withLock {
+        stopAllChannelsLocked()
 
         val mapper = ConversationMapper(conversationManager)
         val credentialProvider = BridgeCredentialProvider(applicationContext)
@@ -202,19 +207,21 @@ class MessagingBridgeService : Service(), KoinComponent {
         }
     }
 
-    private fun stopAllChannels() {
+    private suspend fun stopAllChannels() = channelMutex.withLock {
+        stopAllChannelsLocked()
+    }
+
+    private suspend fun stopAllChannelsLocked() {
         BridgeBroadcaster.clear()
-        serviceScope.launch {
-            channels.forEach { channel ->
-                try {
-                    channel.stop()
-                    BridgeStateTracker.removeChannelState(channel.channelType)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error stopping ${channel.channelType}", e)
-                }
+        channels.forEach { channel ->
+            try {
+                channel.stop()
+                BridgeStateTracker.removeChannelState(channel.channelType)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error stopping ${channel.channelType}", e)
             }
-            channels.clear()
         }
+        channels.clear()
     }
 
     private fun createNotificationChannel() {

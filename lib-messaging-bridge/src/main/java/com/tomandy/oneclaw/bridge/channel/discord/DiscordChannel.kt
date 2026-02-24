@@ -71,7 +71,8 @@ class DiscordChannel(
                     externalChatId = event.channelId,
                     senderName = event.author.username,
                     senderId = userId,
-                    text = text
+                    text = text,
+                    messageId = event.id
                 )
             )
         }

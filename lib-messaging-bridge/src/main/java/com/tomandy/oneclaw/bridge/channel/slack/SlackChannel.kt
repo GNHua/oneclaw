@@ -73,7 +73,8 @@ class SlackChannel(
                     externalChatId = channelId,
                     senderName = null,
                     senderId = userId,
-                    text = text
+                    text = text,
+                    messageId = event.ts?.let { "${channelId}_$it" }
                 )
             )
         }

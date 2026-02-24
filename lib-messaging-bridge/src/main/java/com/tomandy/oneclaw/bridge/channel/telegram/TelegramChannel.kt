@@ -106,7 +106,8 @@ class TelegramChannel(
                     externalChatId = chatId,
                     senderName = message.from?.firstName,
                     senderId = userId,
-                    text = text
+                    text = text,
+                    messageId = "${message.chat.id}_${message.messageId}"
                 )
             )
         }

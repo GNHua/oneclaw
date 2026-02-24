@@ -2,6 +2,7 @@ package com.tomandy.oneclaw.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -135,7 +136,7 @@ fun SkillEditorScreen(
         },
         modifier = modifier
     ) { paddingValues ->
-        Column(Modifier.fillMaxSize().padding(paddingValues)) {
+        Column(Modifier.fillMaxSize().padding(paddingValues).imePadding()) {
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
             val scrollState = rememberScrollState()

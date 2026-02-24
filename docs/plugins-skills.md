@@ -215,7 +215,7 @@ Searches `MEMORY.md` (long-term) and `memory/*.md` (daily/topic files). Returns 
 | `require_network` | boolean | no | false | Only run with network |
 | `require_charging` | boolean | no | false | Only run while charging |
 
-Uses AlarmManager for exact timing and WorkManager for recurring tasks. Minimum 15-minute interval due to Android battery optimization.
+Uses AlarmManager for exact timing and WorkManager for recurring tasks. Minimum 15-minute interval due to Android battery optimization. When a task completes, results are shown as an Android notification and forwarded to all active messaging bridge channels (Telegram, Discord, WebChat). Results are also inserted into the active conversation so the LLM has context for follow-up questions.
 
 **`list_scheduled_tasks`** -- List all scheduled tasks.
 

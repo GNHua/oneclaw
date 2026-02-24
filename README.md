@@ -67,6 +67,8 @@ All data stays on your device. You provide your own API keys. Nothing is collect
 
 **Media attachments** -- Attach images, audio, video, and PDFs to messages. Includes camera capture and speech-to-text.
 
+**Messaging bridge** -- Interact with OneClaw through Telegram, Discord, or WebChat. Scheduled task results are automatically forwarded to all active messaging channels.
+
 **Conversation summarization** -- Auto-summarizes long conversations to stay within context windows while preserving important information.
 
 **Security** -- API keys encrypted with hardware-backed Android KeyStore. All data stored locally. No telemetry.
@@ -92,6 +94,7 @@ OneClaw is a multi-module Kotlin project:
 | `lib-notification-media` | Notification and media control |
 | `lib-camera` | Headless photo capture via CameraX |
 | `lib-sms-phone` | SMS, phone dial, call log |
+| `lib-messaging-bridge` | Telegram, Discord, WebChat messaging channels |
 | `lib-voice-memo` | Audio recording and transcription |
 
 ### Key data flow

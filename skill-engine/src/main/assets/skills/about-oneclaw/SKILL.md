@@ -28,6 +28,7 @@ OneClaw is an open-source Android AI assistant (Apache 2.0) at `https://github.c
 | `lib-pdf` | PDF info, text extraction, page rendering | `lib-pdf/src/main/java/com/tomandy/oneclaw/pdf/` |
 | `lib-camera` | Headless photo capture via CameraX | `lib-camera/src/main/java/com/tomandy/oneclaw/camera/` |
 | `lib-sms-phone` | SMS send/list/search, phone dial, call log | `lib-sms-phone/src/main/java/com/tomandy/oneclaw/sms/` |
+| `lib-messaging-bridge` | Telegram, Discord, WebChat messaging channels | `lib-messaging-bridge/src/main/java/com/tomandy/oneclaw/bridge/` |
 | `lib-voice-memo` | Audio recording and transcription via OpenAI Whisper | `lib-voice-memo/src/main/java/com/tomandy/oneclaw/voicememo/` |
 
 ## Chat Execution Data Flow
@@ -172,6 +173,42 @@ These are good starting points -- but always verify paths via the tree API first
 ## Conversation Summarization
 
 Auto-triggers when prompt tokens exceed 80% of the context window. Old messages are summarized into a meta message prepended to the system prompt. A pre-summarization callback flushes important context to workspace memory files first.
+
+## Messaging Bridge
+
+`lib-messaging-bridge` provides external messaging channel support. Users can interact with OneClaw through Telegram, Discord, or a built-in WebChat server. The bridge runs as a foreground service (`MessagingBridgeService`) and manages channel lifecycles.
+
+### Architecture
+
+- `MessagingChannel` -- abstract base class for all channels (Telegram, Discord, WebChat)
+- `BridgeAgentExecutor` -- interface for triggering agent execution from bridge messages
+- `BridgeMessageObserver` -- interface for awaiting agent responses (implemented via Room Flow)
+- `ConversationMapper` -- resolves the active conversation for bridge messages
+- `BridgeBroadcaster` -- singleton that holds references to active channels and broadcasts messages to all of them
+
+### Inbound Message Flow
+
+1. External message arrives on a channel (Telegram poll, Discord gateway, WebSocket)
+2. `processInboundMessage()` inserts a user message into the active conversation
+3. `BridgeAgentExecutor` triggers agent execution
+4. `BridgeMessageObserver` awaits the assistant response
+5. Response is sent back to the originating channel
+
+### Scheduled Task Forwarding
+
+When a scheduled task completes, its results are forwarded to all active messaging channels:
+
+1. `AgentExecutionService` calls `TaskCompletionNotifier` (interface in `lib-scheduler`)
+2. `BridgeTaskCompletionNotifier` (in `app` module) implements the interface
+3. It inserts the task title and result into the active conversation (as user + assistant messages) so the LLM has context for follow-up questions
+4. It calls `BridgeBroadcaster.broadcast()` to send the result to all running channels
+
+Key files:
+- `lib-messaging-bridge/.../BridgeBroadcaster.kt` -- channel registry and broadcast
+- `lib-messaging-bridge/.../service/MessagingBridgeService.kt` -- foreground service
+- `lib-messaging-bridge/.../channel/MessagingChannel.kt` -- base channel class
+- `lib-scheduler/.../TaskCompletionNotifier.kt` -- callback interface
+- `app/.../bridge/BridgeTaskCompletionNotifier.kt` -- bridges scheduler to messaging channels
 
 ## Database
 

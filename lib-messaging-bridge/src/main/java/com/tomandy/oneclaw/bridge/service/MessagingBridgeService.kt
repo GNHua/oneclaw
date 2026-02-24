@@ -18,6 +18,9 @@ import com.tomandy.oneclaw.bridge.ConversationMapper
 import com.tomandy.oneclaw.bridge.R
 import com.tomandy.oneclaw.bridge.channel.MessagingChannel
 import com.tomandy.oneclaw.bridge.channel.discord.DiscordChannel
+import com.tomandy.oneclaw.bridge.channel.line.LineChannel
+import com.tomandy.oneclaw.bridge.channel.matrix.MatrixChannel
+import com.tomandy.oneclaw.bridge.channel.slack.SlackChannel
 import com.tomandy.oneclaw.bridge.channel.telegram.TelegramChannel
 import com.tomandy.oneclaw.bridge.channel.webchat.WebChatChannel
 import kotlinx.coroutines.CoroutineScope
@@ -132,6 +135,70 @@ class MessagingBridgeService : Service(), KoinComponent {
             BridgeBroadcaster.register(webchat)
             serviceScope.launch { webchat.start() }
             Log.i(TAG, "WebChat channel started on port $port")
+        }
+
+        if (preferences.isSlackEnabled()) {
+            val botToken = credentialProvider.getSlackBotToken()
+            val appToken = credentialProvider.getSlackAppToken()
+            if (!botToken.isNullOrBlank() && !appToken.isNullOrBlank()) {
+                val slack = SlackChannel(
+                    preferences = preferences,
+                    conversationMapper = mapper,
+                    agentExecutor = agentExecutor,
+                    messageObserver = messageObserver,
+                    conversationManager = conversationManager,
+                    scope = serviceScope,
+                    botToken = botToken,
+                    appToken = appToken
+                )
+                channels.add(slack)
+                BridgeBroadcaster.register(slack)
+                serviceScope.launch { slack.start() }
+                Log.i(TAG, "Slack channel started")
+            }
+        }
+
+        if (preferences.isMatrixEnabled()) {
+            val accessToken = credentialProvider.getMatrixAccessToken()
+            val homeserver = preferences.getMatrixHomeserver()
+            if (!accessToken.isNullOrBlank() && homeserver.isNotBlank()) {
+                val matrix = MatrixChannel(
+                    preferences = preferences,
+                    conversationMapper = mapper,
+                    agentExecutor = agentExecutor,
+                    messageObserver = messageObserver,
+                    conversationManager = conversationManager,
+                    scope = serviceScope,
+                    homeserverUrl = homeserver,
+                    accessToken = accessToken
+                )
+                channels.add(matrix)
+                BridgeBroadcaster.register(matrix)
+                serviceScope.launch { matrix.start() }
+                Log.i(TAG, "Matrix channel started")
+            }
+        }
+
+        if (preferences.isLineEnabled()) {
+            val lineAccessToken = credentialProvider.getLineChannelAccessToken()
+            val lineSecret = credentialProvider.getLineChannelSecret()
+            if (!lineAccessToken.isNullOrBlank() && !lineSecret.isNullOrBlank()) {
+                val line = LineChannel(
+                    preferences = preferences,
+                    conversationMapper = mapper,
+                    agentExecutor = agentExecutor,
+                    messageObserver = messageObserver,
+                    conversationManager = conversationManager,
+                    scope = serviceScope,
+                    channelAccessToken = lineAccessToken,
+                    channelSecret = lineSecret,
+                    webhookPort = preferences.getLineWebhookPort()
+                )
+                channels.add(line)
+                BridgeBroadcaster.register(line)
+                serviceScope.launch { line.start() }
+                Log.i(TAG, "LINE channel started on port ${preferences.getLineWebhookPort()}")
+            }
         }
     }
 

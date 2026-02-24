@@ -1,9 +1,9 @@
 package com.tomandy.oneclaw.bridge
 
 import com.tomandy.oneclaw.data.dao.MessageDao
+import com.tomandy.oneclaw.service.ChatExecutionTracker
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.withTimeout
 
 class RoomBridgeMessageObserver(
@@ -15,19 +15,45 @@ class RoomBridgeMessageObserver(
         afterTimestamp: Long,
         timeoutMs: Long
     ): BridgeMessage = withTimeout(timeoutMs) {
-        messageDao.getMessages(conversationId)
-            .map { messages ->
-                messages.lastOrNull { msg ->
-                    msg.role == "assistant" && msg.timestamp > afterTimestamp
-                }
+        // Combine message updates with execution state.
+        // Only return a result when:
+        // 1. There is a final assistant message (no toolCalls, non-empty content)
+        // 2. OR execution has finished (conversation no longer active)
+        combine(
+            messageDao.getMessages(conversationId),
+            ChatExecutionTracker.activeConversations
+        ) { messages, activeConversations ->
+            val executionDone = conversationId !in activeConversations
+
+            // Find the last assistant message that is a final response
+            // (not an intermediate tool-call message)
+            val finalMessage = messages.lastOrNull { msg ->
+                msg.role == "assistant" &&
+                    msg.timestamp > afterTimestamp &&
+                    msg.toolCalls.isNullOrBlank() &&
+                    msg.content.isNotBlank()
             }
-            .filterNotNull()
-            .first()
-            .let { entity ->
+
+            if (finalMessage != null) {
                 BridgeMessage(
-                    content = entity.content,
-                    timestamp = entity.timestamp
+                    content = finalMessage.content,
+                    timestamp = finalMessage.timestamp
                 )
+            } else if (executionDone) {
+                // Execution finished but no clean final message found.
+                // Fall back to the last assistant message regardless.
+                val lastAssistant = messages.lastOrNull { msg ->
+                    msg.role == "assistant" &&
+                        msg.timestamp > afterTimestamp &&
+                        msg.content.isNotBlank()
+                }
+                lastAssistant?.let {
+                    BridgeMessage(content = it.content, timestamp = it.timestamp)
+                }
+            } else {
+                null // Still executing, keep waiting
             }
+        }
+            .first { it != null }!!
     }
 }

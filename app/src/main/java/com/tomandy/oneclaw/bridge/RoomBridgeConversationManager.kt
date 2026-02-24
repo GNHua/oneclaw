@@ -1,5 +1,6 @@
 package com.tomandy.oneclaw.bridge
 
+import com.tomandy.oneclaw.data.ConversationPreferences
 import com.tomandy.oneclaw.data.dao.ConversationDao
 import com.tomandy.oneclaw.data.dao.MessageDao
 import com.tomandy.oneclaw.data.entity.ConversationEntity
@@ -8,8 +9,30 @@ import java.util.UUID
 
 class RoomBridgeConversationManager(
     private val conversationDao: ConversationDao,
-    private val messageDao: MessageDao
+    private val messageDao: MessageDao,
+    private val conversationPreferences: ConversationPreferences
 ) : BridgeConversationManager {
+
+    override fun getActiveConversationId(): String? {
+        return conversationPreferences.getActiveConversationId()
+    }
+
+    override suspend fun createNewConversation(): String {
+        val conversationId = UUID.randomUUID().toString()
+        val now = System.currentTimeMillis()
+        conversationDao.insert(
+            ConversationEntity(
+                id = conversationId,
+                title = "New Conversation",
+                createdAt = now,
+                updatedAt = now,
+                messageCount = 0,
+                lastMessagePreview = ""
+            )
+        )
+        conversationPreferences.setActiveConversationId(conversationId)
+        return conversationId
+    }
 
     override suspend fun createConversation(conversationId: String, title: String) {
         val now = System.currentTimeMillis()

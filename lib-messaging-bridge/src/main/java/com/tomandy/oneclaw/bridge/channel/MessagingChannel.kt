@@ -25,14 +25,24 @@ abstract class MessagingChannel(
     abstract fun isRunning(): Boolean
 
     protected suspend fun processInboundMessage(msg: ChannelMessage) {
+        // Handle /clear command: create a new conversation
+        if (msg.text.trim().equals("/clear", ignoreCase = true)) {
+            val newId = conversationMapper.createNewConversation()
+            sendResponse(
+                msg.externalChatId,
+                BridgeMessage(
+                    content = "New conversation started.",
+                    timestamp = System.currentTimeMillis()
+                )
+            )
+            Log.i(TAG, "New conversation created via /clear: $newId")
+            return
+        }
+
         try {
             val beforeExecution = System.currentTimeMillis()
 
-            val conversationId = conversationMapper.resolveConversationId(
-                channelType = channelType,
-                externalChatId = msg.externalChatId,
-                senderName = msg.senderName
-            )
+            val conversationId = conversationMapper.resolveConversationId()
 
             conversationManager.insertUserMessage(
                 conversationId = conversationId,
@@ -64,10 +74,13 @@ abstract class MessagingChannel(
         } catch (e: Exception) {
             Log.e(TAG, "Error processing message from ${channelType.name}", e)
             try {
-                sendResponse(msg.externalChatId, BridgeMessage(
-                    content = "Error: ${e.message ?: "Unknown error occurred"}",
-                    timestamp = System.currentTimeMillis()
-                ))
+                sendResponse(
+                    msg.externalChatId,
+                    BridgeMessage(
+                        content = "Error: ${e.message ?: "Unknown error occurred"}",
+                        timestamp = System.currentTimeMillis()
+                    )
+                )
             } catch (sendError: Exception) {
                 Log.e(TAG, "Failed to send error response", sendError)
             }

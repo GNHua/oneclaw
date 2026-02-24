@@ -16,7 +16,9 @@ import com.tomandy.oneclaw.bridge.BridgeStateTracker
 import com.tomandy.oneclaw.bridge.ConversationMapper
 import com.tomandy.oneclaw.bridge.R
 import com.tomandy.oneclaw.bridge.channel.MessagingChannel
+import com.tomandy.oneclaw.bridge.channel.discord.DiscordChannel
 import com.tomandy.oneclaw.bridge.channel.telegram.TelegramChannel
+import com.tomandy.oneclaw.bridge.channel.webchat.WebChatChannel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
@@ -71,7 +73,7 @@ class MessagingBridgeService : Service(), KoinComponent {
     private fun startEnabledChannels() {
         stopAllChannels()
 
-        val mapper = ConversationMapper(preferences, conversationManager)
+        val mapper = ConversationMapper(conversationManager)
         val credentialProvider = BridgeCredentialProvider(applicationContext)
 
         if (preferences.isTelegramEnabled()) {
@@ -95,7 +97,7 @@ class MessagingBridgeService : Service(), KoinComponent {
         if (preferences.isDiscordEnabled()) {
             val discordToken = credentialProvider.getDiscordBotToken()
             if (!discordToken.isNullOrBlank()) {
-                val discord = com.tomandy.oneclaw.bridge.channel.discord.DiscordChannel(
+                val discord = DiscordChannel(
                     preferences = preferences,
                     conversationMapper = mapper,
                     agentExecutor = agentExecutor,
@@ -113,7 +115,7 @@ class MessagingBridgeService : Service(), KoinComponent {
         if (preferences.isWebChatEnabled()) {
             val port = preferences.getWebChatPort()
             val webChatToken = credentialProvider.getWebChatAccessToken()
-            val webchat = com.tomandy.oneclaw.bridge.channel.webchat.WebChatChannel(
+            val webchat = WebChatChannel(
                 preferences = preferences,
                 conversationMapper = mapper,
                 agentExecutor = agentExecutor,

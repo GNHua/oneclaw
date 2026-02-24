@@ -3,6 +3,9 @@ package com.tomandy.oneclaw.data
 import android.content.Context
 import android.content.SharedPreferences
 import com.tomandy.oneclaw.llm.LlmProvider
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Manages model selection preferences
@@ -76,7 +79,10 @@ class ModelPreferences(context: Context) {
 
     enum class AudioInputMode { ALWAYS_TRANSCRIBE, NATIVE_WHEN_SUPPORTED }
 
-    fun getAudioInputMode(): AudioInputMode {
+    private val _audioInputMode = MutableStateFlow(readAudioInputMode())
+    val audioInputMode: StateFlow<AudioInputMode> = _audioInputMode.asStateFlow()
+
+    private fun readAudioInputMode(): AudioInputMode {
         val value = prefs.getString("audio_input_mode", AudioInputMode.ALWAYS_TRANSCRIBE.name)
         return try {
             AudioInputMode.valueOf(value ?: AudioInputMode.ALWAYS_TRANSCRIBE.name)
@@ -85,10 +91,13 @@ class ModelPreferences(context: Context) {
         }
     }
 
+    fun getAudioInputMode(): AudioInputMode = _audioInputMode.value
+
     fun saveAudioInputMode(mode: AudioInputMode) {
         prefs.edit()
             .putString("audio_input_mode", mode.name)
             .apply()
+        _audioInputMode.value = mode
     }
 
     fun getActiveAgent(): String? {

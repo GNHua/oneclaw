@@ -52,6 +52,9 @@ class SkillsViewModel(
         viewModelScope.launch {
             skills.collect { refreshEnabledMap() }
         }
+        viewModelScope.launch {
+            skillPreferences.changeVersion.collect { refreshEnabledMap() }
+        }
     }
 
     private fun refreshEnabledMap() {

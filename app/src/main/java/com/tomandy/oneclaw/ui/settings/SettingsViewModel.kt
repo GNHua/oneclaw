@@ -73,6 +73,11 @@ class SettingsViewModel(
                 refreshPluginStates()
             }
         }
+        viewModelScope.launch {
+            pluginPreferences.changeVersion.collectLatest {
+                loadPlugins()
+            }
+        }
     }
 
     fun refreshPlugins() {

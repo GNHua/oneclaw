@@ -260,9 +260,7 @@ private fun GroupItem(
 @Composable
 private fun VoiceInputExpandableItem(modelPreferences: ModelPreferences) {
     var expanded by remember { mutableStateOf(false) }
-    var audioInputMode by remember {
-        mutableStateOf(modelPreferences.getAudioInputMode())
-    }
+    val audioInputMode by modelPreferences.audioInputMode.collectAsState()
 
     val currentModeLabel = when (audioInputMode) {
         ModelPreferences.AudioInputMode.ALWAYS_TRANSCRIBE -> "Transcribe"
@@ -313,8 +311,7 @@ private fun VoiceInputExpandableItem(modelPreferences: ModelPreferences) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            audioInputMode = ModelPreferences.AudioInputMode.ALWAYS_TRANSCRIBE
-                            modelPreferences.saveAudioInputMode(audioInputMode)
+                            modelPreferences.saveAudioInputMode(ModelPreferences.AudioInputMode.ALWAYS_TRANSCRIBE)
                         }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -322,8 +319,7 @@ private fun VoiceInputExpandableItem(modelPreferences: ModelPreferences) {
                     RadioButton(
                         selected = audioInputMode == ModelPreferences.AudioInputMode.ALWAYS_TRANSCRIBE,
                         onClick = {
-                            audioInputMode = ModelPreferences.AudioInputMode.ALWAYS_TRANSCRIBE
-                            modelPreferences.saveAudioInputMode(audioInputMode)
+                            modelPreferences.saveAudioInputMode(ModelPreferences.AudioInputMode.ALWAYS_TRANSCRIBE)
                         }
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -340,8 +336,7 @@ private fun VoiceInputExpandableItem(modelPreferences: ModelPreferences) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            audioInputMode = ModelPreferences.AudioInputMode.NATIVE_WHEN_SUPPORTED
-                            modelPreferences.saveAudioInputMode(audioInputMode)
+                            modelPreferences.saveAudioInputMode(ModelPreferences.AudioInputMode.NATIVE_WHEN_SUPPORTED)
                         }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -349,8 +344,7 @@ private fun VoiceInputExpandableItem(modelPreferences: ModelPreferences) {
                     RadioButton(
                         selected = audioInputMode == ModelPreferences.AudioInputMode.NATIVE_WHEN_SUPPORTED,
                         onClick = {
-                            audioInputMode = ModelPreferences.AudioInputMode.NATIVE_WHEN_SUPPORTED
-                            modelPreferences.saveAudioInputMode(audioInputMode)
+                            modelPreferences.saveAudioInputMode(ModelPreferences.AudioInputMode.NATIVE_WHEN_SUPPORTED)
                         }
                     )
                     Spacer(modifier = Modifier.width(12.dp))

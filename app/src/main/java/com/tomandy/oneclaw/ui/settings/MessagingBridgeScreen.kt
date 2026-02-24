@@ -110,6 +110,13 @@ fun MessagingBridgeScreen(
                 expandedChannel = if (expandedChannel == ChannelType.TELEGRAM) null else ChannelType.TELEGRAM
             }
         ) {
+            SetupGuide(listOf(
+                "Open @BotFather in Telegram and send /newbot",
+                "Follow the prompts to name your bot",
+                "Copy the bot token and paste it below",
+                "To find your user ID for the allow-list, message @userinfobot on Telegram -- it replies with your numeric ID"
+            ))
+
             SecretTextField(
                 value = telegramBotToken,
                 onValueChange = { viewModel.updateTelegramBotToken(it) },
@@ -145,6 +152,14 @@ fun MessagingBridgeScreen(
                 expandedChannel = if (expandedChannel == ChannelType.DISCORD) null else ChannelType.DISCORD
             }
         ) {
+            SetupGuide(listOf(
+                "Go to discord.com/developers/applications and create a New Application",
+                "Go to Bot tab, click Reset Token, and copy it",
+                "Under Privileged Gateway Intents, enable Message Content Intent",
+                "Go to OAuth2 > URL Generator, select \"bot\" scope with \"Send Messages\" and \"Read Message History\" permissions, then open the generated URL to invite the bot to your server",
+                "Enable Developer Mode in Discord settings (App Settings > Advanced), then right-click your username to Copy User ID for the allow-list"
+            ))
+
             SecretTextField(
                 value = discordBotToken,
                 onValueChange = { viewModel.updateDiscordBotToken(it) },
@@ -180,6 +195,11 @@ fun MessagingBridgeScreen(
                 expandedChannel = if (expandedChannel == ChannelType.WEBCHAT) null else ChannelType.WEBCHAT
             }
         ) {
+            SetupGuide(listOf(
+                "Choose a port (default 8080) -- make sure it is not in use by another app",
+                "Optionally set an access token to restrict who can connect"
+            ))
+
             OutlinedTextField(
                 value = webChatPort,
                 onValueChange = { viewModel.updateWebChatPort(it) },
@@ -216,6 +236,14 @@ fun MessagingBridgeScreen(
                 expandedChannel = if (expandedChannel == ChannelType.SLACK) null else ChannelType.SLACK
             }
         ) {
+            SetupGuide(listOf(
+                "Go to api.slack.com/apps and create a New App (from scratch)",
+                "Under OAuth & Permissions, add \"chat:write\" and \"channels:history\" bot token scopes, then install to your workspace and copy the Bot Token (xoxb-...)",
+                "Under Basic Information > App-Level Tokens, generate a token with \"connections:write\" scope -- this is your App Token (xapp-...)",
+                "Enable Socket Mode under Socket Mode settings",
+                "Under Event Subscriptions, enable events and subscribe to \"message.channels\" bot event, then find your Slack user ID in your profile for the allow-list"
+            ))
+
             SecretTextField(
                 value = slackBotToken,
                 onValueChange = { viewModel.updateSlackBotToken(it) },
@@ -257,6 +285,12 @@ fun MessagingBridgeScreen(
                 expandedChannel = if (expandedChannel == ChannelType.MATRIX) null else ChannelType.MATRIX
             }
         ) {
+            SetupGuide(listOf(
+                "Register a new account on your homeserver to use as the bot (e.g. via Element), and enter the homeserver URL below (e.g. https://matrix.org)",
+                "Retrieve an access token -- in Element: Settings > Help & About > Advanced > Access Token",
+                "Invite the bot user to the rooms you want to bridge, and add your Matrix user ID (e.g. @user:matrix.org) to the allow-list"
+            ))
+
             OutlinedTextField(
                 value = matrixHomeserver,
                 onValueChange = { viewModel.updateMatrixHomeserver(it) },
@@ -303,6 +337,13 @@ fun MessagingBridgeScreen(
                 expandedChannel = if (expandedChannel == ChannelType.LINE) null else ChannelType.LINE
             }
         ) {
+            SetupGuide(listOf(
+                "Go to developers.line.biz, create a provider, then create a Messaging API channel",
+                "In the channel settings, issue a Channel Access Token (long-lived) and copy it",
+                "Copy the Channel Secret from Basic Settings",
+                "Find user IDs by enabling webhooks and checking the \"userId\" field in received events, or use the LINE API to look up your own profile"
+            ))
+
             SecretTextField(
                 value = lineChannelAccessToken,
                 onValueChange = { viewModel.updateLineChannelAccessToken(it) },
@@ -389,6 +430,39 @@ private fun ChannelGroup(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         content = content
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SetupGuide(steps: List<String>) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        Text(
+            text = if (expanded) "Hide setup guide" else "Setup guide",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.tertiary,
+            modifier = Modifier.clickable { expanded = !expanded }
+        )
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column(
+                modifier = Modifier.padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                steps.forEachIndexed { index, step ->
+                    Text(
+                        text = "${index + 1}. $step",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
                 }
             }

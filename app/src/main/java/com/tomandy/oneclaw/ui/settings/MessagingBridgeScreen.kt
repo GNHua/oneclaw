@@ -19,21 +19,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.tomandy.oneclaw.bridge.BridgeStateTracker
 import com.tomandy.oneclaw.bridge.ChannelType
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldShape
 
 @Composable
 fun MessagingBridgeScreen(
     viewModel: MessagingBridgeViewModel,
     modifier: Modifier = Modifier
 ) {
-    val channelStates by viewModel.channelStates.collectAsState()
     val saveStatus by viewModel.saveStatus.collectAsState()
 
     val telegramEnabled by viewModel.telegramEnabled.collectAsState()
@@ -86,7 +86,6 @@ fun MessagingBridgeScreen(
         // Telegram
         ChannelGroup(
             title = "Telegram",
-            statusText = channelStatusText(telegramEnabled, channelStates[ChannelType.TELEGRAM]),
             isEnabled = telegramEnabled,
             onEnabledChanged = { viewModel.setTelegramEnabled(it) },
             isExpanded = expandedChannel == ChannelType.TELEGRAM,
@@ -107,6 +106,7 @@ fun MessagingBridgeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyMedium,
+                shape = settingsTextFieldShape,
                 colors = settingsTextFieldColors()
             )
 
@@ -121,7 +121,6 @@ fun MessagingBridgeScreen(
         // Discord
         ChannelGroup(
             title = "Discord",
-            statusText = channelStatusText(discordEnabled, channelStates[ChannelType.DISCORD]),
             isEnabled = discordEnabled,
             onEnabledChanged = { viewModel.setDiscordEnabled(it) },
             isExpanded = expandedChannel == ChannelType.DISCORD,
@@ -142,6 +141,7 @@ fun MessagingBridgeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyMedium,
+                shape = settingsTextFieldShape,
                 colors = settingsTextFieldColors()
             )
 
@@ -156,7 +156,6 @@ fun MessagingBridgeScreen(
         // WebChat
         ChannelGroup(
             title = "WebChat",
-            statusText = channelStatusText(webChatEnabled, channelStates[ChannelType.WEBCHAT]),
             isEnabled = webChatEnabled,
             onEnabledChanged = { viewModel.setWebChatEnabled(it) },
             isExpanded = expandedChannel == ChannelType.WEBCHAT,
@@ -172,6 +171,7 @@ fun MessagingBridgeScreen(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 textStyle = MaterialTheme.typography.bodyMedium,
+                shape = settingsTextFieldShape,
                 colors = settingsTextFieldColors()
             )
 
@@ -191,23 +191,9 @@ fun MessagingBridgeScreen(
     }
 }
 
-private fun channelStatusText(
-    enabled: Boolean,
-    state: BridgeStateTracker.ChannelState?
-): String {
-    if (!enabled) return "Disabled"
-    if (state == null) return "Not running"
-    return when {
-        state.error != null -> "Error"
-        state.isRunning -> "Connected"
-        else -> "Disconnected"
-    }
-}
-
 @Composable
 private fun ChannelGroup(
     title: String,
-    statusText: String,
     isEnabled: Boolean,
     onEnabledChanged: (Boolean) -> Unit,
     isExpanded: Boolean,
@@ -234,15 +220,10 @@ private fun ChannelGroup(
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
                 Switch(
                     checked = isEnabled,
                     onCheckedChange = onEnabledChanged,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    modifier = Modifier.scale(0.8f)
                 )
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
@@ -294,6 +275,7 @@ private fun SecretTextField(
             }
         },
         textStyle = MaterialTheme.typography.bodyMedium,
+        shape = settingsTextFieldShape,
         colors = settingsTextFieldColors()
     )
 }

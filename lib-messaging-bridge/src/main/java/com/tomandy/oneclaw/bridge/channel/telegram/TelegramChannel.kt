@@ -122,7 +122,13 @@ class TelegramChannel(
     }
 
     override suspend fun sendResponse(externalChatId: String, message: BridgeMessage) {
-        api.sendLongMessage(externalChatId, message.content)
+        try {
+            val rendered = TelegramHtmlRenderer.render(message.content)
+            api.sendLongMessage(externalChatId, rendered, parseMode = "HTML")
+        } catch (e: Exception) {
+            Log.w(TAG, "HTML send failed, falling back to plain text", e)
+            api.sendLongMessage(externalChatId, message.content)
+        }
     }
 
     override suspend fun stop() {

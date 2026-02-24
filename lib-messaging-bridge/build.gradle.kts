@@ -63,6 +63,10 @@ dependencies {
     implementation(libs.nanohttpd)
     implementation(libs.nanohttpd.websocket)
 
+    // Commonmark (Markdown parsing for Telegram MarkdownV2)
+    implementation(libs.commonmark)
+    implementation(libs.commonmark.ext.gfm.strikethrough)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

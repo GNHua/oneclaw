@@ -30,6 +30,9 @@ class LlmClientProvider(
     private val _selectedProvider = MutableStateFlow(LlmProvider.OPENAI)
     val selectedProvider: StateFlow<LlmProvider> = _selectedProvider.asStateFlow()
 
+    private val _selectedModel = MutableStateFlow(modelPreferences.getSelectedModel())
+    val selectedModel: StateFlow<String?> = _selectedModel.asStateFlow()
+
     fun getCurrentLlmClient(): LlmClient {
         return when (_selectedProvider.value) {
             LlmProvider.OPENAI -> openAiClient
@@ -118,6 +121,7 @@ class LlmClientProvider(
         val provider = getProviderForModel(model)
         if (provider != null) {
             _selectedProvider.value = provider
+            _selectedModel.value = model
             modelPreferences.saveSelectedModel(model)
         }
     }

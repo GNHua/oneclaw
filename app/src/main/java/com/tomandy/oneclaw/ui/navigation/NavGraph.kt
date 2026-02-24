@@ -109,7 +109,8 @@ fun OneClawNavGraph(
 
     // Model selection state (shared between Settings and Chat)
     var availableModels by remember { mutableStateOf<List<Pair<String, LlmProvider>>>(emptyList()) }
-    var selectedModel by remember { mutableStateOf(modelPreferences.getSelectedModel() ?: "gpt-4o-mini") }
+    val selectedModelState by llmClientProvider.selectedModel.collectAsState()
+    val selectedModel = selectedModelState ?: "gpt-4o-mini"
 
     val providers by settingsViewModel.providers.collectAsState()
 
@@ -117,8 +118,7 @@ fun OneClawNavGraph(
         llmClientProvider.reloadApiKeys()
         availableModels = llmClientProvider.getAvailableModels()
         if (availableModels.isNotEmpty() && selectedModel !in availableModels.map { it.first }) {
-            selectedModel = availableModels.first().first
-            llmClientProvider.setModelAndProvider(selectedModel)
+            llmClientProvider.setModelAndProvider(availableModels.first().first)
         }
     }
 
@@ -223,7 +223,6 @@ fun OneClawNavGraph(
                             availableModels = availableModels,
                             selectedModel = selectedModel,
                             onModelSelected = { model ->
-                                selectedModel = model
                                 llmClientProvider.setModelAndProvider(model)
                             },
                             modifier = Modifier.weight(1f)

@@ -9,10 +9,13 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -74,6 +77,7 @@ fun GoogleAccountScreen(
     var saving by remember { mutableStateOf(false) }
     var authorizing by remember { mutableStateOf(false) }
     var editingCredentials by remember { mutableStateOf(false) }
+    var byokDirty by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         hasCredentials = oauthAuthManager.hasOAuthCredentials()
@@ -184,13 +188,15 @@ fun GoogleAccountScreen(
             saving = saving,
             authorizing = authorizing,
             editingCredentials = editingCredentials,
-            onClientIdChange = { clientId = it },
-            onClientSecretChange = { clientSecret = it },
+            dirty = byokDirty,
+            onClientIdChange = { clientId = it; byokDirty = true },
+            onClientSecretChange = { clientSecret = it; byokDirty = true },
             onError = { errorMessage = it },
             onCredentialsSaved = {
                 hasCredentials = true
                 editingCredentials = false
                 errorMessage = null
+                byokDirty = false
             },
             onSavingChange = { saving = it },
             onAuthorizingChange = { authorizing = it },
@@ -205,6 +211,7 @@ fun GoogleAccountScreen(
                     clientId = oauthAuthManager.getClientId() ?: ""
                     clientSecret = oauthAuthManager.getClientSecret() ?: ""
                     editingCredentials = true
+                    byokDirty = false
                 }
             },
             onCancelEdit = {
@@ -257,6 +264,7 @@ private fun ByokSection(
     saving: Boolean,
     authorizing: Boolean,
     editingCredentials: Boolean,
+    dirty: Boolean,
     onClientIdChange: (String) -> Unit,
     onClientSecretChange: (String) -> Unit,
     onError: (String?) -> Unit,
@@ -514,9 +522,21 @@ private fun ByokSection(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = clientId.isNotBlank() && clientSecret.isNotBlank() && !saving
+                    enabled = dirty && clientId.isNotBlank() && clientSecret.isNotBlank() && !saving
                 ) {
-                    Text(if (saving) "Saving..." else "Save Credentials")
+                    if (saving) {
+                        Text("Saving...")
+                    } else if (!dirty) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("Saved")
+                    } else {
+                        Text("Save Credentials")
+                    }
                 }
 
                 if (editingCredentials) {

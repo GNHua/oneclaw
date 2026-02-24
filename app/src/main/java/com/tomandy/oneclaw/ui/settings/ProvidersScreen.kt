@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -262,6 +263,7 @@ private fun ProviderGroup(
     var apiKey by remember(provider) { mutableStateOf("") }
     var baseUrl by remember(provider) { mutableStateOf("") }
     var isApiKeyVisible by remember(provider) { mutableStateOf(false) }
+    var dirty by remember(provider) { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(provider, isExpanded) {
@@ -269,6 +271,7 @@ private fun ProviderGroup(
             apiKey = viewModel.getApiKey(provider.displayName)
             baseUrl = viewModel.getBaseUrl(provider.displayName)
             isApiKeyVisible = false
+            dirty = false
         }
     }
 
@@ -321,7 +324,7 @@ private fun ProviderGroup(
                     ) {
                         OutlinedTextField(
                             value = apiKey,
-                            onValueChange = { apiKey = it },
+                            onValueChange = { apiKey = it; dirty = true },
                             label = { Text(provider.apiKeyLabel) },
                             placeholder = { Text("Enter your ${provider.displayName} API key") },
                             modifier = Modifier.fillMaxWidth(),
@@ -351,7 +354,7 @@ private fun ProviderGroup(
 
                         OutlinedTextField(
                             value = baseUrl,
-                            onValueChange = { baseUrl = it },
+                            onValueChange = { baseUrl = it; dirty = true },
                             label = { Text("Base URL (optional)") },
                             placeholder = { Text("Custom endpoint URL") },
                             modifier = Modifier.fillMaxWidth(),
@@ -364,11 +367,10 @@ private fun ProviderGroup(
                             keyboardActions = KeyboardActions(
                                 onDone = {
                                     keyboardController?.hide()
-                                    if (apiKey.isNotBlank()) {
+                                    if (dirty) {
                                         viewModel.saveApiKey(provider.displayName, apiKey)
                                         viewModel.saveBaseUrl(provider.displayName, baseUrl)
-                                        apiKey = ""
-                                        isApiKeyVisible = false
+                                        dirty = false
                                     }
                                 }
                             ),
@@ -385,23 +387,20 @@ private fun ProviderGroup(
                                     keyboardController?.hide()
                                     viewModel.saveApiKey(provider.displayName, apiKey)
                                     viewModel.saveBaseUrl(provider.displayName, baseUrl)
-                                    apiKey = ""
-                                    isApiKeyVisible = false
+                                    dirty = false
                                 },
-                                enabled = apiKey.isNotBlank() && saveStatus !is SaveStatus.Saving
+                                enabled = dirty
                             ) {
-                                when (saveStatus) {
-                                    SaveStatus.Saving -> {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(16.dp),
-                                            strokeWidth = 2.dp,
-                                            color = MaterialTheme.colorScheme.onPrimary
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Saving...")
-                                    }
-                                    SaveStatus.Success -> Text("Saved!")
-                                    else -> Text("Save")
+                                if (!dirty) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Saved")
+                                } else {
+                                    Text("Save")
                                 }
                             }
 

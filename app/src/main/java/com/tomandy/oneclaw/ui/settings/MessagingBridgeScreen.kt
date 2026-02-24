@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -66,6 +67,13 @@ fun MessagingBridgeScreen(
 
     var expandedChannel by remember { mutableStateOf<ChannelType?>(null) }
 
+    var telegramDirty by remember { mutableStateOf(false) }
+    var discordDirty by remember { mutableStateOf(false) }
+    var webChatDirty by remember { mutableStateOf(false) }
+    var slackDirty by remember { mutableStateOf(false) }
+    var matrixDirty by remember { mutableStateOf(false) }
+    var lineDirty by remember { mutableStateOf(false) }
+
     LaunchedEffect(saveStatus) {
         if (saveStatus != null) {
             kotlinx.coroutines.delay(2000)
@@ -119,13 +127,13 @@ fun MessagingBridgeScreen(
 
             SecretTextField(
                 value = telegramBotToken,
-                onValueChange = { viewModel.updateTelegramBotToken(it) },
+                onValueChange = { viewModel.updateTelegramBotToken(it); telegramDirty = true },
                 label = "Bot Token"
             )
 
             OutlinedTextField(
                 value = telegramAllowedUsers,
-                onValueChange = { viewModel.updateTelegramAllowedUsers(it) },
+                onValueChange = { viewModel.updateTelegramAllowedUsers(it); telegramDirty = true },
                 label = { Text("Allowed User IDs (comma-separated)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -135,10 +143,16 @@ fun MessagingBridgeScreen(
             )
 
             Button(
-                onClick = { viewModel.saveTelegramConfig() },
-                enabled = telegramBotToken.isNotBlank()
+                onClick = { viewModel.saveTelegramConfig(); telegramDirty = false },
+                enabled = telegramDirty
             ) {
-                Text("Save")
+                if (!telegramDirty) {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Saved")
+                } else {
+                    Text("Save")
+                }
             }
         }
 
@@ -162,13 +176,13 @@ fun MessagingBridgeScreen(
 
             SecretTextField(
                 value = discordBotToken,
-                onValueChange = { viewModel.updateDiscordBotToken(it) },
+                onValueChange = { viewModel.updateDiscordBotToken(it); discordDirty = true },
                 label = "Bot Token"
             )
 
             OutlinedTextField(
                 value = discordAllowedUsers,
-                onValueChange = { viewModel.updateDiscordAllowedUsers(it) },
+                onValueChange = { viewModel.updateDiscordAllowedUsers(it); discordDirty = true },
                 label = { Text("Allowed User IDs (comma-separated)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -178,10 +192,16 @@ fun MessagingBridgeScreen(
             )
 
             Button(
-                onClick = { viewModel.saveDiscordConfig() },
-                enabled = discordBotToken.isNotBlank()
+                onClick = { viewModel.saveDiscordConfig(); discordDirty = false },
+                enabled = discordDirty
             ) {
-                Text("Save")
+                if (!discordDirty) {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Saved")
+                } else {
+                    Text("Save")
+                }
             }
         }
 
@@ -202,7 +222,7 @@ fun MessagingBridgeScreen(
 
             OutlinedTextField(
                 value = webChatPort,
-                onValueChange = { viewModel.updateWebChatPort(it) },
+                onValueChange = { viewModel.updateWebChatPort(it); webChatDirty = true },
                 label = { Text("Port") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -214,15 +234,21 @@ fun MessagingBridgeScreen(
 
             SecretTextField(
                 value = webChatAccessToken,
-                onValueChange = { viewModel.updateWebChatAccessToken(it) },
+                onValueChange = { viewModel.updateWebChatAccessToken(it); webChatDirty = true },
                 label = "Access Token"
             )
 
             Button(
-                onClick = { viewModel.saveWebChatConfig() },
-                enabled = true
+                onClick = { viewModel.saveWebChatConfig(); webChatDirty = false },
+                enabled = webChatDirty
             ) {
-                Text("Save")
+                if (!webChatDirty) {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Saved")
+                } else {
+                    Text("Save")
+                }
             }
         }
 
@@ -246,19 +272,19 @@ fun MessagingBridgeScreen(
 
             SecretTextField(
                 value = slackBotToken,
-                onValueChange = { viewModel.updateSlackBotToken(it) },
+                onValueChange = { viewModel.updateSlackBotToken(it); slackDirty = true },
                 label = "Bot Token"
             )
 
             SecretTextField(
                 value = slackAppToken,
-                onValueChange = { viewModel.updateSlackAppToken(it) },
+                onValueChange = { viewModel.updateSlackAppToken(it); slackDirty = true },
                 label = "App Token"
             )
 
             OutlinedTextField(
                 value = slackAllowedUsers,
-                onValueChange = { viewModel.updateSlackAllowedUsers(it) },
+                onValueChange = { viewModel.updateSlackAllowedUsers(it); slackDirty = true },
                 label = { Text("Allowed User IDs (comma-separated)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -268,10 +294,16 @@ fun MessagingBridgeScreen(
             )
 
             Button(
-                onClick = { viewModel.saveSlackConfig() },
-                enabled = slackBotToken.isNotBlank()
+                onClick = { viewModel.saveSlackConfig(); slackDirty = false },
+                enabled = slackDirty
             ) {
-                Text("Save")
+                if (!slackDirty) {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Saved")
+                } else {
+                    Text("Save")
+                }
             }
         }
 
@@ -293,7 +325,7 @@ fun MessagingBridgeScreen(
 
             OutlinedTextField(
                 value = matrixHomeserver,
-                onValueChange = { viewModel.updateMatrixHomeserver(it) },
+                onValueChange = { viewModel.updateMatrixHomeserver(it); matrixDirty = true },
                 label = { Text("Homeserver URL") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -304,13 +336,13 @@ fun MessagingBridgeScreen(
 
             SecretTextField(
                 value = matrixAccessToken,
-                onValueChange = { viewModel.updateMatrixAccessToken(it) },
+                onValueChange = { viewModel.updateMatrixAccessToken(it); matrixDirty = true },
                 label = "Access Token"
             )
 
             OutlinedTextField(
                 value = matrixAllowedUsers,
-                onValueChange = { viewModel.updateMatrixAllowedUsers(it) },
+                onValueChange = { viewModel.updateMatrixAllowedUsers(it); matrixDirty = true },
                 label = { Text("Allowed User IDs (comma-separated)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -320,10 +352,16 @@ fun MessagingBridgeScreen(
             )
 
             Button(
-                onClick = { viewModel.saveMatrixConfig() },
-                enabled = matrixHomeserver.isNotBlank() && matrixAccessToken.isNotBlank()
+                onClick = { viewModel.saveMatrixConfig(); matrixDirty = false },
+                enabled = matrixDirty
             ) {
-                Text("Save")
+                if (!matrixDirty) {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Saved")
+                } else {
+                    Text("Save")
+                }
             }
         }
 
@@ -346,19 +384,19 @@ fun MessagingBridgeScreen(
 
             SecretTextField(
                 value = lineChannelAccessToken,
-                onValueChange = { viewModel.updateLineChannelAccessToken(it) },
+                onValueChange = { viewModel.updateLineChannelAccessToken(it); lineDirty = true },
                 label = "Channel Access Token"
             )
 
             SecretTextField(
                 value = lineChannelSecret,
-                onValueChange = { viewModel.updateLineChannelSecret(it) },
+                onValueChange = { viewModel.updateLineChannelSecret(it); lineDirty = true },
                 label = "Channel Secret"
             )
 
             OutlinedTextField(
                 value = lineAllowedUsers,
-                onValueChange = { viewModel.updateLineAllowedUsers(it) },
+                onValueChange = { viewModel.updateLineAllowedUsers(it); lineDirty = true },
                 label = { Text("Allowed User IDs (comma-separated)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -368,10 +406,16 @@ fun MessagingBridgeScreen(
             )
 
             Button(
-                onClick = { viewModel.saveLineConfig() },
-                enabled = lineChannelAccessToken.isNotBlank()
+                onClick = { viewModel.saveLineConfig(); lineDirty = false },
+                enabled = lineDirty
             ) {
-                Text("Save")
+                if (!lineDirty) {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Saved")
+                } else {
+                    Text("Save")
+                }
             }
         }
     }

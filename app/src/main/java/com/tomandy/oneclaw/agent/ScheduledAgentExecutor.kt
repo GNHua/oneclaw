@@ -66,7 +66,8 @@ class ScheduledAgentExecutor(
         instruction: String,
         cronjobId: String,
         triggerTime: Long,
-        conversationId: String?
+        conversationId: String?,
+        agentName: String?
     ): Result<TaskExecutionResult> {
         return try {
             skillRepository.reload()
@@ -90,9 +91,10 @@ class ScheduledAgentExecutor(
                 )
             )
 
-            // Resolve active agent profile for prompt and model
-            val activeAgentName = modelPreferences.getActiveAgent()
-            val profile = activeAgentName?.let {
+            // Resolve agent profile: task-specific -> global active -> "main"
+            val profile = agentName?.let {
+                agentProfileRepository.findByName(it)
+            } ?: modelPreferences.getActiveAgent()?.let {
                 agentProfileRepository.findByName(it)
             } ?: agentProfileRepository.findByName("main")
 

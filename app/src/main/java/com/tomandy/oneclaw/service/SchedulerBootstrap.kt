@@ -28,7 +28,8 @@ object SchedulerBootstrap {
         val taskLines = tasks.joinToString("\n") { task ->
             val schedule = formatSchedule(task)
             val title = if (task.title.isNotBlank()) task.title else task.instruction.take(50)
-            "- ${task.id}: \"$title\" ($schedule)"
+            val agent = if (task.agentName != null) ", agent: ${task.agentName}" else ""
+            "- ${task.id}: \"$title\" ($schedule$agent)"
         }
 
         return buildString {

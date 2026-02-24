@@ -106,7 +106,8 @@ class AgentExecutionService : Service(), KoinComponent {
             val taskResult = executeAgentTask(
                 cronjob.instruction,
                 cronjobId,
-                cronjob.conversationId
+                cronjob.conversationId,
+                cronjob.agentName
             )
 
             // Record successful execution
@@ -158,13 +159,15 @@ class AgentExecutionService : Service(), KoinComponent {
     private suspend fun executeAgentTask(
         instruction: String,
         cronjobId: String,
-        conversationId: String?
+        conversationId: String?,
+        agentName: String?
     ): TaskExecutionResult {
         val result = agentExecutor.executeTask(
             instruction = instruction,
             cronjobId = cronjobId,
             triggerTime = System.currentTimeMillis(),
-            conversationId = conversationId
+            conversationId = conversationId,
+            agentName = agentName
         )
 
         return result.getOrThrow()

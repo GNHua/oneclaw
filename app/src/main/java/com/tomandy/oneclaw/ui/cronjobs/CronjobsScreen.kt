@@ -473,7 +473,14 @@ private fun CronjobCard(
                 )
             }
 
-            // Row 3: Last executed + actions
+            // Row 3: Agent
+            Text(
+                text = "Agent: ${cronjob.agentName ?: "main"}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Row 4: Last executed + actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

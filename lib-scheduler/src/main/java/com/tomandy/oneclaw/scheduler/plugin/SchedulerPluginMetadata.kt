@@ -101,6 +101,10 @@ object SchedulerPluginMetadata {
                     put("type", JsonPrimitive("boolean"))
                     put("description", JsonPrimitive("Whether the task should only run while device is charging (default: false)"))
                 }
+                putJsonObject("agent") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive("Optional agent profile name to use for this task (e.g., 'researcher', 'writer'). If not specified, the active agent at execution time is used."))
+                }
             }
             putJsonArray("required") {
                 add(JsonPrimitive("instruction"))
@@ -241,6 +245,10 @@ object SchedulerPluginMetadata {
                 putJsonObject("enabled") {
                     put("type", JsonPrimitive("boolean"))
                     put("description", JsonPrimitive("Enable or disable the task"))
+                }
+                putJsonObject("agent") {
+                    put("type", JsonPrimitive("string"))
+                    put("description", JsonPrimitive("Agent profile name to use for this task. Set to empty string to clear and use the active agent at execution time."))
                 }
             }
             putJsonArray("required") {

@@ -91,5 +91,11 @@ data class CronjobEntity(
      * The conversation ID where this task was scheduled.
      * Used to post execution results back to the original conversation.
      */
-    val conversationId: String? = null
+    val conversationId: String? = null,
+
+    /**
+     * Optional agent profile name to use for this task.
+     * When null, the global active agent is used at execution time.
+     */
+    val agentName: String? = null
 )

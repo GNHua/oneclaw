@@ -126,6 +126,7 @@ class SchedulerPlugin : Plugin {
             val requireNetwork = arguments["require_network"]?.jsonPrimitive?.booleanOrNull ?: false
             val requireCharging = arguments["require_charging"]?.jsonPrimitive?.booleanOrNull ?: false
             val conversationId = arguments["_conversation_id"]?.jsonPrimitive?.content
+            val agentName = arguments["agent"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
 
             // Build constraints JSON
             val constraints = buildJsonObject {
@@ -137,7 +138,8 @@ class SchedulerPlugin : Plugin {
             val finalCronjob = cronjob.copy(
                 maxExecutions = maxExecutions,
                 constraints = constraints,
-                conversationId = conversationId
+                conversationId = conversationId,
+                agentName = agentName
             )
 
             // Schedule the cronjob
@@ -161,12 +163,13 @@ class SchedulerPlugin : Plugin {
             }
 
             val titleLine = if (title.isNotBlank()) "Title: $title\n" else ""
+            val agentLine = if (agentName != null) "Agent: $agentName\n" else ""
 
             return ToolResult.Success(
                 output = """Task scheduled successfully!
                     |
                     |ID: $jobId
-                    |${titleLine}Instruction: "$instruction"
+                    |${titleLine}${agentLine}Instruction: "$instruction"
                     |Schedule: $scheduleDescription
                     |
                     |The Agent will autonomously execute this task at the scheduled time.
@@ -220,9 +223,10 @@ class SchedulerPlugin : Plugin {
                 val status = if (task.enabled) "Enabled" else "Disabled"
 
                 val titleLine = if (task.title.isNotBlank()) "  Title: ${task.title}\n" else ""
+                val agentLine = if (task.agentName != null) "  Agent: ${task.agentName}\n" else ""
 
                 """- ID: ${task.id}
-                    |${titleLine}  Instruction: "${task.instruction}"
+                    |${titleLine}${agentLine}  Instruction: "${task.instruction}"
                     |  Schedule: $schedule
                     |  Status: $status
                     |  Executions: ${task.executionCount}""".trimMargin()
@@ -353,6 +357,12 @@ class SchedulerPlugin : Plugin {
 
             val newEnabled = arguments["enabled"]?.jsonPrimitive?.booleanOrNull ?: existing.enabled
 
+            val newAgentName = if (arguments.containsKey("agent")) {
+                arguments["agent"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+            } else {
+                existing.agentName
+            }
+
             if (newIntervalMinutes != null && newIntervalMinutes < 15) {
                 return ToolResult.Failure("Minimum interval is 15 minutes for battery optimization")
             }
@@ -369,7 +379,8 @@ class SchedulerPlugin : Plugin {
                 executeAt = newExecuteAt,
                 cronExpression = effectiveCron,
                 maxExecutions = newMaxExecutions,
-                enabled = newEnabled
+                enabled = newEnabled,
+                agentName = newAgentName
             )
 
             cronjobManager.update(updated)

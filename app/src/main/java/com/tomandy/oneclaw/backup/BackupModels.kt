@@ -73,7 +73,8 @@ data class BackupCronjob(
     val executionCount: Int = 0,
     val maxExecutions: Int? = null,
     val notifyOnCompletion: Boolean = true,
-    val conversationId: String? = null
+    val conversationId: String? = null,
+    val agentName: String? = null
 )
 
 @Serializable
@@ -159,7 +160,8 @@ fun CronjobEntity.toBackup() = BackupCronjob(
     executionCount = executionCount,
     maxExecutions = maxExecutions,
     notifyOnCompletion = notifyOnCompletion,
-    conversationId = conversationId
+    conversationId = conversationId,
+    agentName = agentName
 )
 
 fun BackupCronjob.toEntity() = CronjobEntity(
@@ -178,7 +180,8 @@ fun BackupCronjob.toEntity() = CronjobEntity(
     maxExecutions = maxExecutions,
     notifyOnCompletion = notifyOnCompletion,
     workManagerId = null, // Stale reference, clear it
-    conversationId = conversationId
+    conversationId = conversationId,
+    agentName = agentName
 )
 
 fun ExecutionLog.toBackup() = BackupExecutionLog(

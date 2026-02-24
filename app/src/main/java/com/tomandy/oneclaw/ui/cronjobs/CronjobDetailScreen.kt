@@ -133,6 +133,16 @@ fun CronjobDetailScreen(
             }
         }
 
+        // Agent
+        item {
+            DetailSection("Agent") {
+                Text(
+                    text = task.agentName ?: "main",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
         // Status
         item {
             DetailSection("Status") {

@@ -184,7 +184,13 @@ val appModule = module {
     single { NavigationState() }
 
     // Task Completion Notifier (bridges scheduler -> messaging channels)
-    single<TaskCompletionNotifier> { BridgeTaskCompletionNotifier() }
+    single<TaskCompletionNotifier> {
+        BridgeTaskCompletionNotifier(
+            messageDao = get(),
+            conversationDao = get(),
+            conversationPreferences = get()
+        )
+    }
 
     // Agent Executor (for scheduled tasks)
     single<AgentExecutor> {

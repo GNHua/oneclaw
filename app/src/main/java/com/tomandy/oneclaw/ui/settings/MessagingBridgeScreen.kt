@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -48,6 +49,21 @@ fun MessagingBridgeScreen(
     val webChatPort by viewModel.webChatPort.collectAsState()
     val webChatAccessToken by viewModel.webChatAccessToken.collectAsState()
 
+    val slackEnabled by viewModel.slackEnabled.collectAsState()
+    val slackBotToken by viewModel.slackBotToken.collectAsState()
+    val slackAppToken by viewModel.slackAppToken.collectAsState()
+    val slackAllowedUsers by viewModel.slackAllowedUsers.collectAsState()
+
+    val matrixEnabled by viewModel.matrixEnabled.collectAsState()
+    val matrixHomeserver by viewModel.matrixHomeserver.collectAsState()
+    val matrixAccessToken by viewModel.matrixAccessToken.collectAsState()
+    val matrixAllowedUsers by viewModel.matrixAllowedUsers.collectAsState()
+
+    val lineEnabled by viewModel.lineEnabled.collectAsState()
+    val lineChannelAccessToken by viewModel.lineChannelAccessToken.collectAsState()
+    val lineChannelSecret by viewModel.lineChannelSecret.collectAsState()
+    val lineAllowedUsers by viewModel.lineAllowedUsers.collectAsState()
+
     var expandedChannel by remember { mutableStateOf<ChannelType?>(null) }
 
     LaunchedEffect(saveStatus) {
@@ -63,6 +79,7 @@ fun MessagingBridgeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .imePadding()
             .drawColumnScrollbar(scrollState, scrollbarColor)
             .verticalScroll(scrollState)
             .padding(16.dp),
@@ -184,6 +201,134 @@ fun MessagingBridgeScreen(
             Button(
                 onClick = { viewModel.saveWebChatConfig() },
                 enabled = true
+            ) {
+                Text("Save")
+            }
+        }
+
+        // Slack
+        ChannelGroup(
+            title = "Slack",
+            isEnabled = slackEnabled,
+            onEnabledChanged = { viewModel.setSlackEnabled(it) },
+            isExpanded = expandedChannel == ChannelType.SLACK,
+            onToggle = {
+                expandedChannel = if (expandedChannel == ChannelType.SLACK) null else ChannelType.SLACK
+            }
+        ) {
+            SecretTextField(
+                value = slackBotToken,
+                onValueChange = { viewModel.updateSlackBotToken(it) },
+                label = "Bot Token"
+            )
+
+            SecretTextField(
+                value = slackAppToken,
+                onValueChange = { viewModel.updateSlackAppToken(it) },
+                label = "App Token"
+            )
+
+            OutlinedTextField(
+                value = slackAllowedUsers,
+                onValueChange = { viewModel.updateSlackAllowedUsers(it) },
+                label = { Text("Allowed User IDs (comma-separated)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium,
+                shape = settingsTextFieldShape,
+                colors = settingsTextFieldColors()
+            )
+
+            Button(
+                onClick = { viewModel.saveSlackConfig() },
+                enabled = slackBotToken.isNotBlank()
+            ) {
+                Text("Save")
+            }
+        }
+
+        // Matrix
+        ChannelGroup(
+            title = "Matrix",
+            isEnabled = matrixEnabled,
+            onEnabledChanged = { viewModel.setMatrixEnabled(it) },
+            isExpanded = expandedChannel == ChannelType.MATRIX,
+            onToggle = {
+                expandedChannel = if (expandedChannel == ChannelType.MATRIX) null else ChannelType.MATRIX
+            }
+        ) {
+            OutlinedTextField(
+                value = matrixHomeserver,
+                onValueChange = { viewModel.updateMatrixHomeserver(it) },
+                label = { Text("Homeserver URL") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium,
+                shape = settingsTextFieldShape,
+                colors = settingsTextFieldColors()
+            )
+
+            SecretTextField(
+                value = matrixAccessToken,
+                onValueChange = { viewModel.updateMatrixAccessToken(it) },
+                label = "Access Token"
+            )
+
+            OutlinedTextField(
+                value = matrixAllowedUsers,
+                onValueChange = { viewModel.updateMatrixAllowedUsers(it) },
+                label = { Text("Allowed User IDs (comma-separated)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium,
+                shape = settingsTextFieldShape,
+                colors = settingsTextFieldColors()
+            )
+
+            Button(
+                onClick = { viewModel.saveMatrixConfig() },
+                enabled = matrixHomeserver.isNotBlank() && matrixAccessToken.isNotBlank()
+            ) {
+                Text("Save")
+            }
+        }
+
+        // LINE
+        ChannelGroup(
+            title = "LINE",
+            isEnabled = lineEnabled,
+            onEnabledChanged = { viewModel.setLineEnabled(it) },
+            isExpanded = expandedChannel == ChannelType.LINE,
+            onToggle = {
+                expandedChannel = if (expandedChannel == ChannelType.LINE) null else ChannelType.LINE
+            }
+        ) {
+            SecretTextField(
+                value = lineChannelAccessToken,
+                onValueChange = { viewModel.updateLineChannelAccessToken(it) },
+                label = "Channel Access Token"
+            )
+
+            SecretTextField(
+                value = lineChannelSecret,
+                onValueChange = { viewModel.updateLineChannelSecret(it) },
+                label = "Channel Secret"
+            )
+
+            OutlinedTextField(
+                value = lineAllowedUsers,
+                onValueChange = { viewModel.updateLineAllowedUsers(it) },
+                label = { Text("Allowed User IDs (comma-separated)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium,
+                shape = settingsTextFieldShape,
+                colors = settingsTextFieldColors()
+            )
+
+            Button(
+                onClick = { viewModel.saveLineConfig() },
+                enabled = lineChannelAccessToken.isNotBlank()
             ) {
                 Text("Save")
             }

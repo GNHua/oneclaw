@@ -6,6 +6,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -53,6 +54,7 @@ fun ProvidersScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .imePadding()
             .drawColumnScrollbar(scrollState, scrollbarColor)
             .verticalScroll(scrollState)
             .padding(16.dp),

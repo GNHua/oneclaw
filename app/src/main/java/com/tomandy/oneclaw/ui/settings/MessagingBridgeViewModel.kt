@@ -56,6 +56,51 @@ class MessagingBridgeViewModel(
     private val _webChatAccessToken = MutableStateFlow(credentials.getWebChatAccessToken() ?: "")
     val webChatAccessToken: StateFlow<String> = _webChatAccessToken.asStateFlow()
 
+    // Slack state
+    private val _slackEnabled = MutableStateFlow(preferences.isSlackEnabled())
+    val slackEnabled: StateFlow<Boolean> = _slackEnabled.asStateFlow()
+
+    private val _slackBotToken = MutableStateFlow(credentials.getSlackBotToken() ?: "")
+    val slackBotToken: StateFlow<String> = _slackBotToken.asStateFlow()
+
+    private val _slackAppToken = MutableStateFlow(credentials.getSlackAppToken() ?: "")
+    val slackAppToken: StateFlow<String> = _slackAppToken.asStateFlow()
+
+    private val _slackAllowedUsers = MutableStateFlow(
+        preferences.getAllowedSlackUserIds().joinToString(", ")
+    )
+    val slackAllowedUsers: StateFlow<String> = _slackAllowedUsers.asStateFlow()
+
+    // Matrix state
+    private val _matrixEnabled = MutableStateFlow(preferences.isMatrixEnabled())
+    val matrixEnabled: StateFlow<Boolean> = _matrixEnabled.asStateFlow()
+
+    private val _matrixHomeserver = MutableStateFlow(preferences.getMatrixHomeserver())
+    val matrixHomeserver: StateFlow<String> = _matrixHomeserver.asStateFlow()
+
+    private val _matrixAccessToken = MutableStateFlow(credentials.getMatrixAccessToken() ?: "")
+    val matrixAccessToken: StateFlow<String> = _matrixAccessToken.asStateFlow()
+
+    private val _matrixAllowedUsers = MutableStateFlow(
+        preferences.getAllowedMatrixUserIds().joinToString(", ")
+    )
+    val matrixAllowedUsers: StateFlow<String> = _matrixAllowedUsers.asStateFlow()
+
+    // LINE state
+    private val _lineEnabled = MutableStateFlow(preferences.isLineEnabled())
+    val lineEnabled: StateFlow<Boolean> = _lineEnabled.asStateFlow()
+
+    private val _lineChannelAccessToken = MutableStateFlow(credentials.getLineChannelAccessToken() ?: "")
+    val lineChannelAccessToken: StateFlow<String> = _lineChannelAccessToken.asStateFlow()
+
+    private val _lineChannelSecret = MutableStateFlow(credentials.getLineChannelSecret() ?: "")
+    val lineChannelSecret: StateFlow<String> = _lineChannelSecret.asStateFlow()
+
+    private val _lineAllowedUsers = MutableStateFlow(
+        preferences.getAllowedLineUserIds().joinToString(", ")
+    )
+    val lineAllowedUsers: StateFlow<String> = _lineAllowedUsers.asStateFlow()
+
     // Save status
     private val _saveStatus = MutableStateFlow<String?>(null)
     val saveStatus: StateFlow<String?> = _saveStatus.asStateFlow()
@@ -83,6 +128,18 @@ class MessagingBridgeViewModel(
     fun updateWebChatAccessToken(token: String) {
         _webChatAccessToken.value = token
     }
+
+    fun updateSlackBotToken(token: String) { _slackBotToken.value = token }
+    fun updateSlackAppToken(token: String) { _slackAppToken.value = token }
+    fun updateSlackAllowedUsers(users: String) { _slackAllowedUsers.value = users }
+
+    fun updateMatrixHomeserver(url: String) { _matrixHomeserver.value = url }
+    fun updateMatrixAccessToken(token: String) { _matrixAccessToken.value = token }
+    fun updateMatrixAllowedUsers(users: String) { _matrixAllowedUsers.value = users }
+
+    fun updateLineChannelAccessToken(token: String) { _lineChannelAccessToken.value = token }
+    fun updateLineChannelSecret(secret: String) { _lineChannelSecret.value = secret }
+    fun updateLineAllowedUsers(users: String) { _lineAllowedUsers.value = users }
 
     fun saveTelegramConfig() {
         viewModelScope.launch {
@@ -128,6 +185,44 @@ class MessagingBridgeViewModel(
         }
     }
 
+    fun saveSlackConfig() {
+        viewModelScope.launch {
+            val botToken = _slackBotToken.value.trim()
+            if (botToken.isNotBlank()) credentials.saveSlackBotToken(botToken)
+            val appToken = _slackAppToken.value.trim()
+            if (appToken.isNotBlank()) credentials.saveSlackAppToken(appToken)
+            val userIds = _slackAllowedUsers.value
+                .split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
+            preferences.setAllowedSlackUserIds(userIds)
+            _saveStatus.value = "Slack config saved"
+        }
+    }
+
+    fun saveMatrixConfig() {
+        viewModelScope.launch {
+            preferences.setMatrixHomeserver(_matrixHomeserver.value.trim())
+            val token = _matrixAccessToken.value.trim()
+            if (token.isNotBlank()) credentials.saveMatrixAccessToken(token)
+            val userIds = _matrixAllowedUsers.value
+                .split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
+            preferences.setAllowedMatrixUserIds(userIds)
+            _saveStatus.value = "Matrix config saved"
+        }
+    }
+
+    fun saveLineConfig() {
+        viewModelScope.launch {
+            val accessToken = _lineChannelAccessToken.value.trim()
+            if (accessToken.isNotBlank()) credentials.saveLineChannelAccessToken(accessToken)
+            val secret = _lineChannelSecret.value.trim()
+            if (secret.isNotBlank()) credentials.saveLineChannelSecret(secret)
+            val userIds = _lineAllowedUsers.value
+                .split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
+            preferences.setAllowedLineUserIds(userIds)
+            _saveStatus.value = "LINE config saved"
+        }
+    }
+
     fun setTelegramEnabled(enabled: Boolean) {
         _telegramEnabled.value = enabled
         preferences.setTelegramEnabled(enabled)
@@ -146,6 +241,24 @@ class MessagingBridgeViewModel(
         restartServiceIfNeeded()
     }
 
+    fun setSlackEnabled(enabled: Boolean) {
+        _slackEnabled.value = enabled
+        preferences.setSlackEnabled(enabled)
+        restartServiceIfNeeded()
+    }
+
+    fun setMatrixEnabled(enabled: Boolean) {
+        _matrixEnabled.value = enabled
+        preferences.setMatrixEnabled(enabled)
+        restartServiceIfNeeded()
+    }
+
+    fun setLineEnabled(enabled: Boolean) {
+        _lineEnabled.value = enabled
+        preferences.setLineEnabled(enabled)
+        restartServiceIfNeeded()
+    }
+
     fun startBridge() {
         MessagingBridgeService.start(context)
     }
@@ -155,7 +268,8 @@ class MessagingBridgeViewModel(
     }
 
     private fun restartServiceIfNeeded() {
-        val anyEnabled = _telegramEnabled.value || _discordEnabled.value || _webChatEnabled.value
+        val anyEnabled = _telegramEnabled.value || _discordEnabled.value || _webChatEnabled.value ||
+            _slackEnabled.value || _matrixEnabled.value || _lineEnabled.value
         if (anyEnabled) {
             MessagingBridgeService.start(context)
         } else {

@@ -43,6 +43,42 @@ class BridgePreferences(context: Context) {
     fun getWebChatPort(): Int = prefs.getInt(KEY_WEBCHAT_PORT, 8080)
     fun setWebChatPort(port: Int) = prefs.edit().putInt(KEY_WEBCHAT_PORT, port).apply()
 
+    // -- Slack --
+
+    fun isSlackEnabled(): Boolean = prefs.getBoolean(KEY_SLACK_ENABLED, false)
+    fun setSlackEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_SLACK_ENABLED, enabled).apply()
+
+    fun getAllowedSlackUserIds(): Set<String> =
+        prefs.getStringSet(KEY_SLACK_ALLOWED_USERS, emptySet()) ?: emptySet()
+
+    fun setAllowedSlackUserIds(ids: Set<String>) =
+        prefs.edit().putStringSet(KEY_SLACK_ALLOWED_USERS, ids).apply()
+
+    // -- Matrix --
+
+    fun isMatrixEnabled(): Boolean = prefs.getBoolean(KEY_MATRIX_ENABLED, false)
+    fun setMatrixEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_MATRIX_ENABLED, enabled).apply()
+
+    fun getMatrixHomeserver(): String = prefs.getString(KEY_MATRIX_HOMESERVER, "") ?: ""
+    fun setMatrixHomeserver(url: String) = prefs.edit().putString(KEY_MATRIX_HOMESERVER, url).apply()
+
+    fun getAllowedMatrixUserIds(): Set<String> =
+        prefs.getStringSet(KEY_MATRIX_ALLOWED_USERS, emptySet()) ?: emptySet()
+
+    fun setAllowedMatrixUserIds(ids: Set<String>) =
+        prefs.edit().putStringSet(KEY_MATRIX_ALLOWED_USERS, ids).apply()
+
+    // -- LINE --
+
+    fun isLineEnabled(): Boolean = prefs.getBoolean(KEY_LINE_ENABLED, false)
+    fun setLineEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_LINE_ENABLED, enabled).apply()
+
+    fun getAllowedLineUserIds(): Set<String> =
+        prefs.getStringSet(KEY_LINE_ALLOWED_USERS, emptySet()) ?: emptySet()
+
+    fun setAllowedLineUserIds(ids: Set<String>) =
+        prefs.edit().putStringSet(KEY_LINE_ALLOWED_USERS, ids).apply()
+
     // -- Conversation mapping --
 
     fun getMappedConversationId(externalKey: String): String? =
@@ -77,5 +113,12 @@ class BridgePreferences(context: Context) {
         private const val KEY_BRIDGE_CONVERSATION_ID = "bridge_conversation_id"
         private const val KEY_WEBCHAT_ENABLED = "webchat_enabled"
         private const val KEY_WEBCHAT_PORT = "webchat_port"
+        private const val KEY_SLACK_ENABLED = "slack_enabled"
+        private const val KEY_SLACK_ALLOWED_USERS = "slack_allowed_users"
+        private const val KEY_MATRIX_ENABLED = "matrix_enabled"
+        private const val KEY_MATRIX_HOMESERVER = "matrix_homeserver"
+        private const val KEY_MATRIX_ALLOWED_USERS = "matrix_allowed_users"
+        private const val KEY_LINE_ENABLED = "line_enabled"
+        private const val KEY_LINE_ALLOWED_USERS = "line_allowed_users"
     }
 }

@@ -120,7 +120,8 @@ class AgentExecutionService : Service(), KoinComponent {
             // Send completion notification
             if (cronjob.notifyOnCompletion) {
                 sendCompletionNotification(cronjob.instruction, taskResult.summary, cronjob.conversationId)
-                taskCompletionNotifier?.onTaskCompleted(cronjob.instruction, taskResult.summary)
+                val notifyTitle = cronjob.title.ifBlank { cronjob.instruction }
+                taskCompletionNotifier?.onTaskCompleted(notifyTitle, taskResult.summary)
             }
 
         } catch (e: CancellationException) {
@@ -141,7 +142,8 @@ class AgentExecutionService : Service(), KoinComponent {
 
             // Send error notification
             sendErrorNotification(cronjob.instruction, e.message ?: "Unknown error", cronjob.conversationId)
-            taskCompletionNotifier?.onTaskFailed(cronjob.instruction, e.message ?: "Unknown error")
+            val notifyTitle = cronjob.title.ifBlank { cronjob.instruction }
+            taskCompletionNotifier?.onTaskFailed(notifyTitle, e.message ?: "Unknown error")
         }
 
         // Disable one-time tasks after execution (keep for history)

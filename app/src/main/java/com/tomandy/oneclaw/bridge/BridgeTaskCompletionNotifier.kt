@@ -13,20 +13,20 @@ class BridgeTaskCompletionNotifier(
     private val conversationPreferences: ConversationPreferences
 ) : TaskCompletionNotifier {
 
-    override suspend fun onTaskCompleted(instruction: String, summary: String) {
-        val content = "[Scheduled Task] $instruction\n\n$summary"
-        insertIntoActiveConversation(instruction, summary)
+    override suspend fun onTaskCompleted(title: String, summary: String) {
+        val content = "[Scheduled Task] $title\n\n$summary"
+        insertIntoActiveConversation(title, summary)
         BridgeBroadcaster.broadcast(content)
     }
 
-    override suspend fun onTaskFailed(instruction: String, error: String) {
+    override suspend fun onTaskFailed(title: String, error: String) {
         val errorSummary = "Error: $error"
-        val content = "[Scheduled Task Failed] $instruction\n\n$errorSummary"
-        insertIntoActiveConversation(instruction, errorSummary)
+        val content = "[Scheduled Task Failed] $title\n\n$errorSummary"
+        insertIntoActiveConversation(title, errorSummary)
         BridgeBroadcaster.broadcast(content)
     }
 
-    private suspend fun insertIntoActiveConversation(instruction: String, result: String) {
+    private suspend fun insertIntoActiveConversation(title: String, result: String) {
         val conversationId = conversationPreferences.getActiveConversationId() ?: return
         if (conversationDao.getConversationOnce(conversationId) == null) return
 
@@ -37,7 +37,7 @@ class BridgeTaskCompletionNotifier(
                 id = UUID.randomUUID().toString(),
                 conversationId = conversationId,
                 role = "user",
-                content = "[Scheduled Task] $instruction",
+                content = "[Scheduled Task] $title",
                 timestamp = now
             )
         )

@@ -62,10 +62,12 @@ class RoomBridgeConversationManager(
             )
         )
 
-        // Update conversation metadata
+        // Update conversation metadata using update() not insert().
+        // insert() with REPLACE triggers DELETE+INSERT, which cascades
+        // ForeignKey.CASCADE and deletes all messages in the conversation.
         val conversation = conversationDao.getConversationOnce(conversationId) ?: return
         val messageCount = messageDao.getMessageCount(conversationId)
-        conversationDao.insert(
+        conversationDao.update(
             conversation.copy(
                 updatedAt = now,
                 messageCount = messageCount,
@@ -76,6 +78,6 @@ class RoomBridgeConversationManager(
 
     override suspend fun updateConversationTimestamp(conversationId: String) {
         val conversation = conversationDao.getConversationOnce(conversationId) ?: return
-        conversationDao.insert(conversation.copy(updatedAt = System.currentTimeMillis()))
+        conversationDao.update(conversation.copy(updatedAt = System.currentTimeMillis()))
     }
 }

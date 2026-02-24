@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
 import org.koin.compose.koinInject
 
 private enum class PluginGroup(val label: String) {
@@ -281,7 +282,8 @@ fun PluginsScreen(
                     onValueChange = { url = it },
                     label = { Text("Plugin ZIP URL") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = settingsTextFieldColors()
                 )
             },
             confirmButton = {

@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.Dimens
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -167,7 +168,8 @@ fun AgentProfileEditorScreen(
                                 onValueChange = { name = it.lowercase().replace(Regex("[^a-z0-9-]"), "") },
                                 label = { Text("Name (kebab-case)") },
                                 singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = settingsTextFieldColors()
                             )
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -176,7 +178,8 @@ fun AgentProfileEditorScreen(
                             onValueChange = { description = it },
                             label = { Text("Description") },
                             singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = settingsTextFieldColors()
                         )
                     }
                 }

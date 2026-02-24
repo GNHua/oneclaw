@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.google.AntigravityAuthManager
 import com.tomandy.oneclaw.llm.LlmProvider
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
 import kotlinx.coroutines.launch
 
 @Composable
@@ -340,7 +341,8 @@ private fun ProviderGroup(
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Password,
                                 imeAction = ImeAction.Next
-                            )
+                            ),
+                            colors = settingsTextFieldColors()
                         )
 
                         OutlinedTextField(
@@ -365,7 +367,8 @@ private fun ProviderGroup(
                                         isApiKeyVisible = false
                                     }
                                 }
-                            )
+                            ),
+                            colors = settingsTextFieldColors()
                         )
 
                         Row(

@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tomandy.oneclaw.ui.chat.ChatMarkdown
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,7 +84,8 @@ fun SystemPromptEditorScreen(
                         fontSize = 14.sp,
                         lineHeight = 20.sp
                     ),
-                    placeholder = { Text("Enter system prompt...") }
+                    placeholder = { Text("Enter system prompt...") },
+                    colors = settingsTextFieldColors()
                 )
             } else {
                 val scrollState = rememberScrollState()

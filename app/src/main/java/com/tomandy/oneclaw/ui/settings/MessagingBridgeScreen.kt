@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.bridge.BridgeStateTracker
 import com.tomandy.oneclaw.bridge.ChannelType
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
 
 @Composable
 fun MessagingBridgeScreen(
@@ -116,7 +117,8 @@ fun MessagingBridgeScreen(
                 label = { Text("Allowed User IDs (comma-separated)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium
+                textStyle = MaterialTheme.typography.bodyMedium,
+                colors = settingsTextFieldColors()
             )
 
             Button(
@@ -161,7 +163,8 @@ fun MessagingBridgeScreen(
                 label = { Text("Allowed User IDs (comma-separated)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium
+                textStyle = MaterialTheme.typography.bodyMedium,
+                colors = settingsTextFieldColors()
             )
 
             Button(
@@ -201,7 +204,8 @@ fun MessagingBridgeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                textStyle = MaterialTheme.typography.bodyMedium
+                textStyle = MaterialTheme.typography.bodyMedium,
+                colors = settingsTextFieldColors()
             )
 
             SecretTextField(
@@ -317,6 +321,7 @@ private fun SecretTextField(
                 )
             }
         },
-        textStyle = MaterialTheme.typography.bodyMedium
+        textStyle = MaterialTheme.typography.bodyMedium,
+        colors = settingsTextFieldColors()
     )
 }

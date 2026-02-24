@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.Dimens
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
 import com.tomandy.oneclaw.skill.SkillFrontmatterParser
 import com.tomandy.oneclaw.skill.SkillSource
 
@@ -185,7 +186,8 @@ fun SkillEditorScreen(
                                 },
                                 isError = nameError != null,
                                 singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = settingsTextFieldColors()
                             )
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -196,7 +198,8 @@ fun SkillEditorScreen(
                             placeholder = { Text("A short description of what this skill does") },
                             singleLine = true,
                             readOnly = readOnly,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = settingsTextFieldColors()
                         )
                     }
                 }

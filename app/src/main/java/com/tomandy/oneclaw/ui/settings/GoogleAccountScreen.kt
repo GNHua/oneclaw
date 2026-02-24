@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.ui.theme.Dimens
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
 import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
 import kotlinx.coroutines.launch
 
@@ -464,7 +465,8 @@ private fun ByokSection(
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Next
-                    )
+                    ),
+                    colors = settingsTextFieldColors()
                 )
 
                 Spacer(Modifier.height(8.dp))
@@ -488,7 +490,8 @@ private fun ByokSection(
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
-                    )
+                    ),
+                    colors = settingsTextFieldColors()
                 )
 
                 Spacer(Modifier.height(12.dp))

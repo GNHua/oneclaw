@@ -38,6 +38,7 @@ coroutinesPlayServices = "1.10.2"
 camerax = "1.4.1"
 pdfboxAndroid = "2.0.27.0"
 nanohttpd = "2.3.1"
+commonmark = "0.13.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -149,6 +150,10 @@ pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref
 # NanoHTTPD (embedded HTTP server for WebChat)
 nanohttpd = { group = "org.nanohttpd", name = "nanohttpd", version.ref = "nanohttpd" }
 nanohttpd-websocket = { group = "org.nanohttpd", name = "nanohttpd-websocket", version.ref = "nanohttpd" }
+
+# Commonmark (Markdown parsing)
+commonmark = { group = "com.atlassian.commonmark", name = "commonmark", version.ref = "commonmark" }
+commonmark-ext-gfm-strikethrough = { group = "com.atlassian.commonmark", name = "commonmark-ext-gfm-strikethrough", version.ref = "commonmark" }
 
 # Linting
 ktlint-cli = { group = "com.pinterest.ktlint", name = "ktlint-cli", version.ref = "ktlint" }

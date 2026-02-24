@@ -65,15 +65,15 @@ class TelegramApi(private val botToken: String) {
             response.close()
         }
 
-    suspend fun sendLongMessage(chatId: String, text: String) {
+    suspend fun sendLongMessage(chatId: String, text: String, parseMode: String? = null) {
         if (text.length <= MAX_MESSAGE_LENGTH) {
-            sendMessage(chatId, text)
+            sendMessage(chatId, text, parseMode)
             return
         }
 
         val chunks = splitMessage(text, MAX_MESSAGE_LENGTH)
         for (chunk in chunks) {
-            sendMessage(chatId, chunk)
+            sendMessage(chatId, chunk, parseMode)
         }
     }
 

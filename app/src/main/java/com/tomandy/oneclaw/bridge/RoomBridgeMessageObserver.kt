@@ -45,6 +45,7 @@ class RoomBridgeMessageObserver(
                 val lastAssistant = messages.lastOrNull { msg ->
                     msg.role == "assistant" &&
                         msg.timestamp > afterTimestamp &&
+                        msg.toolCalls.isNullOrBlank() &&
                         msg.content.isNotBlank()
                 }
                 lastAssistant?.let {

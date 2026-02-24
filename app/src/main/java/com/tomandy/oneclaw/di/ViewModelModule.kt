@@ -9,6 +9,7 @@ import com.tomandy.oneclaw.ui.cronjobs.CronjobsViewModel
 import com.tomandy.oneclaw.ui.history.ConversationHistoryViewModel
 import com.tomandy.oneclaw.ui.settings.AgentProfilesViewModel
 import com.tomandy.oneclaw.ui.settings.MemoryViewModel
+import com.tomandy.oneclaw.ui.settings.MessagingBridgeViewModel
 import com.tomandy.oneclaw.ui.settings.SettingsViewModel
 import com.tomandy.oneclaw.ui.settings.SkillsViewModel
 import org.koin.android.ext.koin.androidContext
@@ -71,6 +72,8 @@ val viewModelModule = module {
     }
 
     viewModel { BackupViewModel(backupManager = get()) }
+
+    viewModel { MessagingBridgeViewModel(context = androidContext()) }
 
     viewModel {
         AgentProfilesViewModel(

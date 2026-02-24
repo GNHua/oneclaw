@@ -42,6 +42,7 @@ fun SettingsScreen(
     onNavigateToAgentProfiles: () -> Unit,
     onNavigateToGoogleAccount: () -> Unit,
     onNavigateToAppearance: () -> Unit,
+    onNavigateToMessagingBridge: () -> Unit = {},
     modelPreferences: ModelPreferences,
     availableModels: List<Pair<String, LlmProvider>>,
     selectedModel: String,
@@ -173,6 +174,12 @@ fun SettingsScreen(
                 icon = Icons.Outlined.Psychology,
                 title = "Memory",
                 onClick = onNavigateToMemory
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            GroupItem(
+                icon = Icons.Outlined.SmartToy,
+                title = "Messaging Bridge",
+                onClick = onNavigateToMessagingBridge
             )
         }
 

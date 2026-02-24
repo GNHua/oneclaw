@@ -110,6 +110,9 @@ dependencies {
     // SMS & Phone
     implementation(project(":lib-sms-phone"))
 
+    // Messaging Bridge (Telegram, Discord, WebChat)
+    implementation(project(":lib-messaging-bridge"))
+
     // Voice Memo
     implementation(project(":lib-voice-memo"))
 

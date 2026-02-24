@@ -40,6 +40,8 @@ import com.tomandy.oneclaw.backup.BackupViewModel
 import com.tomandy.oneclaw.ui.settings.BackupScreen
 import com.tomandy.oneclaw.ui.settings.MemoryDetailScreen
 import com.tomandy.oneclaw.ui.settings.MemoryScreen
+import com.tomandy.oneclaw.ui.settings.MessagingBridgeScreen
+import com.tomandy.oneclaw.ui.settings.MessagingBridgeViewModel
 import com.tomandy.oneclaw.ui.settings.MemoryViewModel
 import com.tomandy.oneclaw.ui.settings.PluginsScreen
 import com.tomandy.oneclaw.ui.settings.ProvidersScreen
@@ -81,6 +83,7 @@ enum class Screen(val route: String) {
     SkillInstructionsEditor("settings/skills/editor/instructions"),
     GoogleAccount("settings/google-account"),
     Appearance("settings/appearance"),
+    MessagingBridge("settings/messaging-bridge"),
     Cronjobs("cronjobs"),
     CronjobDetail("cronjobs/detail"),
     History("history")
@@ -212,6 +215,9 @@ fun OneClawNavGraph(
                             },
                             onNavigateToAppearance = {
                                 navController.navigate(Screen.Appearance.route) { launchSingleTop = true }
+                            },
+                            onNavigateToMessagingBridge = {
+                                navController.navigate(Screen.MessagingBridge.route) { launchSingleTop = true }
                             },
                             modelPreferences = modelPreferences,
                             availableModels = availableModels,
@@ -582,6 +588,31 @@ fun OneClawNavGraph(
 
                         AppearanceScreen(
                             modelPreferences = modelPreferences,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
+            composable(Screen.MessagingBridge.route) {
+                val bridgeViewModel: MessagingBridgeViewModel = koinViewModel()
+
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Messaging Bridge") },
+                            navigationIcon = {
+                                IconButton(onClick = dropUnlessResumed { navController.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
+                            }
+                        )
+                    }
+                ) { paddingValues ->
+                    Column(Modifier.fillMaxSize().padding(paddingValues)) {
+
+                        MessagingBridgeScreen(
+                            viewModel = bridgeViewModel,
                             modifier = Modifier.weight(1f)
                         )
                     }

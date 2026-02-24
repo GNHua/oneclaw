@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.work.Configuration
 import com.tomandy.oneclaw.di.appModule
+import com.tomandy.oneclaw.di.bridgeModule
 import com.tomandy.oneclaw.di.viewModelModule
 import com.tomandy.oneclaw.llm.LlmClientProvider
 import com.tomandy.oneclaw.plugin.PluginCoordinator
@@ -25,7 +26,7 @@ class OneClawApp : Application(), Configuration.Provider {
         startKoin {
             androidContext(this@OneClawApp)
             workManagerFactory()
-            modules(appModule, viewModelModule, schedulerModule)
+            modules(appModule, viewModelModule, schedulerModule, bridgeModule)
         }
 
         val llmClientProvider: LlmClientProvider = get()

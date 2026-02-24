@@ -37,6 +37,7 @@ zxingCore = "3.5.3"
 coroutinesPlayServices = "1.10.2"
 camerax = "1.4.1"
 pdfboxAndroid = "2.0.27.0"
+nanohttpd = "2.3.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -144,6 +145,10 @@ androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycl
 
 # PDFBox for Android
 pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfboxAndroid" }
+
+# NanoHTTPD (embedded HTTP server for WebChat)
+nanohttpd = { group = "org.nanohttpd", name = "nanohttpd", version.ref = "nanohttpd" }
+nanohttpd-websocket = { group = "org.nanohttpd", name = "nanohttpd-websocket", version.ref = "nanohttpd" }
 
 # Linting
 ktlint-cli = { group = "com.pinterest.ktlint", name = "ktlint-cli", version.ref = "ktlint" }

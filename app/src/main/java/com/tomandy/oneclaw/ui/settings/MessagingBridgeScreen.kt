@@ -111,28 +111,34 @@ fun MessagingBridgeScreen(
         }
 
         // Wake lock toggle
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Keep CPU awake",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.weight(1f)
-                )
-                Switch(
-                    checked = wakeLockEnabled,
-                    onCheckedChange = { viewModel.setWakeLockEnabled(it) },
-                    modifier = Modifier.scale(0.8f)
-                )
-            }
-            if (wakeLockEnabled) {
-                Text(
-                    text = "Holds a wake lock to prevent the CPU from sleeping. This increases battery usage significantly.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.errorContainer
-                )
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Keep CPU awake",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(
+                        checked = wakeLockEnabled,
+                        onCheckedChange = { viewModel.setWakeLockEnabled(it) },
+                        modifier = Modifier.scale(0.8f)
+                    )
+                }
+                if (wakeLockEnabled) {
+                    Text(
+                        text = "Holds a wake lock to prevent the CPU from sleeping. This increases battery usage significantly.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         }
 

@@ -112,6 +112,14 @@ class TelegramChannel(
         }
     }
 
+    override suspend fun sendTypingIndicator(externalChatId: String) {
+        try {
+            api.sendChatAction(externalChatId)
+        } catch (_: Exception) {
+            // Best-effort: typing indicators should not fail message processing
+        }
+    }
+
     override suspend fun sendResponse(externalChatId: String, message: BridgeMessage) {
         api.sendLongMessage(externalChatId, message.content)
     }

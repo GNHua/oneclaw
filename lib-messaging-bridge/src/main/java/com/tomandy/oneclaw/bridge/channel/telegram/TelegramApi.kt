@@ -77,6 +77,19 @@ class TelegramApi(private val botToken: String) {
         }
     }
 
+    suspend fun sendChatAction(chatId: String, action: String = "typing"): Unit =
+        withContext(Dispatchers.IO) {
+            val payload = """{"chat_id":"$chatId","action":"$action"}"""
+
+            val request = Request.Builder()
+                .url("$baseUrl/sendChatAction")
+                .post(payload.toRequestBody("application/json".toMediaType()))
+                .build()
+
+            val response = client.newCall(request).execute()
+            response.close()
+        }
+
     fun shutdown() {
         client.dispatcher.executorService.shutdown()
         client.connectionPool.evictAll()

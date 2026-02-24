@@ -112,6 +112,28 @@ class MatrixApi(
         json.decodeFromString<WhoAmIResponse>(body).userId
     }
 
+    suspend fun sendTyping(roomId: String, userId: String, typing: Boolean, timeout: Int = 30000): Unit =
+        withContext(Dispatchers.IO) {
+            val encodedRoomId = roomId.replace("!", "%21")
+            val encodedUserId = userId.replace("@", "%40")
+            val url = "$baseUrl/_matrix/client/v3/rooms/$encodedRoomId/typing/$encodedUserId"
+
+            val payload = if (typing) {
+                """{"typing":true,"timeout":$timeout}"""
+            } else {
+                """{"typing":false}"""
+            }
+
+            val request = Request.Builder()
+                .url(url)
+                .header("Authorization", "Bearer $accessToken")
+                .put(payload.toRequestBody("application/json".toMediaType()))
+                .build()
+
+            val response = client.newCall(request).execute()
+            response.close()
+        }
+
     fun shutdown() {
         client.dispatcher.executorService.shutdown()
         client.connectionPool.evictAll()

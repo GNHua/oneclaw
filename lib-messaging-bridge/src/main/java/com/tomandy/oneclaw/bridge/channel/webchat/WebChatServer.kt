@@ -59,6 +59,20 @@ class WebChatServer(
         }
     }
 
+    fun sendTypingToSession(sessionId: String) {
+        val session = activeSessions[sessionId]
+        if (session != null) {
+            try {
+                session.send(json.encodeToString(
+                    WsOutMessage.serializer(),
+                    WsOutMessage(type = "typing")
+                ))
+            } catch (e: IOException) {
+                Log.e(TAG, "Failed to send typing to session $sessionId", e)
+            }
+        }
+    }
+
     fun broadcastToAll(text: String) {
         val payload = json.encodeToString(
             WsOutMessage.serializer(),

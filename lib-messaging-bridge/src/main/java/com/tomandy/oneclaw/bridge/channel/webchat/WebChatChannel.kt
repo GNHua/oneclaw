@@ -61,6 +61,14 @@ class WebChatChannel(
         Log.i(TAG, "WebChat server started on port $port")
     }
 
+    override suspend fun sendTypingIndicator(externalChatId: String) {
+        try {
+            server?.sendTypingToSession(externalChatId)
+        } catch (_: Exception) {
+            // Best-effort
+        }
+    }
+
     override suspend fun broadcast(message: BridgeMessage) {
         server?.broadcastToAll(message.content)
     }

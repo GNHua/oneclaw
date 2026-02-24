@@ -56,6 +56,7 @@ function connect(){
     const data=JSON.parse(e.data);
     if(data.type==='auth_ok'){authenticated=true;addMsg('Connected','system');}
     else if(data.type==='auth_fail'){addMsg('Auth failed. Add ?token=YOUR_TOKEN to URL','system');}
+    else if(data.type==='typing'){thinking.style.display='block';}
     else if(data.type==='response'){thinking.style.display='none';sendBtn.disabled=false;addMsg(data.text,'assistant');}
     else if(data.type==='error'){thinking.style.display='none';sendBtn.disabled=false;addMsg('Error: '+data.text,'system');}
   };

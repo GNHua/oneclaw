@@ -139,6 +139,15 @@ class MatrixChannel(
         }
     }
 
+    override suspend fun sendTypingIndicator(externalChatId: String) {
+        try {
+            val userId = ownUserId ?: return
+            api.sendTyping(externalChatId, userId, typing = true)
+        } catch (_: Exception) {
+            // Best-effort: typing indicators should not fail message processing
+        }
+    }
+
     override suspend fun sendResponse(externalChatId: String, message: BridgeMessage) {
         api.sendLongMessage(externalChatId, message.content)
     }

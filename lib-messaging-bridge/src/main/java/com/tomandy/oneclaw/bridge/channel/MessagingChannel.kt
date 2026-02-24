@@ -9,7 +9,12 @@ import com.tomandy.oneclaw.bridge.BridgePreferences
 import com.tomandy.oneclaw.bridge.BridgeStateTracker
 import com.tomandy.oneclaw.bridge.ChannelType
 import com.tomandy.oneclaw.bridge.ConversationMapper
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 abstract class MessagingChannel(
     val channelType: ChannelType,
@@ -23,6 +28,8 @@ abstract class MessagingChannel(
     abstract suspend fun start()
     abstract suspend fun stop()
     abstract fun isRunning(): Boolean
+
+    protected open suspend fun sendTypingIndicator(externalChatId: String) {}
 
     protected suspend fun processInboundMessage(msg: ChannelMessage) {
         // Persist last chat ID for broadcast
@@ -59,10 +66,26 @@ abstract class MessagingChannel(
                 imagePaths = msg.imagePaths
             )
 
-            val response = messageObserver.awaitNextAssistantMessage(
-                conversationId = conversationId,
-                afterTimestamp = beforeExecution
-            )
+            // Show typing indicator while waiting for the response
+            val typingJob: Job = scope.launch {
+                try {
+                    while (isActive) {
+                        sendTypingIndicator(msg.externalChatId)
+                        delay(TYPING_INTERVAL_MS)
+                    }
+                } catch (_: CancellationException) {
+                    // Expected when response arrives
+                }
+            }
+
+            val response = try {
+                messageObserver.awaitNextAssistantMessage(
+                    conversationId = conversationId,
+                    afterTimestamp = beforeExecution
+                )
+            } finally {
+                typingJob.cancel()
+            }
 
             sendResponse(msg.externalChatId, response)
 
@@ -102,5 +125,6 @@ abstract class MessagingChannel(
 
     companion object {
         private const val TAG = "MessagingChannel"
+        private const val TYPING_INTERVAL_MS = 4000L
     }
 }

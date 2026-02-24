@@ -88,23 +88,12 @@ fun MessagingBridgeScreen(
             title = "Telegram",
             statusText = channelStatusText(telegramEnabled, channelStates[ChannelType.TELEGRAM]),
             isEnabled = telegramEnabled,
+            onEnabledChanged = { viewModel.setTelegramEnabled(it) },
             isExpanded = expandedChannel == ChannelType.TELEGRAM,
             onToggle = {
                 expandedChannel = if (expandedChannel == ChannelType.TELEGRAM) null else ChannelType.TELEGRAM
             }
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Enabled", style = MaterialTheme.typography.bodyMedium)
-                Switch(
-                    checked = telegramEnabled,
-                    onCheckedChange = { viewModel.setTelegramEnabled(it) }
-                )
-            }
-
             SecretTextField(
                 value = telegramBotToken,
                 onValueChange = { viewModel.updateTelegramBotToken(it) },
@@ -134,23 +123,12 @@ fun MessagingBridgeScreen(
             title = "Discord",
             statusText = channelStatusText(discordEnabled, channelStates[ChannelType.DISCORD]),
             isEnabled = discordEnabled,
+            onEnabledChanged = { viewModel.setDiscordEnabled(it) },
             isExpanded = expandedChannel == ChannelType.DISCORD,
             onToggle = {
                 expandedChannel = if (expandedChannel == ChannelType.DISCORD) null else ChannelType.DISCORD
             }
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Enabled", style = MaterialTheme.typography.bodyMedium)
-                Switch(
-                    checked = discordEnabled,
-                    onCheckedChange = { viewModel.setDiscordEnabled(it) }
-                )
-            }
-
             SecretTextField(
                 value = discordBotToken,
                 onValueChange = { viewModel.updateDiscordBotToken(it) },
@@ -180,23 +158,12 @@ fun MessagingBridgeScreen(
             title = "WebChat",
             statusText = channelStatusText(webChatEnabled, channelStates[ChannelType.WEBCHAT]),
             isEnabled = webChatEnabled,
+            onEnabledChanged = { viewModel.setWebChatEnabled(it) },
             isExpanded = expandedChannel == ChannelType.WEBCHAT,
             onToggle = {
                 expandedChannel = if (expandedChannel == ChannelType.WEBCHAT) null else ChannelType.WEBCHAT
             }
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Enabled", style = MaterialTheme.typography.bodyMedium)
-                Switch(
-                    checked = webChatEnabled,
-                    onCheckedChange = { viewModel.setWebChatEnabled(it) }
-                )
-            }
-
             OutlinedTextField(
                 value = webChatPort,
                 onValueChange = { viewModel.updateWebChatPort(it) },
@@ -242,6 +209,7 @@ private fun ChannelGroup(
     title: String,
     statusText: String,
     isEnabled: Boolean,
+    onEnabledChanged: (Boolean) -> Unit,
     isExpanded: Boolean,
     onToggle: () -> Unit,
     content: @Composable ColumnScope.() -> Unit
@@ -258,7 +226,7 @@ private fun ChannelGroup(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onToggle)
-                    .padding(16.dp),
+                    .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -271,7 +239,11 @@ private fun ChannelGroup(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = isEnabled,
+                    onCheckedChange = onEnabledChanged,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
                     contentDescription = if (isExpanded) "Collapse" else "Expand",

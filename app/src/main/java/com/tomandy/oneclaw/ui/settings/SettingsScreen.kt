@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Cable
 import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.Groups
@@ -177,7 +178,7 @@ fun SettingsScreen(
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             GroupItem(
-                icon = Icons.Outlined.SmartToy,
+                icon = Icons.Outlined.Cable,
                 title = "Messaging Bridge",
                 onClick = onNavigateToMessagingBridge
             )

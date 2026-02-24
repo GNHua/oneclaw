@@ -1,14 +1,24 @@
 package com.tomandy.oneclaw.ui.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -22,7 +32,6 @@ fun MessagingBridgeScreen(
     viewModel: MessagingBridgeViewModel,
     modifier: Modifier = Modifier
 ) {
-    val serviceRunning by viewModel.serviceRunning.collectAsState()
     val channelStates by viewModel.channelStates.collectAsState()
     val saveStatus by viewModel.saveStatus.collectAsState()
 
@@ -37,6 +46,8 @@ fun MessagingBridgeScreen(
     val webChatEnabled by viewModel.webChatEnabled.collectAsState()
     val webChatPort by viewModel.webChatPort.collectAsState()
     val webChatAccessToken by viewModel.webChatAccessToken.collectAsState()
+
+    var expandedChannel by remember { mutableStateOf<ChannelType?>(null) }
 
     LaunchedEffect(saveStatus) {
         if (saveStatus != null) {
@@ -53,32 +64,9 @@ fun MessagingBridgeScreen(
             .fillMaxSize()
             .drawColumnScrollbar(scrollState, scrollbarColor)
             .verticalScroll(scrollState)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Status banner
-        if (serviceRunning) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Bridge active",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.weight(1f)
-                    )
-                    TextButton(onClick = { viewModel.stopBridge() }) {
-                        Text("Stop")
-                    }
-                }
-            }
-        }
-
         // Save status
         saveStatus?.let { status ->
             Surface(
@@ -94,19 +82,34 @@ fun MessagingBridgeScreen(
             }
         }
 
-        // Telegram Section
-        ChannelSection(
+        // Telegram
+        ChannelGroup(
             title = "Telegram",
-            enabled = telegramEnabled,
-            onEnabledChanged = { viewModel.setTelegramEnabled(it) },
-            channelState = channelStates[ChannelType.TELEGRAM]
+            statusText = channelStatusText(telegramEnabled, channelStates[ChannelType.TELEGRAM]),
+            isEnabled = telegramEnabled,
+            isExpanded = expandedChannel == ChannelType.TELEGRAM,
+            onToggle = {
+                expandedChannel = if (expandedChannel == ChannelType.TELEGRAM) null else ChannelType.TELEGRAM
+            }
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Enabled", style = MaterialTheme.typography.bodyMedium)
+                Switch(
+                    checked = telegramEnabled,
+                    onCheckedChange = { viewModel.setTelegramEnabled(it) }
+                )
+            }
+
             SecretTextField(
                 value = telegramBotToken,
                 onValueChange = { viewModel.updateTelegramBotToken(it) },
                 label = "Bot Token"
             )
-            Spacer(Modifier.height(8.dp))
+
             OutlinedTextField(
                 value = telegramAllowedUsers,
                 onValueChange = { viewModel.updateTelegramAllowedUsers(it) },
@@ -115,28 +118,43 @@ fun MessagingBridgeScreen(
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyMedium
             )
-            Spacer(Modifier.height(8.dp))
+
             Button(
                 onClick = { viewModel.saveTelegramConfig() },
-                modifier = Modifier.fillMaxWidth()
+                enabled = telegramBotToken.isNotBlank()
             ) {
-                Text("Save Telegram Config")
+                Text("Save")
             }
         }
 
-        // Discord Section
-        ChannelSection(
+        // Discord
+        ChannelGroup(
             title = "Discord",
-            enabled = discordEnabled,
-            onEnabledChanged = { viewModel.setDiscordEnabled(it) },
-            channelState = channelStates[ChannelType.DISCORD]
+            statusText = channelStatusText(discordEnabled, channelStates[ChannelType.DISCORD]),
+            isEnabled = discordEnabled,
+            isExpanded = expandedChannel == ChannelType.DISCORD,
+            onToggle = {
+                expandedChannel = if (expandedChannel == ChannelType.DISCORD) null else ChannelType.DISCORD
+            }
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Enabled", style = MaterialTheme.typography.bodyMedium)
+                Switch(
+                    checked = discordEnabled,
+                    onCheckedChange = { viewModel.setDiscordEnabled(it) }
+                )
+            }
+
             SecretTextField(
                 value = discordBotToken,
                 onValueChange = { viewModel.updateDiscordBotToken(it) },
                 label = "Bot Token"
             )
-            Spacer(Modifier.height(8.dp))
+
             OutlinedTextField(
                 value = discordAllowedUsers,
                 onValueChange = { viewModel.updateDiscordAllowedUsers(it) },
@@ -145,22 +163,37 @@ fun MessagingBridgeScreen(
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyMedium
             )
-            Spacer(Modifier.height(8.dp))
+
             Button(
                 onClick = { viewModel.saveDiscordConfig() },
-                modifier = Modifier.fillMaxWidth()
+                enabled = discordBotToken.isNotBlank()
             ) {
-                Text("Save Discord Config")
+                Text("Save")
             }
         }
 
-        // WebChat Section
-        ChannelSection(
+        // WebChat
+        ChannelGroup(
             title = "WebChat",
-            enabled = webChatEnabled,
-            onEnabledChanged = { viewModel.setWebChatEnabled(it) },
-            channelState = channelStates[ChannelType.WEBCHAT]
+            statusText = channelStatusText(webChatEnabled, channelStates[ChannelType.WEBCHAT]),
+            isEnabled = webChatEnabled,
+            isExpanded = expandedChannel == ChannelType.WEBCHAT,
+            onToggle = {
+                expandedChannel = if (expandedChannel == ChannelType.WEBCHAT) null else ChannelType.WEBCHAT
+            }
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Enabled", style = MaterialTheme.typography.bodyMedium)
+                Switch(
+                    checked = webChatEnabled,
+                    onCheckedChange = { viewModel.setWebChatEnabled(it) }
+                )
+            }
+
             OutlinedTextField(
                 value = webChatPort,
                 onValueChange = { viewModel.updateWebChatPort(it) },
@@ -170,76 +203,92 @@ fun MessagingBridgeScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 textStyle = MaterialTheme.typography.bodyMedium
             )
-            Spacer(Modifier.height(8.dp))
+
             SecretTextField(
                 value = webChatAccessToken,
                 onValueChange = { viewModel.updateWebChatAccessToken(it) },
                 label = "Access Token"
             )
-            Spacer(Modifier.height(8.dp))
+
             Button(
                 onClick = { viewModel.saveWebChatConfig() },
-                modifier = Modifier.fillMaxWidth()
+                enabled = true
             ) {
-                Text("Save WebChat Config")
+                Text("Save")
             }
         }
+    }
+}
 
-        Spacer(Modifier.height(16.dp))
+private fun channelStatusText(
+    enabled: Boolean,
+    state: BridgeStateTracker.ChannelState?
+): String {
+    if (!enabled) return "Disabled"
+    if (state == null) return "Not running"
+    return when {
+        state.error != null -> "Error"
+        state.isRunning -> "Connected"
+        else -> "Disconnected"
     }
 }
 
 @Composable
-private fun ChannelSection(
+private fun ChannelGroup(
     title: String,
-    enabled: Boolean,
-    onEnabledChanged: (Boolean) -> Unit,
-    channelState: BridgeStateTracker.ChannelState?,
+    statusText: String,
+    isEnabled: Boolean,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
+        color = MaterialTheme.colorScheme.primaryContainer,
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(if (isEnabled || isExpanded) 1f else 0.5f)
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggle)
+                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f)
+                    style = MaterialTheme.typography.bodyLarge
                 )
-                Switch(
-                    checked = enabled,
-                    onCheckedChange = onEnabledChanged
-                )
-            }
-
-            // Status indicator
-            if (channelState != null) {
-                Spacer(Modifier.height(4.dp))
-                val statusText = when {
-                    channelState.error != null -> "Error: ${channelState.error}"
-                    channelState.isRunning -> "Connected (${channelState.messageCount} messages)"
-                    else -> "Disconnected"
-                }
-                val statusColor = when {
-                    channelState.error != null -> MaterialTheme.colorScheme.error
-                    channelState.isRunning -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                }
+                Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = statusText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = statusColor
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.rotate(if (isExpanded) 180f else 0f)
                 )
             }
 
-            if (enabled) {
-                Spacer(Modifier.height(12.dp))
-                content()
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        content = content
+                    )
+                }
             }
         }
     }
@@ -261,8 +310,11 @@ private fun SecretTextField(
         singleLine = true,
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            TextButton(onClick = { visible = !visible }) {
-                Text(if (visible) "Hide" else "Show")
+            IconButton(onClick = { visible = !visible }) {
+                Icon(
+                    imageVector = if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    contentDescription = if (visible) "Hide" else "Show"
+                )
             }
         },
         textStyle = MaterialTheme.typography.bodyMedium

@@ -3,6 +3,8 @@ package com.tomandy.oneclaw
 import android.app.Application
 import android.util.Log
 import androidx.work.Configuration
+import com.tomandy.oneclaw.bridge.BridgePreferences
+import com.tomandy.oneclaw.bridge.service.MessagingBridgeService
 import com.tomandy.oneclaw.di.appModule
 import com.tomandy.oneclaw.di.bridgeModule
 import com.tomandy.oneclaw.di.viewModelModule
@@ -37,6 +39,13 @@ class OneClawApp : Application(), Configuration.Provider {
         }
         CoroutineScope(Dispatchers.Main).launch {
             pluginCoordinator.initializePlugins()
+        }
+
+        // Auto-start messaging bridge if any channel was enabled
+        val bridgePrefs = BridgePreferences(this)
+        if (bridgePrefs.isTelegramEnabled() || bridgePrefs.isDiscordEnabled() || bridgePrefs.isWebChatEnabled()) {
+            MessagingBridgeService.start(this)
+            Log.i("OneClawApp", "Auto-started messaging bridge service")
         }
 
         // Ensure all enabled tasks have active alarms (covers app update,

@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.Dimens
 import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldShape
 import com.tomandy.oneclaw.skill.SkillEntry
 import com.tomandy.oneclaw.skill.SkillSource
 
@@ -185,6 +186,7 @@ fun SkillsScreen(
                     label = { Text("SKILL.md URL") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
+                    shape = settingsTextFieldShape,
                     colors = settingsTextFieldColors()
                 )
             },

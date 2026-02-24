@@ -32,6 +32,7 @@ import com.tomandy.oneclaw.google.AntigravityAuthManager
 import com.tomandy.oneclaw.llm.LlmProvider
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldShape
 import kotlinx.coroutines.launch
 
 @Composable
@@ -342,6 +343,7 @@ private fun ProviderGroup(
                                 keyboardType = KeyboardType.Password,
                                 imeAction = ImeAction.Next
                             ),
+                            shape = settingsTextFieldShape,
                             colors = settingsTextFieldColors()
                         )
 
@@ -368,6 +370,7 @@ private fun ProviderGroup(
                                     }
                                 }
                             ),
+                            shape = settingsTextFieldShape,
                             colors = settingsTextFieldColors()
                         )
 

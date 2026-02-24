@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import com.tomandy.oneclaw.ui.chat.ChatMarkdown
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +86,7 @@ fun SystemPromptEditorScreen(
                         lineHeight = 20.sp
                     ),
                     placeholder = { Text("Enter system prompt...") },
+                    shape = settingsTextFieldShape,
                     colors = settingsTextFieldColors()
                 )
             } else {

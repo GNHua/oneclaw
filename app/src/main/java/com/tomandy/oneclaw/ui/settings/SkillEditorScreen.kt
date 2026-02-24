@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.Dimens
 import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldShape
 import com.tomandy.oneclaw.skill.SkillFrontmatterParser
 import com.tomandy.oneclaw.skill.SkillSource
 
@@ -187,6 +188,7 @@ fun SkillEditorScreen(
                                 isError = nameError != null,
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
+                                shape = settingsTextFieldShape,
                                 colors = settingsTextFieldColors()
                             )
                         }
@@ -199,6 +201,7 @@ fun SkillEditorScreen(
                             singleLine = true,
                             readOnly = readOnly,
                             modifier = Modifier.fillMaxWidth(),
+                            shape = settingsTextFieldShape,
                             colors = settingsTextFieldColors()
                         )
                     }

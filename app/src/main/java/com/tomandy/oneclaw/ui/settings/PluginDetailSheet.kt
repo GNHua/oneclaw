@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.engine.ToolDefinition
 import com.tomandy.oneclaw.ui.HandleDismissBottomSheet
 import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldShape
 import com.tomandy.oneclaw.ui.drawScrollbar
 import com.tomandy.oneclaw.ui.rememberLazyListHeightCache
 import kotlinx.serialization.json.JsonArray
@@ -168,6 +169,7 @@ private fun CredentialForm(
                                 { Text(cred.description) }
                             } else null,
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                            shape = settingsTextFieldShape,
                             colors = settingsTextFieldColors(),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -246,6 +248,7 @@ private fun CredentialForm(
                             KeyboardOptions.Default
                         },
                         modifier = Modifier.fillMaxWidth(),
+                        shape = settingsTextFieldShape,
                         colors = settingsTextFieldColors()
                     )
                 }

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.tomandy.oneclaw.ui.drawColumnScrollbar
 import com.tomandy.oneclaw.ui.theme.Dimens
 import com.tomandy.oneclaw.ui.theme.settingsTextFieldColors
+import com.tomandy.oneclaw.ui.theme.settingsTextFieldShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -169,6 +170,7 @@ fun AgentProfileEditorScreen(
                                 label = { Text("Name (kebab-case)") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
+                                shape = settingsTextFieldShape,
                                 colors = settingsTextFieldColors()
                             )
                         }
@@ -179,6 +181,7 @@ fun AgentProfileEditorScreen(
                             label = { Text("Description") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
+                            shape = settingsTextFieldShape,
                             colors = settingsTextFieldColors()
                         )
                     }

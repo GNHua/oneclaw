@@ -61,6 +61,10 @@ class WebChatChannel(
         Log.i(TAG, "WebChat server started on port $port")
     }
 
+    override suspend fun broadcast(message: BridgeMessage) {
+        server?.broadcastToAll(message.content)
+    }
+
     override suspend fun sendResponse(externalChatId: String, message: BridgeMessage) {
         server?.sendToSession(externalChatId, message.content)
     }

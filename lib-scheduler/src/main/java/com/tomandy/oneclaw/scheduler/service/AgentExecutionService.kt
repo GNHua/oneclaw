@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import com.tomandy.oneclaw.scheduler.AgentExecutor
 import com.tomandy.oneclaw.scheduler.CronjobManager
 import com.tomandy.oneclaw.scheduler.R
+import com.tomandy.oneclaw.scheduler.TaskCompletionNotifier
 import com.tomandy.oneclaw.scheduler.TaskExecutionResult
 import com.tomandy.oneclaw.scheduler.data.ExecutionStatus
 import com.tomandy.oneclaw.scheduler.data.ScheduleType
@@ -32,6 +33,9 @@ import org.koin.core.component.inject
 class AgentExecutionService : Service(), KoinComponent {
 
     private val agentExecutor: AgentExecutor by inject()
+    private val taskCompletionNotifier: TaskCompletionNotifier? by lazy {
+        getKoin().getOrNull<TaskCompletionNotifier>()
+    }
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var cronjobManager: CronjobManager
@@ -116,6 +120,7 @@ class AgentExecutionService : Service(), KoinComponent {
             // Send completion notification
             if (cronjob.notifyOnCompletion) {
                 sendCompletionNotification(cronjob.instruction, taskResult.summary, cronjob.conversationId)
+                taskCompletionNotifier?.onTaskCompleted(cronjob.instruction, taskResult.summary)
             }
 
         } catch (e: CancellationException) {
@@ -136,6 +141,7 @@ class AgentExecutionService : Service(), KoinComponent {
 
             // Send error notification
             sendErrorNotification(cronjob.instruction, e.message ?: "Unknown error", cronjob.conversationId)
+            taskCompletionNotifier?.onTaskFailed(cronjob.instruction, e.message ?: "Unknown error")
         }
 
         // Disable one-time tasks after execution (keep for history)

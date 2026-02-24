@@ -98,6 +98,14 @@ class BridgePreferences(context: Context) {
     fun clearBridgeConversationId() =
         prefs.edit().remove(KEY_BRIDGE_CONVERSATION_ID).apply()
 
+    // -- Last chat ID per channel (for broadcast) --
+
+    fun getLastChatId(channelType: ChannelType): String? =
+        prefs.getString("last_chat_id:${channelType.name}", null)
+
+    fun setLastChatId(channelType: ChannelType, chatId: String) =
+        prefs.edit().putString("last_chat_id:${channelType.name}", chatId).apply()
+
     // -- Telegram polling offset --
 
     fun getTelegramUpdateOffset(): Long = prefs.getLong(KEY_TELEGRAM_OFFSET, 0)

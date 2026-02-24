@@ -22,8 +22,10 @@ import com.tomandy.oneclaw.plugin.config.SkillConfigContributor
 import com.tomandy.oneclaw.pluginmanager.BuiltInPluginManager
 import com.tomandy.oneclaw.pluginmanager.PluginPreferences
 import com.tomandy.oneclaw.pluginmanager.UserPluginManager
+import com.tomandy.oneclaw.bridge.BridgeTaskCompletionNotifier
 import com.tomandy.oneclaw.scheduler.AgentExecutor
 import com.tomandy.oneclaw.scheduler.CronjobManager
+import com.tomandy.oneclaw.scheduler.TaskCompletionNotifier
 import com.tomandy.oneclaw.scheduler.data.CronjobDatabase
 import com.tomandy.oneclaw.google.AntigravityAuthManager
 import com.tomandy.oneclaw.google.OAuthGoogleAuthManager
@@ -180,6 +182,9 @@ val appModule = module {
 
     // Navigation State
     single { NavigationState() }
+
+    // Task Completion Notifier (bridges scheduler -> messaging channels)
+    single<TaskCompletionNotifier> { BridgeTaskCompletionNotifier() }
 
     // Agent Executor (for scheduled tasks)
     single<AgentExecutor> {

@@ -9,6 +9,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.tomandy.oneclaw.bridge.BridgeAgentExecutor
+import com.tomandy.oneclaw.bridge.BridgeBroadcaster
 import com.tomandy.oneclaw.bridge.BridgeConversationManager
 import com.tomandy.oneclaw.bridge.BridgeMessageObserver
 import com.tomandy.oneclaw.bridge.BridgePreferences
@@ -89,6 +90,7 @@ class MessagingBridgeService : Service(), KoinComponent {
                     botToken = botToken
                 )
                 channels.add(telegram)
+                BridgeBroadcaster.register(telegram)
                 serviceScope.launch { telegram.start() }
                 Log.i(TAG, "Telegram channel started")
             }
@@ -107,6 +109,7 @@ class MessagingBridgeService : Service(), KoinComponent {
                     botToken = discordToken
                 )
                 channels.add(discord)
+                BridgeBroadcaster.register(discord)
                 serviceScope.launch { discord.start() }
                 Log.i(TAG, "Discord channel started")
             }
@@ -126,12 +129,14 @@ class MessagingBridgeService : Service(), KoinComponent {
                 accessToken = webChatToken
             )
             channels.add(webchat)
+            BridgeBroadcaster.register(webchat)
             serviceScope.launch { webchat.start() }
             Log.i(TAG, "WebChat channel started on port $port")
         }
     }
 
     private fun stopAllChannels() {
+        BridgeBroadcaster.clear()
         serviceScope.launch {
             channels.forEach { channel ->
                 try {

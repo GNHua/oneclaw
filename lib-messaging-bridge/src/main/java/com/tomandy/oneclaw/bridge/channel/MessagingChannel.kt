@@ -25,6 +25,9 @@ abstract class MessagingChannel(
     abstract fun isRunning(): Boolean
 
     protected suspend fun processInboundMessage(msg: ChannelMessage) {
+        // Persist last chat ID for broadcast
+        preferences.setLastChatId(channelType, msg.externalChatId)
+
         // Handle /clear command: create a new conversation
         if (msg.text.trim().equals("/clear", ignoreCase = true)) {
             val newId = conversationMapper.createNewConversation()
@@ -85,6 +88,11 @@ abstract class MessagingChannel(
                 Log.e(TAG, "Failed to send error response", sendError)
             }
         }
+    }
+
+    open suspend fun broadcast(message: BridgeMessage) {
+        val chatId = preferences.getLastChatId(channelType) ?: return
+        sendResponse(chatId, message)
     }
 
     protected abstract suspend fun sendResponse(

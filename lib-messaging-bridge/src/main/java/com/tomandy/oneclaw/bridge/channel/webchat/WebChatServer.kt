@@ -59,6 +59,20 @@ class WebChatServer(
         }
     }
 
+    fun broadcastToAll(text: String) {
+        val payload = json.encodeToString(
+            WsOutMessage.serializer(),
+            WsOutMessage(type = "response", text = text)
+        )
+        for ((id, session) in activeSessions) {
+            try {
+                session.send(payload)
+            } catch (e: IOException) {
+                Log.e(TAG, "Failed to broadcast to session $id", e)
+            }
+        }
+    }
+
     inner class ChatWebSocket(handshake: IHTTPSession) : NanoWSD.WebSocket(handshake) {
         private val sessionId = UUID.randomUUID().toString()
         private var authenticated = false

@@ -74,8 +74,14 @@ class RoomBridgeConversationManager(
         // ForeignKey.CASCADE and deletes all messages in the conversation.
         val conversation = conversationDao.getConversationOnce(conversationId) ?: return
         val messageCount = messageDao.getMessageCount(conversationId)
+        val updatedTitle = if (conversation.messageCount == 0) {
+            content.take(50).let { if (content.length > 50) "$it..." else it }
+        } else {
+            conversation.title
+        }
         conversationDao.update(
             conversation.copy(
+                title = updatedTitle,
                 updatedAt = now,
                 messageCount = messageCount,
                 lastMessagePreview = content.take(100)

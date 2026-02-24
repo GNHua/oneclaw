@@ -112,6 +112,15 @@ class ChatViewModel(
             conversationPreferences.setActiveConversationId(_conversationId.value)
         }
 
+        // Observe external changes to active conversation (e.g. from messaging bridge /clear)
+        viewModelScope.launch {
+            conversationPreferences.activeConversationIdFlow.collect { activeId ->
+                if (activeId != null && activeId != _conversationId.value) {
+                    loadConversation(activeId)
+                }
+            }
+        }
+
         // Load the global active agent profile
         _currentProfileId.value = modelPreferences.getActiveAgent()
     }

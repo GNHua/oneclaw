@@ -51,6 +51,17 @@ class BridgePreferences(context: Context) {
     fun setMappedConversationId(externalKey: String, conversationId: String) =
         prefs.edit().putString("conv_map:$externalKey", conversationId).apply()
 
+    // -- Bridge active conversation (separate from the UI's active conversation) --
+
+    fun getBridgeConversationId(): String? =
+        prefs.getString(KEY_BRIDGE_CONVERSATION_ID, null)
+
+    fun setBridgeConversationId(conversationId: String) =
+        prefs.edit().putString(KEY_BRIDGE_CONVERSATION_ID, conversationId).apply()
+
+    fun clearBridgeConversationId() =
+        prefs.edit().remove(KEY_BRIDGE_CONVERSATION_ID).apply()
+
     // -- Telegram polling offset --
 
     fun getTelegramUpdateOffset(): Long = prefs.getLong(KEY_TELEGRAM_OFFSET, 0)
@@ -63,6 +74,7 @@ class BridgePreferences(context: Context) {
         private const val KEY_TELEGRAM_OFFSET = "telegram_update_offset"
         private const val KEY_DISCORD_ENABLED = "discord_enabled"
         private const val KEY_DISCORD_ALLOWED_USERS = "discord_allowed_users"
+        private const val KEY_BRIDGE_CONVERSATION_ID = "bridge_conversation_id"
         private const val KEY_WEBCHAT_ENABLED = "webchat_enabled"
         private const val KEY_WEBCHAT_PORT = "webchat_port"
     }

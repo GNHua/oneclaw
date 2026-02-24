@@ -73,7 +73,7 @@ class MessagingBridgeService : Service(), KoinComponent {
     private fun startEnabledChannels() {
         stopAllChannels()
 
-        val mapper = ConversationMapper(conversationManager)
+        val mapper = ConversationMapper(preferences, conversationManager)
         val credentialProvider = BridgeCredentialProvider(applicationContext)
 
         if (preferences.isTelegramEnabled()) {

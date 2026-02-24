@@ -2,21 +2,26 @@ package com.tomandy.oneclaw.bridge
 
 /**
  * Resolves the OneClaw conversation ID for bridge messages.
- * Uses the active conversation (same one visible in the native UI).
- * Creates a new conversation only if no active one exists.
+ *
+ * The bridge maintains its own active conversation ID in BridgePreferences,
+ * separate from the UI's active conversation in ConversationPreferences.
+ * This prevents ChatViewModel from overwriting the bridge's conversation.
  */
 class ConversationMapper(
+    private val preferences: BridgePreferences,
     private val conversationManager: BridgeConversationManager
 ) {
     suspend fun resolveConversationId(): String {
-        val activeId = conversationManager.getActiveConversationId()
-        if (activeId != null && conversationManager.conversationExists(activeId)) {
-            return activeId
+        val bridgeConvId = preferences.getBridgeConversationId()
+        if (bridgeConvId != null && conversationManager.conversationExists(bridgeConvId)) {
+            return bridgeConvId
         }
-        return conversationManager.createNewConversation()
+        return createNewConversation()
     }
 
     suspend fun createNewConversation(): String {
-        return conversationManager.createNewConversation()
+        val newId = conversationManager.createNewConversation()
+        preferences.setBridgeConversationId(newId)
+        return newId
     }
 }

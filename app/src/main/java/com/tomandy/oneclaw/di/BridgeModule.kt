@@ -12,5 +12,5 @@ import org.koin.dsl.module
 val bridgeModule = module {
     single<BridgeAgentExecutor> { BridgeAgentExecutorImpl(androidContext()) }
     single<BridgeMessageObserver> { RoomBridgeMessageObserver(get()) }
-    single<BridgeConversationManager> { RoomBridgeConversationManager(get(), get(), get()) }
+    single<BridgeConversationManager> { RoomBridgeConversationManager(get(), get()) }
 }

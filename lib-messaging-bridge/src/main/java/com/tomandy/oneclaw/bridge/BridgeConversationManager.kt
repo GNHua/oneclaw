@@ -5,7 +5,6 @@ package com.tomandy.oneclaw.bridge
  * The app module implements this via ConversationDao + MessageDao.
  */
 interface BridgeConversationManager {
-    fun getActiveConversationId(): String?
     suspend fun createNewConversation(): String
     suspend fun createConversation(conversationId: String, title: String)
     suspend fun conversationExists(conversationId: String): Boolean

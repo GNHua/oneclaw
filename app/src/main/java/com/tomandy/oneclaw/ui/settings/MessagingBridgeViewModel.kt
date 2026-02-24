@@ -101,6 +101,10 @@ class MessagingBridgeViewModel(
     )
     val lineAllowedUsers: StateFlow<String> = _lineAllowedUsers.asStateFlow()
 
+    // Wake lock
+    private val _wakeLockEnabled = MutableStateFlow(preferences.isWakeLockEnabled())
+    val wakeLockEnabled: StateFlow<Boolean> = _wakeLockEnabled.asStateFlow()
+
     // Save status
     private val _saveStatus = MutableStateFlow<String?>(null)
     val saveStatus: StateFlow<String?> = _saveStatus.asStateFlow()
@@ -256,6 +260,12 @@ class MessagingBridgeViewModel(
     fun setLineEnabled(enabled: Boolean) {
         _lineEnabled.value = enabled
         preferences.setLineEnabled(enabled)
+        restartServiceIfNeeded()
+    }
+
+    fun setWakeLockEnabled(enabled: Boolean) {
+        _wakeLockEnabled.value = enabled
+        preferences.setWakeLockEnabled(enabled)
         restartServiceIfNeeded()
     }
 

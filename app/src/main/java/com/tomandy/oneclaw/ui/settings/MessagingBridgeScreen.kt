@@ -60,6 +60,8 @@ fun MessagingBridgeScreen(
     val matrixAccessToken by viewModel.matrixAccessToken.collectAsState()
     val matrixAllowedUsers by viewModel.matrixAllowedUsers.collectAsState()
 
+    val wakeLockEnabled by viewModel.wakeLockEnabled.collectAsState()
+
     val lineEnabled by viewModel.lineEnabled.collectAsState()
     val lineChannelAccessToken by viewModel.lineChannelAccessToken.collectAsState()
     val lineChannelSecret by viewModel.lineChannelSecret.collectAsState()
@@ -104,6 +106,32 @@ fun MessagingBridgeScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.fillMaxWidth().padding(8.dp)
+                )
+            }
+        }
+
+        // Wake lock toggle
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Keep CPU awake",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                Switch(
+                    checked = wakeLockEnabled,
+                    onCheckedChange = { viewModel.setWakeLockEnabled(it) },
+                    modifier = Modifier.scale(0.8f)
+                )
+            }
+            if (wakeLockEnabled) {
+                Text(
+                    text = "Holds a wake lock to prevent the CPU from sleeping. This increases battery usage significantly.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.errorContainer
                 )
             }
         }

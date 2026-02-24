@@ -43,7 +43,7 @@ class OneClawApp : Application(), Configuration.Provider {
 
         // Auto-start messaging bridge if any channel was enabled
         val bridgePrefs = BridgePreferences(this)
-        if (bridgePrefs.isTelegramEnabled() || bridgePrefs.isDiscordEnabled() || bridgePrefs.isWebChatEnabled()) {
+        if (bridgePrefs.hasAnyChannelEnabled()) {
             MessagingBridgeService.start(this)
             Log.i("OneClawApp", "Auto-started messaging bridge service")
         }

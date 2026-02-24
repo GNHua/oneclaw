@@ -82,6 +82,17 @@ class BridgePreferences(context: Context) {
     fun getLineWebhookPort(): Int = prefs.getInt(KEY_LINE_WEBHOOK_PORT, 8081)
     fun setLineWebhookPort(port: Int) = prefs.edit().putInt(KEY_LINE_WEBHOOK_PORT, port).apply()
 
+    // -- Wake lock --
+
+    fun isWakeLockEnabled(): Boolean = prefs.getBoolean(KEY_WAKE_LOCK_ENABLED, false)
+    fun setWakeLockEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_WAKE_LOCK_ENABLED, enabled).apply()
+
+    // -- Convenience --
+
+    fun hasAnyChannelEnabled(): Boolean =
+        isTelegramEnabled() || isDiscordEnabled() || isWebChatEnabled() ||
+            isSlackEnabled() || isMatrixEnabled() || isLineEnabled()
+
     // -- Conversation mapping --
 
     fun getMappedConversationId(externalKey: String): String? =
@@ -132,5 +143,6 @@ class BridgePreferences(context: Context) {
         private const val KEY_LINE_ENABLED = "line_enabled"
         private const val KEY_LINE_ALLOWED_USERS = "line_allowed_users"
         private const val KEY_LINE_WEBHOOK_PORT = "line_webhook_port"
+        private const val KEY_WAKE_LOCK_ENABLED = "wake_lock_enabled"
     }
 }

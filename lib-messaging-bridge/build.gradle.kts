@@ -56,6 +56,9 @@ dependencies {
     // Security (encrypted credentials)
     implementation(libs.androidx.security.crypto)
 
+    // WorkManager (watchdog worker)
+    implementation(libs.androidx.work.runtime.ktx)
+
     // NanoHTTPD (for WebChat server)
     implementation(libs.nanohttpd)
     implementation(libs.nanohttpd.websocket)

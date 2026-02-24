@@ -6,6 +6,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.tomandy.oneclaw.bridge.BridgeAgentExecutor
@@ -43,6 +44,7 @@ class MessagingBridgeService : Service(), KoinComponent {
     private val channelMutex = Mutex()
     private lateinit var preferences: BridgePreferences
     private val channels = mutableListOf<MessagingChannel>()
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -54,13 +56,27 @@ class MessagingBridgeService : Service(), KoinComponent {
         when (intent?.action) {
             ACTION_START -> {
                 startForeground(NOTIFICATION_ID, createNotification())
-                serviceScope.launch { startEnabledChannels() }
-                BridgeStateTracker.updateServiceRunning(true)
-                Log.i(TAG, "Messaging bridge service started")
+                serviceScope.launch {
+                    startEnabledChannels()
+                    if (channels.isEmpty()) {
+                        releaseWakeLock()
+                        BridgeStateTracker.reset()
+                        stopForeground(STOP_FOREGROUND_REMOVE)
+                        stopSelf()
+                        Log.i(TAG, "No channels started, stopping service")
+                        return@launch
+                    }
+                    if (preferences.isWakeLockEnabled()) {
+                        acquireWakeLock()
+                    }
+                    BridgeStateTracker.updateServiceRunning(true)
+                    Log.i(TAG, "Messaging bridge service started")
+                }
             }
             ACTION_STOP -> {
                 serviceScope.launch {
                     stopAllChannels()
+                    releaseWakeLock()
                     BridgeStateTracker.reset()
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
@@ -74,10 +90,26 @@ class MessagingBridgeService : Service(), KoinComponent {
     override fun onDestroy() {
         super.onDestroy()
         serviceScope.cancel()
+        releaseWakeLock()
         BridgeStateTracker.reset()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun acquireWakeLock() {
+        if (wakeLock != null) return
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_TAG).apply {
+            acquire()
+        }
+    }
+
+    private fun releaseWakeLock() {
+        wakeLock?.let {
+            if (it.isHeld) it.release()
+        }
+        wakeLock = null
+    }
 
     private suspend fun startEnabledChannels() = channelMutex.withLock {
         stopAllChannelsLocked()
@@ -250,6 +282,7 @@ class MessagingBridgeService : Service(), KoinComponent {
         const val ACTION_STOP = "com.tomandy.oneclaw.bridge.STOP"
         private const val CHANNEL_ID = "messaging_bridge_channel"
         private const val NOTIFICATION_ID = 1003
+        private const val WAKE_LOCK_TAG = "oneclaw:bridge_service"
 
         fun start(context: Context) {
             val intent = Intent(context, MessagingBridgeService::class.java).apply {

@@ -51,6 +51,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `lib-pdf` | PDF info, text extraction, page rendering tools |
 | `lib-camera` | Headless photo capture via CameraX |
 | `lib-sms-phone` | SMS send/list/search, phone dial, call log |
+| `lib-messaging-bridge` | Telegram, Discord, WebChat messaging channels; scheduled task forwarding |
 | `lib-voice-memo` | Audio recording and transcription via OpenAI Whisper |
 
 ### Dependency Injection
@@ -80,6 +81,10 @@ All Koin modules registered in `OneClawApp.onCreate()`.
 - `ACTION_SUMMARIZE` -- force conversation summarization
 
 State bridged to UI via `ChatExecutionTracker` (singleton with `StateFlow`s).
+
+`AgentExecutionService` (in `lib-scheduler`) is a separate foreground service for scheduled task execution. Starts via `CronjobAlarmReceiver`, runs the agent loop, sends completion/error notifications, and calls `TaskCompletionNotifier` to forward results to messaging bridge channels.
+
+`MessagingBridgeService` (in `lib-messaging-bridge`) is a foreground service that manages messaging channel lifecycles (Telegram, Discord, WebChat). Starts/stops channels based on preferences. Registers channels with `BridgeBroadcaster` for outbound broadcast.
 
 ### Agent Profiles
 
@@ -117,9 +122,10 @@ Path security: `resolveSafePath()` rejects absolute paths and validates canonica
 
 Skills are markdown files with YAML frontmatter. Only metadata appears in the system prompt (as XML `<available_skills>` block via `SystemPromptBuilder`). Full skill body is injected on-demand when user invokes the slash command.
 
-- Bundled: `assets/skills/*.md`, User: `workspace/skills/*.md` (user overrides bundled)
+- Bundled: `assets/skills/{name}/SKILL.md`, User: `workspace/skills/{name}/SKILL.md` (user overrides bundled)
 - `SlashCommandRouter` resolves `/skill-name` to skill body injection
 - Enable/disable per skill via `SkillPreferences`
+- Skills with `disable-model-invocation: true` are excluded from the system prompt XML block
 
 ### LLM Client Layer
 
@@ -144,7 +150,7 @@ Two kinds of plugins register tools in `ToolRegistry`:
 - `WorkspacePlugin` -- file ops, exec, javascript_eval (always-on)
 - `MemoryPlugin` -- full-text search across workspace memory files (always-on)
 - `SchedulerPlugin` -- cron-based scheduled tasks (always-on)
-- `ConfigPlugin` -- runtime config introspection (always-on)
+- `ConfigPlugin` -- runtime config introspection and updates (always-on)
 - `SearchPlugin` -- `search_conversations` for conversation history search (always-on)
 - `DelegateAgentPlugin` -- mid-conversation sub-agent execution (always-on)
 - `ActivateToolsPlugin` -- meta-tool for two-tier dynamic tool activation (always-on)
@@ -160,7 +166,7 @@ Two kinds of plugins register tools in `ToolRegistry`:
 - `VoiceMemoPlugin` -- audio recording, transcription via OpenAI Whisper (category: `voice_memo`)
 - `InstallPluginTool` -- lets the LLM install new user plugins at runtime
 
-**JS plugins** -- `plugin.json` + `plugin.js`, loaded from `assets/plugins/` (built-in) or `workspace/plugins/` (user), wrapped in `JsPlugin`. 15 built-in JS plugins: Google Workspace suite (Gmail, Gmail Settings, Calendar, Contacts, Tasks, Drive, Docs, Sheets, Slides, Forms) authenticated via Google Sign-In, plus `time`, `web-fetch` (raw HTTP), `image-gen`, `notion`, and `smart-home`.
+**JS plugins** -- `plugin.json` + `plugin.js`, loaded from `assets/plugins/` (built-in) or `workspace/plugins/` (user), wrapped in `JsPlugin`. 16 built-in JS plugins: Google Workspace suite (Gmail, Gmail Settings, Calendar, Contacts, Tasks, Drive, Docs, Sheets, Slides, Forms, Places) authenticated via Google Sign-In, plus `time`, `web-fetch` (raw HTTP), `image-gen`, `notion`, and `smart-home`.
 
 QuickJS host bindings exposed as `oneclaw.*` namespace: `fs`, `http`, `credentials`, `notifications`, `env`, `log`.
 
@@ -185,9 +191,31 @@ Meta messages are naturally excluded from LLM history (the history builder only 
 
 Chat messages support images, audio, video, and document/PDF attachments. Media paths are stored as JSON arrays on `MessageEntity` (`imagePaths`, `audioPaths`, `videoPaths`, `documentPaths`). Input sources include gallery picker, camera capture, and audio recording with speech-to-text.
 
-### Google Sign-In
+### Google Sign-In & Antigravity
 
-`CompositeGoogleAuthProvider` (in `app`) is the active `GoogleAuthProvider` binding. It delegates to BYOK OAuth (`OAuthGoogleAuthManager`) first, falling back to Play Services (`GoogleAuthManager`). Manages scopes for Gmail, Calendar, Tasks, Contacts, Drive, Docs, Sheets, Presentations, and Forms. Tokens are used by the Google Workspace JS plugins.
+`OAuthGoogleAuthManager` (in `app`) is the active `GoogleAuthProvider` binding. It manages BYOK OAuth for Gmail, Calendar, Tasks, Contacts, Drive, Docs, Sheets, Presentations, and Forms scopes. Tokens are used by the Google Workspace JS plugins.
+
+`AntigravityAuthManager` (in `app`) handles OAuth for Google Antigravity (Cloud Code Assist). Uses Gemini CLI OAuth app credentials with PKCE and loopback redirect. Provides access tokens and project IDs to `LlmClientProvider` for the Antigravity LLM provider.
+
+### Messaging Bridge
+
+`lib-messaging-bridge` provides external messaging channel support. Users interact with OneClaw through Telegram, Discord, or a built-in WebChat server. The bridge runs as a foreground service (`MessagingBridgeService`).
+
+Key components:
+- `MessagingChannel` -- abstract base class for all channels
+- `TelegramChannel` -- long-polls via Telegram Bot API, user allowlist
+- `DiscordChannel` -- connects via Discord Gateway WebSocket, user allowlist
+- `WebChatChannel` -- NanoWSD WebSocket server with optional access token auth, serves HTML chat UI
+- `BridgeAgentExecutor` -- interface for triggering agent execution (implemented by `BridgeAgentExecutorImpl` in `app`)
+- `BridgeMessageObserver` -- awaits agent responses via Room Flow (implemented by `RoomBridgeMessageObserver` in `app`)
+- `ConversationMapper` -- resolves the active conversation for bridge messages
+- `BridgeBroadcaster` -- singleton channel registry for outbound broadcast
+- `BridgePreferences` -- per-channel enable/disable, allowed user IDs, last chat ID tracking
+- `BridgeStateTracker` -- `StateFlow`-based service and channel state for UI
+
+Inbound flow: external message -> `processInboundMessage()` -> insert user message -> agent execution -> await response -> send back to channel. The `/clear` command creates a new conversation.
+
+Scheduled task forwarding: `TaskCompletionNotifier` (interface in `lib-scheduler`) -> `BridgeTaskCompletionNotifier` (in `app`) inserts the task result into the active conversation and broadcasts to all running channels via `BridgeBroadcaster`.
 
 ### Memory Bootstrap
 
@@ -199,11 +227,11 @@ Chat messages support images, audio, video, and document/PDF attachments. Media 
 
 ### Database Schema
 
-Room database (`AppDatabase`, version 11). Key entities:
+Room database (`AppDatabase`, version 1). Key entities:
 - `ConversationEntity` -- id, title, timestamps, messageCount, lastMessagePreview
 - `MessageEntity` -- id, conversationId, role, content, timestamp, tool fields (toolCallId, toolName, toolCalls JSON), media attachment paths (imagePaths, audioPaths, videoPaths, documentPaths as JSON arrays)
 
-Separate `CronjobDatabase` in lib-scheduler: `CronjobEntity` + `ExecutionLog`.
+Separate `CronjobDatabase` in lib-scheduler: `CronjobEntity` (id, title, instruction, scheduleType, cronExpression, executeAt, intervalMinutes, constraints, enabled, conversationId) + `ExecutionLog`.
 
 ### Slash Commands
 

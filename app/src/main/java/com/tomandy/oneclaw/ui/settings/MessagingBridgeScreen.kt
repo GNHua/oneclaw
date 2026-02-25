@@ -142,6 +142,13 @@ fun MessagingBridgeScreen(
             }
         }
 
+        // Tip
+        Text(
+            text = "Tip: Send /clear in any channel to start a new conversation.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
         // Telegram
         ChannelGroup(
             title = "Telegram",

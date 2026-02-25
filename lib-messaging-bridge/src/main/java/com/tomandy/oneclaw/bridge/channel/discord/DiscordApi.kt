@@ -13,7 +13,7 @@ class DiscordApi(private val botToken: String) {
 
     private val baseUrl = "https://discord.com/api/v10"
 
-    private val client = OkHttpClient.Builder()
+    internal val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(10, TimeUnit.SECONDS)

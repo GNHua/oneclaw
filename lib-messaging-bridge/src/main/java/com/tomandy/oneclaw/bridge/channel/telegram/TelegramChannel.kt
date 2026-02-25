@@ -9,6 +9,7 @@ import com.tomandy.oneclaw.bridge.BridgePreferences
 import com.tomandy.oneclaw.bridge.BridgeStateTracker
 import com.tomandy.oneclaw.bridge.ChannelType
 import com.tomandy.oneclaw.bridge.ConversationMapper
+import com.tomandy.oneclaw.bridge.channel.BridgeImageStorage
 import com.tomandy.oneclaw.bridge.channel.ChannelMessage
 import com.tomandy.oneclaw.bridge.channel.MessagingChannel
 import kotlinx.coroutines.CancellationException
@@ -17,6 +18,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.File
 
 class TelegramChannel(
     preferences: BridgePreferences,
@@ -25,7 +27,8 @@ class TelegramChannel(
     messageObserver: BridgeMessageObserver,
     conversationManager: BridgeConversationManager,
     scope: CoroutineScope,
-    private val botToken: String
+    private val botToken: String,
+    private val imageDir: File
 ) : MessagingChannel(
     channelType = ChannelType.TELEGRAM,
     preferences = preferences,
@@ -97,7 +100,25 @@ class TelegramChannel(
             return
         }
 
-        val text = message.text ?: message.caption ?: return
+        val hasPhoto = !message.photo.isNullOrEmpty()
+        val hasImageDocument = message.document?.mimeType?.startsWith("image/") == true
+        val text = message.text ?: message.caption ?: ""
+
+        // Skip messages with no text and no images
+        if (text.isBlank() && !hasPhoto && !hasImageDocument) return
+
+        // Download images
+        val imagePaths = mutableListOf<String>()
+
+        if (hasPhoto) {
+            // Pick the largest photo size (last element)
+            val largest = message.photo!!.last()
+            downloadTelegramFile(largest.fileId)?.let { imagePaths.add(it) }
+        }
+
+        if (hasImageDocument) {
+            downloadTelegramFile(message.document!!.fileId)?.let { imagePaths.add(it) }
+        }
 
         // Process in a separate coroutine to not block polling
         scope.launch {
@@ -107,9 +128,22 @@ class TelegramChannel(
                     senderName = message.from?.firstName,
                     senderId = userId,
                     text = text,
+                    imagePaths = imagePaths,
                     messageId = "${message.chat.id}_${message.messageId}"
                 )
             )
+        }
+    }
+
+    private suspend fun downloadTelegramFile(fileId: String): String? {
+        return try {
+            val telegramFile = api.getFile(fileId) ?: return null
+            val filePath = telegramFile.filePath ?: return null
+            val downloadUrl = api.getFileDownloadUrl(filePath)
+            BridgeImageStorage.downloadImage(api.client, downloadUrl, imageDir)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to download Telegram file: $fileId", e)
+            null
         }
     }
 

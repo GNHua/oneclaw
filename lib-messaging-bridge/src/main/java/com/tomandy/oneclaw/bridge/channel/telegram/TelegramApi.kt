@@ -13,7 +13,7 @@ class TelegramApi(private val botToken: String) {
 
     private val baseUrl = "https://api.telegram.org/bot$botToken"
 
-    private val client = OkHttpClient.Builder()
+    internal val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS) // long-poll needs longer read timeout
         .writeTimeout(10, TimeUnit.SECONDS)
@@ -89,6 +89,23 @@ class TelegramApi(private val botToken: String) {
             val response = client.newCall(request).execute()
             response.close()
         }
+
+    suspend fun getFile(fileId: String): TelegramFile? = withContext(Dispatchers.IO) {
+        val url = "$baseUrl/getFile?file_id=$fileId"
+        val request = Request.Builder().url(url).get().build()
+        val response = client.newCall(request).execute()
+        val body = response.body?.string() ?: return@withContext null
+
+        if (!response.isSuccessful) {
+            throw TelegramApiException("getFile failed: ${response.code} $body")
+        }
+
+        val parsed = json.decodeFromString<TelegramResponse<TelegramFile>>(body)
+        parsed.result
+    }
+
+    fun getFileDownloadUrl(filePath: String): String =
+        "https://api.telegram.org/file/bot$botToken/$filePath"
 
     fun shutdown() {
         client.dispatcher.executorService.shutdown()

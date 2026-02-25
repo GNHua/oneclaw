@@ -33,6 +33,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.io.File
 
 class MessagingBridgeService : Service(), KoinComponent {
 
@@ -116,6 +117,7 @@ class MessagingBridgeService : Service(), KoinComponent {
 
         val mapper = ConversationMapper(conversationManager)
         val credentialProvider = BridgeCredentialProvider(applicationContext)
+        val imageDir = File(applicationContext.filesDir, "bridge_images")
 
         if (preferences.isTelegramEnabled()) {
             val botToken = credentialProvider.getTelegramBotToken()
@@ -127,7 +129,8 @@ class MessagingBridgeService : Service(), KoinComponent {
                     messageObserver = messageObserver,
                     conversationManager = conversationManager,
                     scope = serviceScope,
-                    botToken = botToken
+                    botToken = botToken,
+                    imageDir = imageDir
                 )
                 channels.add(telegram)
                 BridgeBroadcaster.register(telegram)
@@ -146,7 +149,8 @@ class MessagingBridgeService : Service(), KoinComponent {
                     messageObserver = messageObserver,
                     conversationManager = conversationManager,
                     scope = serviceScope,
-                    botToken = discordToken
+                    botToken = discordToken,
+                    imageDir = imageDir
                 )
                 channels.add(discord)
                 BridgeBroadcaster.register(discord)

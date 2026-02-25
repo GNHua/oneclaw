@@ -9,10 +9,12 @@ import com.tomandy.oneclaw.bridge.BridgePreferences
 import com.tomandy.oneclaw.bridge.BridgeStateTracker
 import com.tomandy.oneclaw.bridge.ChannelType
 import com.tomandy.oneclaw.bridge.ConversationMapper
+import com.tomandy.oneclaw.bridge.channel.BridgeImageStorage
 import com.tomandy.oneclaw.bridge.channel.ChannelMessage
 import com.tomandy.oneclaw.bridge.channel.MessagingChannel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.io.File
 
 class DiscordChannel(
     preferences: BridgePreferences,
@@ -21,7 +23,8 @@ class DiscordChannel(
     messageObserver: BridgeMessageObserver,
     conversationManager: BridgeConversationManager,
     scope: CoroutineScope,
-    private val botToken: String
+    private val botToken: String,
+    private val imageDir: File
 ) : MessagingChannel(
     channelType = ChannelType.DISCORD,
     preferences = preferences,
@@ -63,7 +66,27 @@ class DiscordChannel(
         }
 
         val text = event.content
-        if (text.isBlank()) return
+        val imageAttachments = event.attachments.filter {
+            it.contentType?.startsWith("image/") == true
+        }
+
+        // Skip messages with no text and no images
+        if (text.isBlank() && imageAttachments.isEmpty()) return
+
+        // Download image attachments
+        val httpClient = api?.client
+        val imagePaths = if (httpClient != null && imageAttachments.isNotEmpty()) {
+            imageAttachments.mapNotNull { attachment ->
+                try {
+                    BridgeImageStorage.downloadImage(httpClient, attachment.url, imageDir)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to download Discord attachment: ${attachment.filename}", e)
+                    null
+                }
+            }
+        } else {
+            emptyList()
+        }
 
         scope.launch {
             processInboundMessage(
@@ -72,6 +95,7 @@ class DiscordChannel(
                     senderName = event.author.username,
                     senderId = userId,
                     text = text,
+                    imagePaths = imagePaths,
                     messageId = event.id
                 )
             )

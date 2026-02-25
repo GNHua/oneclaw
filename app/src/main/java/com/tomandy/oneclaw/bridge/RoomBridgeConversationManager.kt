@@ -5,6 +5,9 @@ import com.tomandy.oneclaw.data.dao.ConversationDao
 import com.tomandy.oneclaw.data.dao.MessageDao
 import com.tomandy.oneclaw.data.entity.ConversationEntity
 import com.tomandy.oneclaw.data.entity.MessageEntity
+import com.tomandy.oneclaw.llm.NetworkConfig
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import java.util.UUID
 
 class RoomBridgeConversationManager(
@@ -59,13 +62,22 @@ class RoomBridgeConversationManager(
     ) {
         val now = System.currentTimeMillis()
 
+        val imagePathsJson = if (imagePaths.isNotEmpty()) {
+            NetworkConfig.json.encodeToString(
+                ListSerializer(String.serializer()), imagePaths
+            )
+        } else {
+            null
+        }
+
         messageDao.insert(
             MessageEntity(
                 id = UUID.randomUUID().toString(),
                 conversationId = conversationId,
                 role = "user",
                 content = content,
-                timestamp = now
+                timestamp = now,
+                imagePaths = imagePathsJson
             )
         )
 

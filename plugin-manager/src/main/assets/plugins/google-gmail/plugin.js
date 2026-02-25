@@ -1,5 +1,65 @@
 var GMAIL_API = "https://www.googleapis.com/gmail/v1/users/me";
 
+var SYSTEM_LABEL_MAP = {
+    "inbox": "INBOX", "sent": "SENT", "sent mail": "SENT",
+    "drafts": "DRAFT", "draft": "DRAFT", "trash": "TRASH",
+    "spam": "SPAM", "junk": "SPAM", "starred": "STARRED",
+    "important": "IMPORTANT", "unread": "UNREAD", "chat": "CHAT",
+    "primary": "CATEGORY_PERSONAL", "social": "CATEGORY_SOCIAL",
+    "promotions": "CATEGORY_PROMOTIONS", "updates": "CATEGORY_UPDATES",
+    "forums": "CATEGORY_FORUMS"
+};
+
+var _labelCache = null;
+
+async function resolveLabels(labels) {
+    if (!labels || labels.length === 0) return labels;
+    var resolved = [];
+    var needsLookup = false;
+    for (var i = 0; i < labels.length; i++) {
+        var label = labels[i];
+        var lower = label.toLowerCase();
+        if (SYSTEM_LABEL_MAP[lower]) {
+            resolved.push(SYSTEM_LABEL_MAP[lower]);
+        } else if (label === label.toUpperCase() || label.indexOf("Label_") === 0) {
+            resolved.push(label);
+        } else {
+            needsLookup = true;
+            resolved.push(label);
+        }
+    }
+    if (!needsLookup) return resolved;
+    if (!_labelCache) {
+        var data = await gmailFetch("GET", "/labels");
+        _labelCache = data.labels || [];
+    }
+    for (var i = 0; i < resolved.length; i++) {
+        var label = resolved[i];
+        var lower = label.toLowerCase();
+        if (SYSTEM_LABEL_MAP[lower] || label === label.toUpperCase() || label.indexOf("Label_") === 0) {
+            continue;
+        }
+        var found = false;
+        for (var j = 0; j < _labelCache.length; j++) {
+            if (_labelCache[j].name.toLowerCase() === lower) {
+                resolved[i] = _labelCache[j].id;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            throw new Error("Label not found: '" + label + "'. Use gmail_list_labels to see available labels.");
+        }
+    }
+    return resolved;
+}
+
+function ensureArray(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    return [val];
+}
+
 async function getToken() {
     if (typeof oneclaw.google === "undefined") {
         throw new Error("Google auth not available. Connect your Google account in Settings.");
@@ -245,15 +305,15 @@ async function execute(toolName, args) {
             }
 
             case "gmail_delete": {
-                var ids = args.message_ids;
-                if (!ids || ids.length === 0) {
+                var ids = ensureArray(args.message_ids);
+                if (ids.length === 0) {
                     return { error: "No message IDs provided" };
                 }
                 if (ids.length === 1) {
                     await gmailFetch("POST", "/messages/" + ids[0] + "/trash");
                 } else {
                     await gmailFetch("POST", "/messages/batchModify",
-                        JSON.stringify({ ids: ids, addLabelIds: ["TRASH"] }));
+                        JSON.stringify({ ids: ids, addLabelIds: ["TRASH"], removeLabelIds: ["INBOX"] }));
                 }
                 return { output: "Moved " + ids.length + " message(s) to Trash." };
             }
@@ -291,8 +351,8 @@ async function execute(toolName, args) {
                     ? "/threads/" + args.id + "/modify"
                     : "/messages/" + args.id + "/modify";
                 var body = {};
-                if (args.add_labels) body.addLabelIds = args.add_labels;
-                if (args.remove_labels) body.removeLabelIds = args.remove_labels;
+                if (args.add_labels) body.addLabelIds = await resolveLabels(ensureArray(args.add_labels));
+                if (args.remove_labels) body.removeLabelIds = await resolveLabels(ensureArray(args.remove_labels));
                 await gmailFetch("POST", path, JSON.stringify(body));
                 return { output: "Labels modified on " + targetType + " " + args.id };
             }
@@ -419,11 +479,12 @@ async function execute(toolName, args) {
             }
 
             case "gmail_batch_modify": {
-                var body = { ids: args.message_ids };
-                if (args.add_labels) body.addLabelIds = args.add_labels;
-                if (args.remove_labels) body.removeLabelIds = args.remove_labels;
+                var batchIds = ensureArray(args.message_ids);
+                var body = { ids: batchIds };
+                if (args.add_labels) body.addLabelIds = await resolveLabels(ensureArray(args.add_labels));
+                if (args.remove_labels) body.removeLabelIds = await resolveLabels(ensureArray(args.remove_labels));
                 await gmailFetch("POST", "/messages/batchModify", JSON.stringify(body));
-                return { output: "Batch modified " + args.message_ids.length + " message(s)." };
+                return { output: "Batch modified " + batchIds.length + " message(s)." };
             }
 
             default:

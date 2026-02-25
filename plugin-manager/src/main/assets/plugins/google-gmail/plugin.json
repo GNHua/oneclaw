@@ -127,7 +127,7 @@
     },
     {
       "name": "gmail_modify_labels",
-      "description": "Add or remove labels from a message or thread. Use label IDs (e.g., 'INBOX', 'UNREAD', or custom label IDs from gmail_list_labels).",
+      "description": "Add or remove labels from a message or thread. Accepts both label names (e.g., 'Promotions', 'Newsletters') and label IDs (e.g., 'INBOX', 'UNREAD', 'Label_123'). Names are auto-resolved to IDs.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -142,12 +142,12 @@
           "add_labels": {
             "type": "array",
             "items": { "type": "string" },
-            "description": "Label IDs to add"
+            "description": "Label names or IDs to add"
           },
           "remove_labels": {
             "type": "array",
             "items": { "type": "string" },
-            "description": "Label IDs to remove"
+            "description": "Label names or IDs to remove"
           }
         },
         "required": ["id"]
@@ -317,7 +317,7 @@
     },
     {
       "name": "gmail_batch_modify",
-      "description": "Add or remove labels from multiple messages at once (max 1000).",
+      "description": "Add or remove labels from multiple messages at once (max 1000). Accepts both label names and label IDs; names are auto-resolved.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -329,12 +329,12 @@
           "add_labels": {
             "type": "array",
             "items": { "type": "string" },
-            "description": "Label IDs to add"
+            "description": "Label names or IDs to add"
           },
           "remove_labels": {
             "type": "array",
             "items": { "type": "string" },
-            "description": "Label IDs to remove"
+            "description": "Label names or IDs to remove"
           }
         },
         "required": ["message_ids"]

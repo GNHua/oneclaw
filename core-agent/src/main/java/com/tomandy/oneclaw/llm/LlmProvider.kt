@@ -17,7 +17,8 @@ enum class LlmProvider(
     val apiKeyLabel: String,
     val defaultModel: String,
     val models: List<LlmModel>,
-    val supportsAudioInput: Boolean = false
+    val supportsAudioInput: Boolean = false,
+    val supportsNativeSearch: Boolean = false
 ) {
     OPENAI(
         displayName = "OpenAI",
@@ -30,7 +31,8 @@ enum class LlmProvider(
             LlmModel("gpt-4o", 128_000),
             LlmModel("gpt-4o-mini", 128_000)
         ),
-        supportsAudioInput = true
+        supportsAudioInput = true,
+        supportsNativeSearch = true
     ),
     GEMINI(
         displayName = "Google Gemini",
@@ -42,7 +44,8 @@ enum class LlmProvider(
             LlmModel("gemini-3-pro-preview", 1_000_000),
             LlmModel("gemini-3-flash-preview", 1_000_000)
         ),
-        supportsAudioInput = true
+        supportsAudioInput = true,
+        supportsNativeSearch = true
     ),
     ANTHROPIC(
         displayName = "Anthropic",
@@ -53,7 +56,8 @@ enum class LlmProvider(
             LlmModel("claude-opus-4-6", 200_000, supportsThinking = true),
             LlmModel("claude-haiku-4-5", 200_000)
         ),
-        supportsAudioInput = false
+        supportsAudioInput = false,
+        supportsNativeSearch = true
     ),
     ANTIGRAVITY(
         displayName = "Antigravity",
@@ -67,7 +71,8 @@ enum class LlmProvider(
             LlmModel("ag/gemini-3-pro-high", 1_000_000),
             LlmModel("ag/gemini-3-pro-low", 1_000_000)
         ),
-        supportsAudioInput = false
+        supportsAudioInput = false,
+        supportsNativeSearch = false
     );
 
     val availableModels: List<String> get() = models.map { it.name }

@@ -100,6 +100,29 @@ class ModelPreferences(context: Context) {
         _audioInputMode.value = mode
     }
 
+    enum class WebSearchMode { TAVILY_BRAVE, PROVIDER_NATIVE, AUTO }
+
+    private val _webSearchMode = MutableStateFlow(readWebSearchMode())
+    val webSearchMode: StateFlow<WebSearchMode> = _webSearchMode.asStateFlow()
+
+    private fun readWebSearchMode(): WebSearchMode {
+        val value = prefs.getString("web_search_mode", WebSearchMode.AUTO.name)
+        return try {
+            WebSearchMode.valueOf(value ?: WebSearchMode.AUTO.name)
+        } catch (_: Exception) {
+            WebSearchMode.AUTO
+        }
+    }
+
+    fun getWebSearchMode(): WebSearchMode = _webSearchMode.value
+
+    fun saveWebSearchMode(mode: WebSearchMode) {
+        prefs.edit()
+            .putString("web_search_mode", mode.name)
+            .apply()
+        _webSearchMode.value = mode
+    }
+
     fun getActiveAgent(): String? {
         return prefs.getString("active_agent", null)
     }

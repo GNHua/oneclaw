@@ -12,7 +12,7 @@ class LlmClientProvider(
     antigravityTokenProvider: (suspend () -> String?)? = null,
     antigravityProjectIdProvider: (suspend () -> String?)? = null
 ) {
-    private val openAiClient = OpenAiClient()
+    private val openAiClient = OpenAiResponsesClient()
     private val geminiClient = GeminiClient()
     private val anthropicClient = AnthropicClient()
     private val antigravityClient: AntigravityClient? =
@@ -115,6 +115,10 @@ class LlmClientProvider(
         return LlmProvider.entries.find { provider ->
             provider.availableModels.contains(model)
         }
+    }
+
+    fun isNativeSearchSupported(): Boolean {
+        return _selectedProvider.value.supportsNativeSearch
     }
 
     fun setModelAndProvider(model: String) {

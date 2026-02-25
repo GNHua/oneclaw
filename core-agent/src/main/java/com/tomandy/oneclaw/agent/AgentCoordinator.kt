@@ -41,6 +41,7 @@ class AgentCoordinator(
     private val contextWindow: Int = 200_000,
     private val summarizationThreshold: Float = 0.8f,
     private val toolFilter: Set<String>? = null,
+    private val nativeWebSearchEnabled: Boolean = false,
     private val onBeforeSummarize: (suspend () -> Unit)? = null,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 ) {
@@ -193,7 +194,19 @@ class AgentCoordinator(
             Log.d("AgentCoordinator", "Setting up tools provider with active categories: $activeCategories")
             val toolsProvider = {
                 val defs = toolRegistry.getToolDefinitions(activeCategories)
-                if (toolFilter != null) defs.filter { it.name in toolFilter } else defs
+                val filtered = if (toolFilter != null) defs.filter { it.name in toolFilter } else defs
+                // When native web search is active, filter out the web_search tool
+                // (keep web_fetch since it serves a different purpose)
+                if (nativeWebSearchEnabled && "web" in activeCategories) {
+                    filtered.filter { it.name != "web_search" }
+                } else {
+                    filtered
+                }
+            }
+
+            // Determine enableWebSearch: native search is enabled and "web" category is active
+            val enableWebSearchProvider = {
+                nativeWebSearchEnabled && "web" in activeCategories
             }
 
             // Execute ReAct loop with tools
@@ -204,7 +217,8 @@ class AgentCoordinator(
                 conversationId = conversationId,
                 model = model,
                 maxIterations = maxIterations,
-                temperature = temperature
+                temperature = temperature,
+                enableWebSearchProvider = enableWebSearchProvider
             )
             Log.d("AgentCoordinator", "reActLoop.step completed")
 

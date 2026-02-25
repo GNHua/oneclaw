@@ -1,8 +1,6 @@
 package com.tomandy.oneclaw.llm
 
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -14,13 +12,13 @@ import org.junit.Test
 
 class OpenAiClientTest {
     private lateinit var mockWebServer: MockWebServer
-    private lateinit var client: OpenAiClient
+    private lateinit var client: OpenAiResponsesClient
 
     @Before
     fun setup() {
         mockWebServer = MockWebServer()
         mockWebServer.start()
-        client = OpenAiClient(
+        client = OpenAiResponsesClient(
             apiKey = "test-key",
             baseUrl = mockWebServer.url("/").toString()
         )
@@ -33,30 +31,32 @@ class OpenAiClientTest {
 
     @Test
     fun `successful completion request`() = runTest {
-        val mockResponse = LlmResponse(
-            id = "chatcmpl-123",
-            choices = listOf(
-                Choice(
-                    index = 0,
-                    message = MessageResponse(
-                        role = "assistant",
-                        content = "Hello! How can I help you today?",
-                        tool_calls = null
-                    ),
-                    finish_reason = "stop"
-                )
-            ),
-            usage = Usage(
-                prompt_tokens = 10,
-                completion_tokens = 9,
-                total_tokens = 19
-            )
-        )
+        val responseJson = """
+        {
+            "id": "resp-123",
+            "output": [
+                {
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "output_text",
+                            "text": "Hello! How can I help you today?"
+                        }
+                    ]
+                }
+            ],
+            "usage": {
+                "input_tokens": 10,
+                "output_tokens": 9
+            }
+        }
+        """.trimIndent()
 
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(200)
-                .setBody(Json.encodeToString(mockResponse))
+                .setBody(responseJson)
                 .addHeader("Content-Type", "application/json")
         )
 
@@ -65,54 +65,42 @@ class OpenAiClientTest {
 
         assertTrue(result.isSuccess)
         val response = requireNotNull(result.getOrNull())
-        assertEquals("chatcmpl-123", response.id)
+        assertEquals("resp-123", response.id)
         assertEquals(1, response.choices.size)
         assertEquals("Hello! How can I help you today?", response.choices[0].message.content)
         assertEquals("stop", response.choices[0].finish_reason)
 
-        // Verify request headers
         val request = mockWebServer.takeRequest()
         assertEquals("Bearer test-key", request.getHeader("Authorization"))
         assertTrue(request.getHeader("Content-Type")!!.startsWith("application/json"))
-        assertEquals("/chat/completions", request.path)
+        assertEquals("/responses", request.path)
         assertEquals("POST", request.method)
     }
 
     @Test
-    fun `completion request with tools`() = runTest {
-        val mockResponse = LlmResponse(
-            id = "chatcmpl-456",
-            choices = listOf(
-                Choice(
-                    index = 0,
-                    message = MessageResponse(
-                        role = "assistant",
-                        content = null,
-                        tool_calls = listOf(
-                            ToolCall(
-                                id = "call_abc123",
-                                type = "function",
-                                function = FunctionCall(
-                                    name = "get_weather",
-                                    arguments = "{\"location\":\"San Francisco\"}"
-                                )
-                            )
-                        )
-                    ),
-                    finish_reason = "tool_calls"
-                )
-            ),
-            usage = Usage(
-                prompt_tokens = 50,
-                completion_tokens = 20,
-                total_tokens = 70
-            )
-        )
+    fun `completion request with tool calls`() = runTest {
+        val responseJson = """
+        {
+            "id": "resp-456",
+            "output": [
+                {
+                    "type": "function_call",
+                    "call_id": "call_abc123",
+                    "name": "get_weather",
+                    "arguments": "{\"location\":\"San Francisco\"}"
+                }
+            ],
+            "usage": {
+                "input_tokens": 50,
+                "output_tokens": 20
+            }
+        }
+        """.trimIndent()
 
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(200)
-                .setBody(Json.encodeToString(mockResponse))
+                .setBody(responseJson)
                 .addHeader("Content-Type", "application/json")
         )
 
@@ -134,7 +122,7 @@ class OpenAiClientTest {
 
         assertTrue(result.isSuccess)
         val response = requireNotNull(result.getOrNull())
-        assertEquals("chatcmpl-456", response.id)
+        assertEquals("resp-456", response.id)
         assertEquals("tool_calls", response.choices[0].finish_reason)
 
         val toolCalls = requireNotNull(response.choices[0].message.tool_calls)
@@ -212,7 +200,6 @@ class OpenAiClientTest {
 
     @Test
     fun `network error handling`() = runTest {
-        // Don't enqueue any response - this will cause a connection error
         mockWebServer.shutdown()
 
         val messages = listOf(Message(role = "user", content = "Hello"))
@@ -224,11 +211,11 @@ class OpenAiClientTest {
     }
 
     @Test
-    fun `verify request body serialization`() = runTest {
+    fun `verify request body uses Responses API format`() = runTest {
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(200)
-                .setBody("""{"id":"test","choices":[],"usage":null}""")
+                .setBody("""{"id":"test","output":[],"usage":{"input_tokens":0,"output_tokens":0}}""")
                 .addHeader("Content-Type", "application/json")
         )
 
@@ -249,12 +236,13 @@ class OpenAiClientTest {
 
         assertTrue(requestBody.contains("\"model\":\"gpt-4o-mini\""))
         assertTrue(requestBody.contains("\"temperature\":0.5"))
-        assertTrue(requestBody.contains("\"max_tokens\":100"))
-        assertTrue(requestBody.contains("\"role\":\"system\""))
+        assertTrue(requestBody.contains("\"max_output_tokens\":100"))
+        // System message becomes developer role in Responses API
+        assertTrue(requestBody.contains("\"role\":\"developer\""))
         assertTrue(requestBody.contains("\"role\":\"user\""))
         assertTrue(requestBody.contains("You are a helpful assistant"))
         assertTrue(requestBody.contains("Hello"))
-        // Note: stream field is not included because encodeDefaults=false and stream=false is the default
+        assertTrue(requestBody.contains("\"input\""))
     }
 
     @Test
@@ -262,7 +250,7 @@ class OpenAiClientTest {
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(200)
-                .setBody("""{"id":"test","choices":[{"index":0,"message":{"role":"assistant","content":"test"},"finish_reason":"stop"}]}""")
+                .setBody("""{"id":"test","output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"test"}]}]}""")
                 .addHeader("Content-Type", "application/json")
         )
 
@@ -283,7 +271,7 @@ class OpenAiClientTest {
         newServer.enqueue(
             MockResponse()
                 .setResponseCode(200)
-                .setBody("""{"id":"test","choices":[{"index":0,"message":{"role":"assistant","content":"test"},"finish_reason":"stop"}]}""")
+                .setBody("""{"id":"test","output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"test"}]}]}""")
                 .addHeader("Content-Type", "application/json")
         )
 
@@ -306,11 +294,10 @@ class OpenAiClientTest {
         newServer.enqueue(
             MockResponse()
                 .setResponseCode(200)
-                .setBody("""{"id":"test","choices":[{"index":0,"message":{"role":"assistant","content":"test"},"finish_reason":"stop"}]}""")
+                .setBody("""{"id":"test","output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"test"}]}]}""")
                 .addHeader("Content-Type", "application/json")
         )
 
-        // Set base URL without trailing slash
         val baseUrlWithoutSlash = newServer.url("/").toString().trimEnd('/')
         client.setBaseUrl(baseUrlWithoutSlash)
 
@@ -339,46 +326,55 @@ class OpenAiClientTest {
     }
 
     @Test
-    fun `response with unknown fields is parsed successfully`() = runTest {
-        val responseWithExtraFields = """
+    fun `response with web search citations`() = runTest {
+        val responseJson = """
         {
-            "id": "chatcmpl-789",
-            "object": "chat.completion",
-            "created": 1677652288,
-            "model": "gpt-4o-mini",
-            "choices": [
+            "id": "resp-789",
+            "output": [
                 {
-                    "index": 0,
-                    "message": {
-                        "role": "assistant",
-                        "content": "Test response"
-                    },
-                    "finish_reason": "stop",
-                    "logprobs": null
+                    "type": "web_search_call",
+                    "id": "ws_123",
+                    "status": "completed"
+                },
+                {
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "output_text",
+                            "text": "The latest news is...",
+                            "annotations": [
+                                {
+                                    "type": "url_citation",
+                                    "url": "https://example.com/news",
+                                    "title": "Example News"
+                                }
+                            ]
+                        }
+                    ]
                 }
             ],
             "usage": {
-                "prompt_tokens": 5,
-                "completion_tokens": 2,
-                "total_tokens": 7
-            },
-            "system_fingerprint": "fp_123"
+                "input_tokens": 20,
+                "output_tokens": 15
+            }
         }
         """.trimIndent()
 
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(200)
-                .setBody(responseWithExtraFields)
+                .setBody(responseJson)
                 .addHeader("Content-Type", "application/json")
         )
 
-        val messages = listOf(Message(role = "user", content = "Hello"))
-        val result = client.complete(messages = messages)
+        val messages = listOf(Message(role = "user", content = "What's in the news?"))
+        val result = client.complete(messages = messages, enableWebSearch = true)
 
         assertTrue(result.isSuccess)
         val response = requireNotNull(result.getOrNull())
-        assertEquals("chatcmpl-789", response.id)
-        assertEquals("Test response", response.choices[0].message.content)
+        assertTrue(response.choices[0].message.content!!.contains("The latest news is..."))
+        assertTrue(response.choices[0].message.content!!.contains("[Example News](https://example.com/news)"))
+        assertEquals("stop", response.choices[0].finish_reason)
     }
 }

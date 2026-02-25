@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -205,6 +206,8 @@ fun SettingsScreen(
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             VoiceInputExpandableItem(modelPreferences = modelPreferences)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            WebSearchExpandableItem(modelPreferences = modelPreferences)
         }
     }
 }
@@ -352,6 +355,137 @@ private fun VoiceInputExpandableItem(modelPreferences: ModelPreferences) {
                         Text("Send audio when supported", style = MaterialTheme.typography.bodyMedium)
                         Text(
                             "Send raw audio to OpenAI/Gemini (transcribe for others)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WebSearchExpandableItem(modelPreferences: ModelPreferences) {
+    var expanded by remember { mutableStateOf(false) }
+    val webSearchMode by modelPreferences.webSearchMode.collectAsState()
+
+    val currentModeLabel = when (webSearchMode) {
+        ModelPreferences.WebSearchMode.AUTO -> "Auto"
+        ModelPreferences.WebSearchMode.PROVIDER_NATIVE -> "Native"
+        ModelPreferences.WebSearchMode.TAVILY_BRAVE -> "Tavily/Brave"
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = "Web Search",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = currentModeLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.rotate(if (expanded) 180f else 0f)
+            )
+        }
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            modelPreferences.saveWebSearchMode(ModelPreferences.WebSearchMode.AUTO)
+                        }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = webSearchMode == ModelPreferences.WebSearchMode.AUTO,
+                        onClick = {
+                            modelPreferences.saveWebSearchMode(ModelPreferences.WebSearchMode.AUTO)
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("Auto", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Use provider-native search when supported, Tavily/Brave otherwise",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            modelPreferences.saveWebSearchMode(ModelPreferences.WebSearchMode.PROVIDER_NATIVE)
+                        }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = webSearchMode == ModelPreferences.WebSearchMode.PROVIDER_NATIVE,
+                        onClick = {
+                            modelPreferences.saveWebSearchMode(ModelPreferences.WebSearchMode.PROVIDER_NATIVE)
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("Provider native", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Always use OpenAI/Anthropic/Gemini built-in web search",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            modelPreferences.saveWebSearchMode(ModelPreferences.WebSearchMode.TAVILY_BRAVE)
+                        }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = webSearchMode == ModelPreferences.WebSearchMode.TAVILY_BRAVE,
+                        onClick = {
+                            modelPreferences.saveWebSearchMode(ModelPreferences.WebSearchMode.TAVILY_BRAVE)
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("Tavily / Brave", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Always use the web_search tool plugin (requires API key)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

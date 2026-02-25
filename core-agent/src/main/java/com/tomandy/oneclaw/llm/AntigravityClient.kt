@@ -69,7 +69,8 @@ class AntigravityClient(
         model: String,
         temperature: Float,
         maxTokens: Int?,
-        tools: List<Tool>?
+        tools: List<Tool>?,
+        enableWebSearch: Boolean
     ): Result<LlmResponse> = withContext(Dispatchers.IO) {
         try {
             val accessToken = tokenProvider()

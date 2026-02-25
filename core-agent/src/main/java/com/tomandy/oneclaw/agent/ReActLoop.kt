@@ -73,7 +73,8 @@ class ReActLoop(
         conversationId: String,
         model: String = "gpt-4o-mini",
         maxIterations: Int = 200,
-        temperature: Float = 0.2f
+        temperature: Float = 0.2f,
+        enableWebSearchProvider: () -> Boolean = { false }
     ): Result<String> {
         Log.d("ReActLoop", "step called with ${messages.size} messages, model: $model")
         val workingMessages = messages.toMutableList()
@@ -125,7 +126,8 @@ class ReActLoop(
                 messages = workingMessages,
                 model = model,
                 temperature = temperature,
-                tools = if (llmTools.isNotEmpty()) llmTools else null
+                tools = if (llmTools.isNotEmpty()) llmTools else null,
+                enableWebSearch = enableWebSearchProvider()
             )
             Log.d("ReActLoop", "llmClient.complete returned")
 

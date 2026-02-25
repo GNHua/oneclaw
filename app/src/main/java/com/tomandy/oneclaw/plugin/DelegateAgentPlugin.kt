@@ -80,6 +80,12 @@ class DelegateAgentPlugin(
             val selectedModel = profile.model
                 ?: modelPreferences.getSelectedModel() ?: ""
 
+            val nativeWebSearchEnabled = when (modelPreferences.getWebSearchMode()) {
+                ModelPreferences.WebSearchMode.PROVIDER_NATIVE -> true
+                ModelPreferences.WebSearchMode.AUTO -> llmClientProvider.isNativeSearchSupported()
+                ModelPreferences.WebSearchMode.TAVILY_BRAVE -> false
+            }
+
             val coordinator = AgentCoordinator(
                 clientProvider = { llmClientProvider.getCurrentLlmClient() },
                 toolRegistry = subToolRegistry,
@@ -87,7 +93,8 @@ class DelegateAgentPlugin(
                 messageStore = messageStore,
                 conversationId = tempConversationId,
                 contextWindow = LlmProvider.getContextWindow(selectedModel),
-                toolFilter = toolFilter
+                toolFilter = toolFilter,
+                nativeWebSearchEnabled = nativeWebSearchEnabled
             )
 
             val systemPrompt = buildSubAgentSystemPrompt(profile.systemPrompt)

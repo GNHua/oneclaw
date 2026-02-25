@@ -6,7 +6,8 @@ interface LlmClient {
         model: String = "gpt-4o-mini",
         temperature: Float = 0.7f,
         maxTokens: Int? = null,
-        tools: List<Tool>? = null
+        tools: List<Tool>? = null,
+        enableWebSearch: Boolean = false
     ): Result<LlmResponse>
 
     fun setApiKey(apiKey: String)

@@ -12,6 +12,7 @@ import com.anthropic.models.messages.RedactedThinkingBlockParam
 import com.anthropic.models.messages.StopReason
 import com.anthropic.models.messages.TextBlockParam
 import com.anthropic.models.messages.ThinkingBlockParam
+import com.anthropic.models.messages.WebSearchTool20250305
 import com.anthropic.models.messages.Base64ImageSource
 import com.anthropic.models.messages.Base64PdfSource
 import com.anthropic.models.messages.DocumentBlockParam
@@ -78,7 +79,8 @@ class AnthropicClient(
         model: String,
         temperature: Float,
         maxTokens: Int?,
-        tools: List<Tool>?
+        tools: List<Tool>?,
+        enableWebSearch: Boolean
     ): Result<LlmResponse> = runInterruptible(Dispatchers.IO) {
         try {
             val sdkClient = client
@@ -133,6 +135,13 @@ class AnthropicClient(
                 }
             }
 
+            // Add web search server tool
+            if (enableWebSearch) {
+                paramsBuilder.addTool(
+                    WebSearchTool20250305.builder().build()
+                )
+            }
+
             val params = paramsBuilder.build()
             val response = retryOnServerError {
                 sdkClient.messages().create(params)
@@ -141,13 +150,30 @@ class AnthropicClient(
             // Extract content blocks from response
             val textParts = mutableListOf<String>()
             val toolCalls = mutableListOf<ToolCall>()
-            val thinkingBlocks = mutableListOf<ContentBlock>()
+            // providerMeta holds thinking blocks + server tool blocks for multi-turn restoration
+            val metaBlocks = mutableListOf<ContentBlock>()
+            val citations = mutableListOf<Pair<String, String>>() // title, url
 
             for (block in response.content()) {
                 when {
-                    block.isThinking() -> thinkingBlocks.add(block)
-                    block.isRedactedThinking() -> thinkingBlocks.add(block)
-                    block.isText() -> textParts.add(block.asText().text())
+                    block.isThinking() -> metaBlocks.add(block)
+                    block.isRedactedThinking() -> metaBlocks.add(block)
+                    block.isText() -> {
+                        val textBlock = block.asText()
+                        textParts.add(textBlock.text())
+                        // Extract web search citations from text block annotations
+                        textBlock.citations().orElse(null)?.forEach { citation ->
+                            try {
+                                if (citation.isWebSearchResultLocation()) {
+                                    val loc = citation.asWebSearchResultLocation()
+                                    val title = loc.title().orElse(loc.url())
+                                    citations.add(title to loc.url())
+                                }
+                            } catch (_: Exception) {
+                                // Ignore unsupported citation types
+                            }
+                        }
+                    }
                     block.isToolUse() -> {
                         val toolUse = block.asToolUse()
                         toolCalls.add(
@@ -161,6 +187,25 @@ class AnthropicClient(
                             )
                         )
                     }
+                    block.isServerToolUse() -> {
+                        // Server-side tool invocation (web search) -- preserve for multi-turn
+                        metaBlocks.add(block)
+                    }
+                    block.isWebSearchToolResult() -> {
+                        // Search results from server -- extract citations and preserve for multi-turn
+                        metaBlocks.add(block)
+                        try {
+                            val resultBlock = block.asWebSearchToolResult()
+                            val content = resultBlock.content()
+                            if (content.isResultBlocks()) {
+                                content.asResultBlocks().forEach { result ->
+                                    citations.add(result.title() to result.url())
+                                }
+                            }
+                        } catch (_: Exception) {
+                            // Graceful degradation if content format is unexpected
+                        }
+                    }
                 }
             }
 
@@ -170,10 +215,21 @@ class AnthropicClient(
                 stopReason.isPresent && stopReason.get() == StopReason.TOOL_USE -> "tool_calls"
                 stopReason.isPresent && stopReason.get() == StopReason.END_TURN -> "stop"
                 stopReason.isPresent && stopReason.get() == StopReason.MAX_TOKENS -> "length"
+                // PAUSE_TURN is used when server-side tools need more turns
+                stopReason.isPresent && stopReason.get() == StopReason.PAUSE_TURN -> "stop"
                 else -> "stop"
             }
 
-            val textContent = textParts.joinToString("").ifEmpty { null }
+            // Append citations to text
+            val baseText = textParts.joinToString("")
+            val textContent = if (citations.isNotEmpty()) {
+                val uniqueCitations = citations.distinctBy { it.second }
+                val citationBlock = "\n\nSources:\n" +
+                    uniqueCitations.joinToString("") { (title, url) -> "- [$title]($url)\n" }
+                (baseText + citationBlock).ifEmpty { null }
+            } else {
+                baseText.ifEmpty { null }
+            }
 
             Result.success(
                 LlmResponse(
@@ -185,7 +241,7 @@ class AnthropicClient(
                                 role = "assistant",
                                 content = textContent,
                                 tool_calls = toolCalls.takeIf { it.isNotEmpty() },
-                                providerMeta = thinkingBlocks.takeIf { it.isNotEmpty() }
+                                providerMeta = metaBlocks.takeIf { it.isNotEmpty() }
                             ),
                             finish_reason = finishReason
                         )
@@ -295,10 +351,10 @@ class AnthropicClient(
                 "assistant" -> {
                     val contentBlocks = mutableListOf<ContentBlockParam>()
 
-                    // Restore thinking blocks from providerMeta (must come before text/tool_use)
+                    // Restore thinking + server tool blocks from providerMeta
                     @Suppress("UNCHECKED_CAST")
-                    val thinkingBlocks = msg.providerMeta as? List<ContentBlock>
-                    thinkingBlocks?.forEach { block ->
+                    val metaBlocks = msg.providerMeta as? List<ContentBlock>
+                    metaBlocks?.forEach { block ->
                         when {
                             block.isThinking() -> {
                                 val tb = block.asThinking()
@@ -317,6 +373,20 @@ class AnthropicClient(
                                         RedactedThinkingBlockParam.builder()
                                             .data(block.asRedactedThinking().data())
                                             .build()
+                                    )
+                                )
+                            }
+                            block.isServerToolUse() -> {
+                                contentBlocks.add(
+                                    ContentBlockParam.ofServerToolUse(
+                                        block.asServerToolUse().toParam()
+                                    )
+                                )
+                            }
+                            block.isWebSearchToolResult() -> {
+                                contentBlocks.add(
+                                    ContentBlockParam.ofWebSearchToolResult(
+                                        block.asWebSearchToolResult().toParam()
                                     )
                                 )
                             }

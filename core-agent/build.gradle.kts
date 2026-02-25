@@ -44,8 +44,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     // Networking (for LLM clients)
-    api(libs.retrofit)
-    api(libs.retrofit.kotlinx.serialization)
     api(libs.okhttp)
     api(libs.okhttp.logging)
 

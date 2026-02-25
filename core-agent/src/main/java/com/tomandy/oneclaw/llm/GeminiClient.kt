@@ -5,6 +5,7 @@ import com.google.genai.types.Content
 import com.google.genai.types.FunctionDeclaration
 import com.google.genai.types.FunctionResponse
 import com.google.genai.types.GenerateContentConfig
+import com.google.genai.types.GoogleSearch
 import com.google.genai.types.Part
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +53,8 @@ class GeminiClient(
         model: String,
         temperature: Float,
         maxTokens: Int?,
-        tools: List<Tool>?
+        tools: List<Tool>?,
+        enableWebSearch: Boolean
     ): Result<LlmResponse> = runInterruptible(Dispatchers.IO) {
         try {
             val genaiClient = client
@@ -66,11 +68,19 @@ class GeminiClient(
             val contents = buildContentsFromMessages(messages)
 
             // Build tools
-            val geminiTools = tools?.takeIf { it.isNotEmpty() }?.let { buildGeminiTools(it) }
+            val allTools = mutableListOf<GeminiTool>()
+            tools?.takeIf { it.isNotEmpty() }?.let { allTools.addAll(buildGeminiTools(it)) }
+            if (enableWebSearch) {
+                allTools.add(
+                    GeminiTool.builder()
+                        .googleSearch(GoogleSearch.builder().build())
+                        .build()
+                )
+            }
 
             // Build config
             val config = GenerateContentConfig.builder().apply {
-                geminiTools?.let { tools(it) }
+                if (allTools.isNotEmpty()) tools(allTools)
             }.build()
 
             // Make API call
@@ -92,10 +102,36 @@ class GeminiClient(
             val hasFunctionCalls = functionCalls.isNotEmpty()
 
             // Extract text content
-            val textContent = parts
+            val rawText = parts
                 .filter { it.text()?.isPresent == true }
                 .filter { it.thought()?.orElse(false) != true }
                 .joinToString("") { it.text().get() }
+
+            // Extract grounding citations from candidate metadata
+            val groundingCitations = mutableListOf<Pair<String, String>>() // title, url
+            try {
+                candidate.groundingMetadata()?.orElse(null)?.let { meta ->
+                    meta.groundingChunks()?.orElse(null)?.forEach { chunk ->
+                        chunk.web()?.orElse(null)?.let { web ->
+                            val uri = web.uri()?.orElse(null)
+                            val title = web.title()?.orElse(null)
+                            if (uri != null) {
+                                groundingCitations.add((title ?: uri) to uri)
+                            }
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+                // Graceful degradation if grounding metadata format is unexpected
+            }
+
+            val textContent = if (groundingCitations.isNotEmpty()) {
+                val uniqueCitations = groundingCitations.distinctBy { it.second }
+                rawText + "\n\nSources:\n" +
+                    uniqueCitations.joinToString("") { (title, url) -> "- [$title]($url)\n" }
+            } else {
+                rawText
+            }
 
             // Convert function calls to our ToolCall format
             val toolCalls = functionCalls.map { fc ->

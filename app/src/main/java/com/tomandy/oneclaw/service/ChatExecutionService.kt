@@ -142,6 +142,12 @@ class ChatExecutionService : Service(), KoinComponent {
                 val snapshotRegistry = toolRegistry.snapshot()
                 val snapshotToolExecutor = ToolExecutor(snapshotRegistry, messageStore)
 
+                val nativeWebSearchEnabled = when (modelPreferences.getWebSearchMode()) {
+                    ModelPreferences.WebSearchMode.PROVIDER_NATIVE -> true
+                    ModelPreferences.WebSearchMode.AUTO -> llmClientProvider.isNativeSearchSupported()
+                    ModelPreferences.WebSearchMode.TAVILY_BRAVE -> false
+                }
+
                 lateinit var coordinator: AgentCoordinator
                 coordinator = AgentCoordinator(
                     clientProvider = { llmClientProvider.getCurrentLlmClient() },
@@ -151,6 +157,7 @@ class ChatExecutionService : Service(), KoinComponent {
                     conversationId = conversationId,
                     contextWindow = contextWindow,
                     toolFilter = toolFilter,
+                    nativeWebSearchEnabled = nativeWebSearchEnabled,
                     onBeforeSummarize = {
                         memoryFlush(
                             clientProvider = { llmClientProvider.getCurrentLlmClient() },

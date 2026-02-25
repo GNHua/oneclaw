@@ -75,7 +75,7 @@ class AgentCoordinatorTest {
         // Given: Mock successful LLM response
         val expectedResponse = "Hello! How can I help you today?"
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.success(
             createLlmResponse(content = expectedResponse)
         )
@@ -92,7 +92,7 @@ class AgentCoordinatorTest {
     fun `execute adds messages to conversation history`() = testScope.runTest {
         // Given: Mock successful LLM response
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.success(
             createLlmResponse(content = "Response 1")
         )
@@ -105,7 +105,7 @@ class AgentCoordinatorTest {
 
         // Given: Mock second response
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.success(
             createLlmResponse(content = "Response 2")
         )
@@ -121,7 +121,7 @@ class AgentCoordinatorTest {
     fun `state transitions from Idle to Thinking to Completed`() = testScope.runTest {
         // Given: Mock successful LLM response with delay simulation
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.success(
             createLlmResponse(content = "Test response")
         )
@@ -143,27 +143,27 @@ class AgentCoordinatorTest {
         // Given: Mock error response
         val errorMessage = "Network error"
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.failure(Exception(errorMessage))
 
         // When: Execute request
         val result = coordinator.execute("Hello", systemPrompt = testSystemPrompt)
 
-        // Then: Result is failure
-        assertTrue(result.isFailure)
-        assertNotNull(result.exceptionOrNull())
+        // Then: ReActLoop gracefully degrades to a success with a friendly message
+        assertTrue(result.isSuccess)
+        assertTrue(result.getOrNull()!!.contains("ran into an issue"))
+        assertTrue(result.getOrNull()!!.contains(errorMessage))
 
-        // And: State is Error
+        // And: State is Completed (not Error) because the ReActLoop returned a friendly message
         val state = coordinator.state.value
-        assertTrue(state is AgentState.Error)
-        assertEquals(errorMessage, (state as AgentState.Error).message)
+        assertTrue(state is AgentState.Completed)
     }
 
     @Test
     fun `execute handles empty response choices`() = testScope.runTest {
         // Given: Mock response with empty choices
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.success(
             LlmResponse(
                 id = "test-id",
@@ -187,7 +187,7 @@ class AgentCoordinatorTest {
     fun `execute handles null content in response`() = testScope.runTest {
         // Given: Mock response with null content
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.success(
             LlmResponse(
                 id = "test-id",
@@ -229,7 +229,7 @@ class AgentCoordinatorTest {
         )
 
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.success(
             LlmResponse(
                 id = "test-id",
@@ -284,7 +284,7 @@ class AgentCoordinatorTest {
     fun `reset clears conversation history`() = testScope.runTest {
         // Given: Mock successful responses
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.success(
             createLlmResponse(content = "Response")
         )
@@ -308,7 +308,7 @@ class AgentCoordinatorTest {
     fun `conversation history maintains proper order`() = testScope.runTest {
         // Given: Mock successful responses
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.success(
             createLlmResponse(content = "Response 1")
         ) andThen Result.success(
@@ -331,7 +331,7 @@ class AgentCoordinatorTest {
     fun `execute includes system prompt on first request`() = testScope.runTest {
         // Given: Mock LLM client
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.success(
             createLlmResponse(content = "Response")
         )
@@ -347,7 +347,7 @@ class AgentCoordinatorTest {
                     messages.first().role == "system" &&
                     messages.first().content == customPrompt
                 },
-                any(), any(), any(), any()
+                any(), any(), any(), any(), any()
             )
         }
     }
@@ -356,7 +356,7 @@ class AgentCoordinatorTest {
     fun `execute does not add system prompt on subsequent requests`() = testScope.runTest {
         // Given: Mock LLM client
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.success(
             createLlmResponse(content = "Response")
         )
@@ -378,7 +378,7 @@ class AgentCoordinatorTest {
     fun `executeAsync launches in background`() = testScope.runTest {
         // Given: Mock successful response
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.success(
             createLlmResponse(content = "Async response")
         )
@@ -424,7 +424,7 @@ class AgentCoordinatorTest {
         )
 
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } returns Result.success(
             LlmResponse(
                 id = "test-id",
@@ -471,7 +471,7 @@ class AgentCoordinatorTest {
     fun `state is Error after exception during execution`() = testScope.runTest {
         // Given: Mock client throws exception
         coEvery {
-            mockLlmClient.complete(any(), any(), any(), any(), any())
+            mockLlmClient.complete(any(), any(), any(), any(), any(), any())
         } throws RuntimeException("Unexpected error")
 
         // When: Execute request

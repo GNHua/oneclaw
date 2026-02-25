@@ -106,13 +106,20 @@ class ScheduledAgentExecutor(
             val model = profile?.model
                 ?: modelPreferences.getSelectedModel() ?: ""
 
+            val nativeWebSearchEnabled = when (modelPreferences.getWebSearchMode()) {
+                ModelPreferences.WebSearchMode.PROVIDER_NATIVE -> true
+                ModelPreferences.WebSearchMode.AUTO -> llmClientProvider.isNativeSearchSupported()
+                ModelPreferences.WebSearchMode.TAVILY_BRAVE -> false
+            }
+
             val coordinator = AgentCoordinator(
                 clientProvider = { llmClientProvider.getCurrentLlmClient() },
                 toolRegistry = snapshotRegistry,
                 toolExecutor = snapshotToolExecutor,
                 messageStore = messageStore,
                 conversationId = tempConversationId,
-                contextWindow = LlmProvider.getContextWindow(model)
+                contextWindow = LlmProvider.getContextWindow(model),
+                nativeWebSearchEnabled = nativeWebSearchEnabled
             )
 
             try {

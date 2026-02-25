@@ -83,7 +83,7 @@ class ReActLoopTest {
 
     @Test
     fun `step returns success when LLM responds with stop`() = runTest {
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns
             Result.success(stopResponse("Hello there!"))
 
         val result = loop.step(testMessages, emptyToolsProvider, "conv1")
@@ -94,7 +94,7 @@ class ReActLoopTest {
 
     @Test
     fun `step returns failure when LLM response has no choices`() = runTest {
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns
             Result.success(LlmResponse(id = "id", choices = emptyList(), usage = null))
 
         val result = loop.step(testMessages, emptyToolsProvider, "conv1")
@@ -105,7 +105,7 @@ class ReActLoopTest {
 
     @Test
     fun `step returns failure when content is null on stop`() = runTest {
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns
             Result.success(stopResponse(null))
 
         val result = loop.step(testMessages, emptyToolsProvider, "conv1")
@@ -116,7 +116,7 @@ class ReActLoopTest {
 
     @Test
     fun `step returns failure when content is blank on stop`() = runTest {
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns
             Result.success(stopResponse("   "))
 
         val result = loop.step(testMessages, emptyToolsProvider, "conv1")
@@ -126,14 +126,16 @@ class ReActLoopTest {
     }
 
     @Test
-    fun `step returns failure when LLM client returns failure Result`() = runTest {
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns
+    fun `step returns friendly message when LLM client returns failure Result`() = runTest {
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns
             Result.failure(RuntimeException("API error"))
 
         val result = loop.step(testMessages, emptyToolsProvider, "conv1")
 
-        assertTrue(result.isFailure)
-        assertEquals("API error", result.exceptionOrNull()?.message)
+        // ReActLoop gracefully degrades: returns success with a friendly error message
+        assertTrue(result.isSuccess)
+        assertTrue(result.getOrNull()!!.contains("ran into an issue"))
+        assertTrue(result.getOrNull()!!.contains("API error"))
     }
 
     // --- Tool execution path ---
@@ -141,7 +143,7 @@ class ReActLoopTest {
     @Test
     fun `step executes tools when finish_reason is tool_calls`() = runTest {
         val tc = makeToolCall()
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns
             Result.success(toolCallResponse(listOf(tc))) andThen
             Result.success(stopResponse("Done"))
 
@@ -159,7 +161,7 @@ class ReActLoopTest {
     @Test
     fun `step handles failed tool execution and sends error to LLM`() = runTest {
         val tc = makeToolCall()
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns
             Result.success(toolCallResponse(listOf(tc))) andThen
             Result.success(stopResponse("I see the error"))
 
@@ -168,7 +170,7 @@ class ReActLoopTest {
         )
 
         val messagesSlot = mutableListOf<List<com.tomandy.oneclaw.llm.Message>>()
-        coEvery { mockLlmClient.complete(capture(messagesSlot), any(), any(), any(), any()) } returns
+        coEvery { mockLlmClient.complete(capture(messagesSlot), any(), any(), any(), any(), any()) } returns
             Result.success(toolCallResponse(listOf(tc))) andThen
             Result.success(stopResponse("I see the error"))
 
@@ -185,7 +187,7 @@ class ReActLoopTest {
     @Test
     fun `step persists assistant message with tool calls to MessageStore`() = runTest {
         val tc = makeToolCall()
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns
             Result.success(toolCallResponse(listOf(tc))) andThen
             Result.success(stopResponse("Done"))
 
@@ -215,7 +217,7 @@ class ReActLoopTest {
             ),
             usage = null
         )
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns Result.success(response)
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         val result = loop.step(testMessages, emptyToolsProvider, "conv1")
 
@@ -230,7 +232,7 @@ class ReActLoopTest {
         val tc1 = makeToolCall(id = "call_1", name = "tool_a")
         val tc2 = makeToolCall(id = "call_2", name = "tool_b")
 
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns
             Result.success(toolCallResponse(listOf(tc1))) andThen
             Result.success(toolCallResponse(listOf(tc2))) andThen
             Result.success(stopResponse("Final answer"))
@@ -252,7 +254,7 @@ class ReActLoopTest {
     @Test
     fun `step enforces maxIterations limit`() = runTest {
         val tc = makeToolCall()
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns
             Result.success(toolCallResponse(listOf(tc)))
 
         coEvery { mockToolExecutor.executeBatch(any(), any()) } returns listOf(
@@ -261,8 +263,9 @@ class ReActLoopTest {
 
         val result = loop.step(testMessages, emptyToolsProvider, "conv1", maxIterations = 3)
 
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("Max iterations (3)") == true)
+        // ReActLoop returns a friendly success message when max iterations is reached
+        assertTrue(result.isSuccess)
+        assertTrue(result.getOrNull()!!.contains("maximum number of steps"))
     }
 
     @Test
@@ -274,7 +277,7 @@ class ReActLoopTest {
         }
 
         val tc = makeToolCall()
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns
             Result.success(toolCallResponse(listOf(tc))) andThen
             Result.success(stopResponse("Done"))
 
@@ -302,7 +305,7 @@ class ReActLoopTest {
             ),
             usage = null
         )
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns Result.success(response)
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         val result = loop.step(testMessages, emptyToolsProvider, "conv1")
 
@@ -323,7 +326,7 @@ class ReActLoopTest {
             ),
             usage = null
         )
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns Result.success(response)
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         val result = loop.step(testMessages, emptyToolsProvider, "conv1")
 
@@ -338,7 +341,7 @@ class ReActLoopTest {
         loop.injectMessage("injected message")
 
         val messagesSlot = slot<List<com.tomandy.oneclaw.llm.Message>>()
-        coEvery { mockLlmClient.complete(capture(messagesSlot), any(), any(), any(), any()) } returns
+        coEvery { mockLlmClient.complete(capture(messagesSlot), any(), any(), any(), any(), any()) } returns
             Result.success(stopResponse("response"))
 
         loop.step(testMessages, emptyToolsProvider, "conv1")
@@ -353,7 +356,7 @@ class ReActLoopTest {
         // The first LLM call returns "stop", but during that call a message is injected,
         // so pendingUserMessages is non-empty when the stop check runs.
         var callCount = 0
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } coAnswers {
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } coAnswers {
             callCount++
             if (callCount == 1) {
                 // Inject during the first LLM call so it's pending when "stop" is checked
@@ -374,7 +377,7 @@ class ReActLoopTest {
     @Test
     fun `step persists intermediate answer to MessageStore on continue`() = runTest {
         var callCount = 0
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } coAnswers {
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } coAnswers {
             callCount++
             if (callCount == 1) {
                 loop.injectMessage("follow-up")
@@ -398,7 +401,7 @@ class ReActLoopTest {
     @Test
     fun `step updates lastUsage from LLM response`() = runTest {
         val usage = Usage(prompt_tokens = 10, completion_tokens = 20, total_tokens = 30)
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any()) } returns
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), any(), any()) } returns
             Result.success(stopResponse("ok", usage = usage))
 
         assertNull(loop.lastUsage)
@@ -413,12 +416,12 @@ class ReActLoopTest {
 
     @Test
     fun `step passes null tools when toolsProvider returns empty list`() = runTest {
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), tools = null) } returns
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), tools = null, any()) } returns
             Result.success(stopResponse("ok"))
 
         loop.step(testMessages, emptyToolsProvider, "conv1")
 
-        coVerify { mockLlmClient.complete(any(), any(), any(), any(), tools = null) }
+        coVerify { mockLlmClient.complete(any(), any(), any(), any(), tools = null, any()) }
     }
 
     @Test
@@ -427,7 +430,7 @@ class ReActLoopTest {
             ToolDefinition(name = "my_tool", description = "does stuff", parameters = buildJsonObject {})
         )
 
-        coEvery { mockLlmClient.complete(any(), any(), any(), any(), tools = any()) } returns
+        coEvery { mockLlmClient.complete(any(), any(), any(), any(), tools = any(), any()) } returns
             Result.success(stopResponse("ok"))
 
         loop.step(testMessages, { toolDefs }, "conv1")
@@ -435,7 +438,8 @@ class ReActLoopTest {
         coVerify {
             mockLlmClient.complete(
                 any(), any(), any(), any(),
-                tools = match { it != null && it.size == 1 && it[0].function.name == "my_tool" }
+                tools = match { it != null && it.size == 1 && it[0].function.name == "my_tool" },
+                any()
             )
         }
     }

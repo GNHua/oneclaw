@@ -234,7 +234,17 @@ class PluginCoordinator(
             if (!hasWebApiKey && pluginPreferences.isPluginEnabled("web")) {
                 pluginPreferences.setPluginEnabled("web", false)
             }
-            if (pluginPreferences.isPluginEnabled("web")) {
+            // Always register the plugin when provider-native search is available,
+            // so the "web" on-demand category exists for activate_tools even without
+            // a Tavily/Brave key. The web_search tool is filtered out by AgentCoordinator
+            // when native search is active; web_fetch will fail gracefully if called
+            // without a key.
+            val nativeSearchAvailable = when (modelPreferences.getWebSearchMode()) {
+                ModelPreferences.WebSearchMode.PROVIDER_NATIVE -> true
+                ModelPreferences.WebSearchMode.AUTO -> llmClientProvider.isNativeSearchSupported()
+                ModelPreferences.WebSearchMode.TAVILY_BRAVE -> false
+            }
+            if (pluginPreferences.isPluginEnabled("web") || nativeSearchAvailable) {
                 toolRegistry.registerPlugin(webLoaded)
             }
             pluginEngine.registerLoadedPlugin(webLoaded)

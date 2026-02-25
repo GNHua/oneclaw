@@ -53,6 +53,9 @@ class JsPlugin(
 
         injectHostBindings(js, context, workspaceRoot)
 
+        // Polyfill btoa/atob -- QuickJS doesn't provide Web API globals
+        js.evaluate<Any?>(BASE64_POLYFILL)
+
         js.evaluate<Any?>(scriptSource)
     }
 
@@ -501,6 +504,57 @@ class JsPlugin(
     }
 
     companion object {
+        /**
+         * btoa/atob polyfill for QuickJS.
+         *
+         * QuickJS is a pure ECMAScript engine and does not include the Web API
+         * globals `btoa` and `atob`. This polyfill provides standards-compliant
+         * implementations so JS plugins (e.g. Gmail) can base64-encode/decode.
+         */
+        private val BASE64_POLYFILL = """
+(function() {
+    var c = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    var lookup = {};
+    for (var j = 0; j < c.length; j++) lookup[c.charAt(j)] = j;
+
+    globalThis.btoa = function(str) {
+        str = String(str);
+        var out = "", i;
+        for (i = 0; i < str.length; i++) {
+            if (str.charCodeAt(i) > 0xFF)
+                throw new Error("InvalidCharacterError: btoa input contains non-Latin-1 character");
+        }
+        for (i = 0; i < str.length; i += 3) {
+            var b1 = str.charCodeAt(i);
+            var b2 = i + 1 < str.length ? str.charCodeAt(i + 1) : 0;
+            var b3 = i + 2 < str.length ? str.charCodeAt(i + 2) : 0;
+            out += c[b1 >> 2];
+            out += c[((b1 & 3) << 4) | (b2 >> 4)];
+            out += i + 1 < str.length ? c[((b2 & 15) << 2) | (b3 >> 6)] : "=";
+            out += i + 2 < str.length ? c[b3 & 63] : "=";
+        }
+        return out;
+    };
+
+    globalThis.atob = function(str) {
+        str = String(str).replace(/[\s=]+$/g, "");
+        var out = "", i;
+        if (str.length % 4 === 1)
+            throw new Error("InvalidCharacterError: atob input is not valid base64");
+        for (i = 0; i < str.length; i += 4) {
+            var a = lookup[str.charAt(i)] || 0;
+            var b = lookup[str.charAt(i + 1)] || 0;
+            var cv = i + 2 < str.length ? (lookup[str.charAt(i + 2)] || 0) : 0;
+            var d = i + 3 < str.length ? (lookup[str.charAt(i + 3)] || 0) : 0;
+            out += String.fromCharCode((a << 2) | (b >> 4));
+            if (i + 2 < str.length) out += String.fromCharCode(((b & 15) << 4) | (cv >> 2));
+            if (i + 3 < str.length) out += String.fromCharCode(((cv & 3) << 6) | d);
+        }
+        return out;
+    };
+})();
+        """.trimIndent()
+
         private fun resolveSafePath(root: File, relativePath: String): File {
             if (relativePath.startsWith("/")) {
                 throw SecurityException("Absolute paths not allowed: $relativePath")

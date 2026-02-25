@@ -32,18 +32,66 @@ async function gmailFetch(method, path, body) {
     return JSON.parse(resp.body);
 }
 
+function utf8Encode(str) {
+    var bytes = [];
+    for (var i = 0; i < str.length; i++) {
+        var code = str.charCodeAt(i);
+        if (code < 0x80) {
+            bytes.push(code);
+        } else if (code < 0x800) {
+            bytes.push(0xC0 | (code >> 6));
+            bytes.push(0x80 | (code & 0x3F));
+        } else if (code >= 0xD800 && code <= 0xDBFF && i + 1 < str.length) {
+            var next = str.charCodeAt(++i);
+            var cp = ((code - 0xD800) << 10) + (next - 0xDC00) + 0x10000;
+            bytes.push(0xF0 | (cp >> 18));
+            bytes.push(0x80 | ((cp >> 12) & 0x3F));
+            bytes.push(0x80 | ((cp >> 6) & 0x3F));
+            bytes.push(0x80 | (cp & 0x3F));
+        } else {
+            bytes.push(0xE0 | (code >> 12));
+            bytes.push(0x80 | ((code >> 6) & 0x3F));
+            bytes.push(0x80 | (code & 0x3F));
+        }
+    }
+    return String.fromCharCode.apply(null, bytes);
+}
+
+function utf8Decode(bytes) {
+    var str = "", i = 0;
+    while (i < bytes.length) {
+        var b = bytes.charCodeAt(i);
+        if (b < 0x80) {
+            str += String.fromCharCode(b);
+            i++;
+        } else if ((b & 0xE0) === 0xC0) {
+            str += String.fromCharCode(((b & 0x1F) << 6) | (bytes.charCodeAt(i + 1) & 0x3F));
+            i += 2;
+        } else if ((b & 0xF0) === 0xE0) {
+            str += String.fromCharCode(((b & 0x0F) << 12) | ((bytes.charCodeAt(i + 1) & 0x3F) << 6) | (bytes.charCodeAt(i + 2) & 0x3F));
+            i += 3;
+        } else {
+            var cp = ((b & 0x07) << 18) | ((bytes.charCodeAt(i + 1) & 0x3F) << 12) | ((bytes.charCodeAt(i + 2) & 0x3F) << 6) | (bytes.charCodeAt(i + 3) & 0x3F);
+            cp -= 0x10000;
+            str += String.fromCharCode(0xD800 + (cp >> 10), 0xDC00 + (cp & 0x3FF));
+            i += 4;
+        }
+    }
+    return str;
+}
+
 function decodeBase64Url(str) {
     var base64 = str.replace(/-/g, "+").replace(/_/g, "/");
     while (base64.length % 4 !== 0) base64 += "=";
     try {
-        return atob(base64);
+        return utf8Decode(atob(base64));
     } catch (e) {
         return "(failed to decode body)";
     }
 }
 
 function encodeBase64Url(str) {
-    return btoa(str)
+    return btoa(utf8Encode(str))
         .replace(/\+/g, "-")
         .replace(/\//g, "_")
         .replace(/=+$/, "");

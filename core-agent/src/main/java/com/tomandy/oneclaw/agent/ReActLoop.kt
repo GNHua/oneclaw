@@ -352,6 +352,9 @@ class ReActLoop(
          *
          * Preserves: system messages, the first user message, and the last
          * [PRESERVE_TAIL_COUNT] messages.
+         *
+         * Removes complete tool-interaction groups (assistant with tool_calls +
+         * all following tool results) to avoid orphaning tool_use blocks.
          */
         internal fun trimWorkingMessages(
             workingMessages: MutableList<Message>,
@@ -369,24 +372,49 @@ class ReActLoop(
             val currentTokens = workingMessages.sumOf { (it.content?.length ?: 0) } / 4
             if (currentTokens <= targetTokens) return
 
-            // Remove messages from the middle, oldest first, until under budget
-            val removable = workingMessages.subList(headEnd, tailStart)
-            val toRemove = mutableListOf<Int>()
-            var freed = 0
-            val needed = currentTokens - targetTokens
+            // Build groups: each group is either a standalone message or an
+            // assistant(tool_calls) + all its following tool results.
+            data class Group(val startIdx: Int, val endIdx: Int, val tokens: Int)
+            val groups = mutableListOf<Group>()
+            var i = headEnd
+            while (i < tailStart) {
+                val msg = workingMessages[i]
+                if (msg.role == "assistant" && !msg.tool_calls.isNullOrEmpty()) {
+                    // Group: assistant + following tool results
+                    var j = i + 1
+                    while (j < tailStart && workingMessages[j].role == "tool") j++
+                    val tokens = (i until j).sumOf {
+                        (workingMessages[it].content?.length ?: 0) / 4
+                    }
+                    groups.add(Group(i, j, tokens))
+                    i = j
+                } else {
+                    val tokens = (msg.content?.length ?: 0) / 4
+                    groups.add(Group(i, i + 1, tokens))
+                    i++
+                }
+            }
 
-            for (i in removable.indices) {
-                val msg = removable[i]
-                freed += (msg.content?.length ?: 0) / 4
-                toRemove.add(headEnd + i)
+            // Remove groups oldest first until under budget
+            val needed = currentTokens - targetTokens
+            var freed = 0
+            val indicesToRemove = mutableListOf<IntRange>()
+            for (group in groups) {
+                indicesToRemove.add(group.startIdx until group.endIdx)
+                freed += group.tokens
                 if (freed >= needed) break
             }
 
-            if (toRemove.isEmpty()) return
+            if (indicesToRemove.isEmpty()) return
+
+            // Count total messages removed
+            val totalRemoved = indicesToRemove.sumOf { it.last - it.first + 1 }
 
             // Remove in reverse order to preserve indices
-            for (idx in toRemove.reversed()) {
-                workingMessages.removeAt(idx)
+            for (range in indicesToRemove.reversed()) {
+                for (idx in range.reversed()) {
+                    workingMessages.removeAt(idx)
+                }
             }
 
             // Insert a placeholder at the trim point
@@ -394,14 +422,14 @@ class ReActLoop(
                 headEnd,
                 Message(
                     role = "user",
-                    content = "[System: ${toRemove.size} earlier tool interactions were " +
+                    content = "[System: $totalRemoved earlier tool interactions were " +
                         "trimmed to fit context window]"
                 )
             )
 
             Log.d(
                 "ReActLoop",
-                "Trimmed ${toRemove.size} messages, freed ~$freed tokens"
+                "Trimmed $totalRemoved messages, freed ~$freed tokens"
             )
         }
     }

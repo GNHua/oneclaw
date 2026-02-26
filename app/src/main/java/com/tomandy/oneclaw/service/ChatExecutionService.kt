@@ -243,6 +243,11 @@ class ChatExecutionService : Service(), KoinComponent {
         return content to index
     }
 
+    /**
+     * Build LLM conversation history from DB messages, pairing each assistant
+     * tool_use with its matching tool_result by ID rather than relying on
+     * chronological order (which breaks when concurrent executions interleave).
+     */
     private fun buildConversationHistory(
         dbMessages: List<MessageEntity>,
         lastSummaryIndex: Int
@@ -252,6 +257,17 @@ class ChatExecutionService : Service(), KoinComponent {
         } else {
             dbMessages
         }
+
+        // Index all tool results by their toolCallId for ID-based pairing
+        val toolResultMap = mutableMapOf<String, MessageEntity>()
+        for (msg in messagesAfterSummary) {
+            if (msg.role == "tool" && !msg.toolCallId.isNullOrEmpty()) {
+                toolResultMap[msg.toolCallId] = msg
+            }
+        }
+
+        val consumedToolResultIds = mutableSetOf<String>()
+
         return buildList {
             for (msg in messagesAfterSummary) {
                 when {
@@ -275,16 +291,36 @@ class ChatExecutionService : Service(), KoinComponent {
                                 tool_calls = toolCalls?.takeIf { it.isNotEmpty() }
                             )
                         )
+
+                        // Pair each tool_call with its result by ID
+                        toolCalls?.forEach { tc ->
+                            val result = toolResultMap[tc.id]
+                            if (result != null) {
+                                consumedToolResultIds.add(result.id)
+                                add(
+                                    Message(
+                                        role = "tool",
+                                        content = result.content,
+                                        tool_call_id = result.toolCallId,
+                                        name = result.toolName
+                                    )
+                                )
+                            } else {
+                                // No result found (cancelled or lost)
+                                add(
+                                    Message(
+                                        role = "tool",
+                                        content = "[Tool execution was cancelled]",
+                                        tool_call_id = tc.id,
+                                        name = tc.function.name
+                                    )
+                                )
+                            }
+                        }
                     }
                     msg.role == "tool" -> {
-                        add(
-                            Message(
-                                role = "tool",
-                                content = msg.content,
-                                tool_call_id = msg.toolCallId,
-                                name = msg.toolName
-                            )
-                        )
+                        // Skip -- already placed after its assistant via ID pairing above.
+                        // Orphaned tool results (no matching assistant) are also dropped.
                     }
                     msg.role == "user" -> {
                         val content = annotateMediaAttachments(msg.content, msg)

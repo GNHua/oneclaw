@@ -344,7 +344,8 @@ class JsPlugin(
                         }
                         context.httpClient.newCall(builder.build()).execute().use { resp ->
                             if (!resp.isSuccessful) {
-                                error("Download failed (HTTP ${resp.code})")
+                                val body = resp.body?.string()?.take(500) ?: ""
+                                error("Download failed (HTTP ${resp.code}): $body")
                             }
                             val file = resolveSafePath(workspaceRoot, destPath)
                             file.parentFile?.mkdirs()

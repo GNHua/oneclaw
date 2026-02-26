@@ -224,11 +224,33 @@ async function execute(toolName, args) {
             }
 
             case "drive_download": {
+                var savePath = args.save_path || args.path;
+                if (!savePath) throw new Error("save_path is required");
                 var token = await getToken();
+                // Fetch file metadata to detect Google Workspace files
+                var meta = await driveFetch("GET",
+                    "/files/" + encodeURIComponent(args.file_id) +
+                    "?fields=mimeType");
+                var mime = meta.mimeType || "";
+                if (mime.indexOf("application/vnd.google-apps.") === 0) {
+                    // Google Workspace file -- export instead of download
+                    var exportMime;
+                    if (mime === "application/vnd.google-apps.spreadsheet") {
+                        exportMime = "text/csv";
+                    } else {
+                        // Docs, Slides, Drawings, and others export as PDF
+                        exportMime = "application/pdf";
+                    }
+                    var exportUrl = DRIVE_API + "/files/" + encodeURIComponent(args.file_id) +
+                        "/export?mimeType=" + encodeURIComponent(exportMime);
+                    var headers = { "Authorization": "Bearer " + token };
+                    await oneclaw.http.downloadToFile(exportUrl, savePath, headers);
+                    return { output: "Google Workspace file exported as " + exportMime + " to workspace: " + savePath };
+                }
                 var url = DRIVE_API + "/files/" + encodeURIComponent(args.file_id) + "?alt=media";
                 var headers = { "Authorization": "Bearer " + token };
-                var result = await oneclaw.http.downloadToFile(url, args.save_path, headers);
-                return { output: "File downloaded to workspace: " + args.save_path };
+                await oneclaw.http.downloadToFile(url, savePath, headers);
+                return { output: "File downloaded to workspace: " + savePath };
             }
 
             case "drive_upload": {
@@ -263,12 +285,14 @@ async function execute(toolName, args) {
             }
 
             case "drive_export": {
+                var savePath = args.save_path || args.path;
+                if (!savePath) throw new Error("save_path is required");
                 var token = await getToken();
                 var url = DRIVE_API + "/files/" + encodeURIComponent(args.file_id) +
                     "/export?mimeType=" + encodeURIComponent(args.mime_type);
                 var headers = { "Authorization": "Bearer " + token };
-                var result = await oneclaw.http.downloadToFile(url, args.save_path, headers);
-                return { output: "File exported to workspace: " + args.save_path };
+                await oneclaw.http.downloadToFile(url, savePath, headers);
+                return { output: "File exported to workspace: " + savePath };
             }
 
             default:

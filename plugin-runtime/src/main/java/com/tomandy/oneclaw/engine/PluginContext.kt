@@ -86,7 +86,7 @@ class PluginContext(
             .addInterceptor(HttpLoggingInterceptor().apply {
                 val isDebug = androidContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
                 level = if (isDebug) {
-                    HttpLoggingInterceptor.Level.BODY
+                    HttpLoggingInterceptor.Level.HEADERS
                 } else {
                     HttpLoggingInterceptor.Level.NONE
                 }

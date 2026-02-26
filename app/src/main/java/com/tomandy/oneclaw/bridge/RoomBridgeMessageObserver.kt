@@ -41,16 +41,16 @@ class RoomBridgeMessageObserver(
                 )
             } else if (executionDone) {
                 // Execution finished but no clean final message found.
-                // Fall back to the last assistant message regardless.
+                // Fall back to any assistant content, or a cancellation notice.
                 val lastAssistant = messages.lastOrNull { msg ->
                     msg.role == "assistant" &&
                         msg.timestamp > afterTimestamp &&
-                        msg.toolCalls.isNullOrBlank() &&
                         msg.content.isNotBlank()
                 }
-                lastAssistant?.let {
-                    BridgeMessage(content = it.content, timestamp = it.timestamp)
-                }
+                BridgeMessage(
+                    content = lastAssistant?.content ?: "[Execution stopped]",
+                    timestamp = lastAssistant?.timestamp ?: System.currentTimeMillis()
+                )
             } else {
                 null // Still executing, keep waiting
             }

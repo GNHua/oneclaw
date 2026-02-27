@@ -1,20 +1,35 @@
 package com.oneclaw.shadow.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.oneclaw.shadow.core.repository.SettingsRepository
+import com.oneclaw.shadow.feature.provider.ProviderDetailScreen
+import com.oneclaw.shadow.feature.provider.ProviderListScreen
+import com.oneclaw.shadow.feature.provider.SetupScreen
+import com.oneclaw.shadow.feature.provider.SettingsScreen
+import org.koin.compose.koinInject
 
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
+    val settingsRepository: SettingsRepository = koinInject()
+
+    // First-launch detection: read setup flag and navigate accordingly
+    LaunchedEffect(Unit) {
+        val hasCompletedSetup = settingsRepository.getBoolean("has_completed_setup", false)
+        if (!hasCompletedSetup) {
+            navController.navigate(Route.Setup.path) {
+                popUpTo(Route.Chat.path) { inclusive = true }
+            }
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = Route.Chat.path,
@@ -43,30 +58,45 @@ fun AppNavGraph(
         }
 
         composable(Route.ProviderList.path) {
-            PlaceholderScreen("Provider List")
+            ProviderListScreen(
+                onProviderClick = { providerId ->
+                    navController.navigate(Route.ProviderDetail.create(providerId))
+                },
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
-        composable(Route.ProviderDetail.PATH) { backStackEntry ->
-            val providerId = backStackEntry.arguments?.getString("providerId") ?: ""
-            PlaceholderScreen("Provider Detail: $providerId")
+        composable(Route.ProviderDetail.PATH) {
+            ProviderDetailScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         composable(Route.Setup.path) {
-            PlaceholderScreen("Welcome / Setup")
+            SetupScreen(
+                onComplete = {
+                    navController.navigate(Route.Chat.path) {
+                        popUpTo(Route.Setup.path) { inclusive = true }
+                    }
+                }
+            )
         }
 
         composable(Route.Settings.path) {
-            PlaceholderScreen("Settings")
+            SettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onManageProviders = { navController.navigate(Route.ProviderList.path) }
+            )
         }
     }
 }
 
 @Composable
 private fun PlaceholderScreen(title: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier.then(Modifier),
+        contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        Text(text = title)
+        androidx.compose.material3.Text(text = title)
     }
 }

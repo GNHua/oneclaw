@@ -1,12 +1,23 @@
 package com.oneclaw.shadow.di
 
+import com.oneclaw.shadow.feature.provider.ProviderDetailViewModel
+import com.oneclaw.shadow.feature.provider.ProviderListViewModel
+import com.oneclaw.shadow.feature.provider.SetupViewModel
+import com.oneclaw.shadow.feature.provider.usecase.FetchModelsUseCase
+import com.oneclaw.shadow.feature.provider.usecase.SetDefaultModelUseCase
+import com.oneclaw.shadow.feature.provider.usecase.TestConnectionUseCase
+import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.androidx.viewmodel.dsl.viewModelOf
 import org.koin.dsl.module
 
 val featureModule = module {
-    // ViewModels and UseCases will be added as features are implemented
-    // Phase 2: Provider feature
-    // Phase 3: Tool feature
-    // Phase 4: Agent feature
-    // Phase 5: Session feature
-    // Phase 6: Chat feature
+    // Phase 2: Provider feature use cases
+    factory { TestConnectionUseCase(get()) }
+    factory { FetchModelsUseCase(get()) }
+    factory { SetDefaultModelUseCase(get()) }
+
+    // Phase 2: Provider feature view models
+    viewModelOf(::ProviderListViewModel)
+    viewModelOf(::ProviderDetailViewModel)
+    viewModelOf(::SetupViewModel)
 }

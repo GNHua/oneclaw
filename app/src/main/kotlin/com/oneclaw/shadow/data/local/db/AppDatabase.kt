@@ -63,8 +63,18 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                     db.execSQL(
                         """INSERT INTO providers (id, name, type, api_base_url, is_pre_configured, is_active, created_at, updated_at)
-                           VALUES ('provider-gemini', 'Google Gemini', 'GEMINI', 'https://generativelanguage.googleapis.com', 1, 1, $now, $now)"""
+                           VALUES ('provider-gemini', 'Google Gemini', 'GEMINI', 'https://generativelanguage.googleapis.com/v1beta', 1, 1, $now, $now)"""
                     )
+
+                    // Seed preset models
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gpt-4o', 'GPT-4o', 'provider-openai', 0, 'PRESET')")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gpt-4o-mini', 'GPT-4o Mini', 'provider-openai', 0, 'PRESET')")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('o1', 'o1', 'provider-openai', 0, 'PRESET')")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('o3-mini', 'o3 Mini', 'provider-openai', 0, 'PRESET')")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('claude-sonnet-4-20250514', 'Claude Sonnet 4', 'provider-anthropic', 0, 'PRESET')")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('claude-haiku-4-20250414', 'Claude Haiku 4', 'provider-anthropic', 0, 'PRESET')")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gemini-2.0-flash', 'Gemini 2.0 Flash', 'provider-gemini', 0, 'PRESET')")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gemini-2.5-pro', 'Gemini 2.5 Pro', 'provider-gemini', 0, 'PRESET')")
 
                     // Seed built-in General Assistant agent
                     val toolIds = json.encodeToString(listOf("get_current_time", "read_file", "write_file", "http_request"))

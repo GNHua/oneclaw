@@ -1,0 +1,42 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Android / Gradle
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+local.properties
+build/
+.gradle/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Kotlin
+*.kotlin_module
+
+# Secrets -- never commit API keys
+*.env
+.env.*
+
+# Test screenshots (Roborazzi baselines + adb screenshots)
+# Directory structure is tracked via .gitkeep, but actual images are ignored
+app/src/test/resources/screenshots/*.png
+screenshots/**/*.png
+
+# Material theme zip (keep extracted files, ignore zip)
+material-theme.zip
+
+# Temporary files
+*.tmp
+*.swp
+*.log

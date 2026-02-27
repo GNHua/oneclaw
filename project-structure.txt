@@ -1,0 +1,31 @@
+.
+├── app
+├── docs
+│   ├── 00-project-design.md
+│   ├── 01-workflow.md
+│   ├── adr
+│   ├── prd
+│   │   ├── _template.md
+│   │   ├── 00-overview.md
+│   │   ├── features
+│   │   └── versions
+│   ├── rfc
+│   │   ├── _template.md
+│   │   ├── architecture
+│   │   └── features
+│   └── testing
+│       └── strategy.md
+├── project-structure.txt
+├── README.md
+├── scripts
+│   └── run-tests.sh
+├── tests
+│   ├── e2e
+│   ├── integration
+│   ├── plans
+│   ├── scenarios
+│   │   └── _template.yaml
+│   └── unit
+└── tools
+
+19 directories, 10 files

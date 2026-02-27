@@ -1,0 +1,238 @@
+# Test Scenario Template
+# This YAML file describes a complete test scenario that can be parsed and executed by automated testing tools
+
+metadata:
+  # Test scenario metadata
+  scenario_id: TEST-XXX
+  feature_id: FEAT-XXX
+  rfc_id: RFC-XXX
+  name: "Test scenario name"
+  description: "Brief description of what this test scenario verifies"
+  priority: P0  # P0/P1/P2
+  type: unit  # unit/integration/e2e
+  status: active  # active/disabled/deprecated
+  created_at: "2026-02-26"
+  updated_at: "2026-02-26"
+  tags:
+    - auth
+    - login
+    - smoke-test
+
+preconditions:
+  # Test preconditions
+  - condition: "User is not logged in"
+    verification: "Verify local storage does not contain a token"
+  - condition: "Network connection is available"
+    verification: "API server is reachable"
+  - condition: "Test user has been created"
+    data:
+      email: "test@example.com"
+      password: "Test123456"
+
+test_data:
+  # Test data
+  valid_user:
+    email: "test@example.com"
+    password: "Test123456"
+  
+  invalid_user:
+    email: "wrong@example.com"
+    password: "wrongpassword"
+  
+  empty_fields:
+    email: ""
+    password: ""
+
+scenarios:
+  # Main scenario: Normal login flow
+  - name: "Normal login flow"
+    steps:
+      - step_id: 1
+        action: "Open the application"
+        method: "launch_app"
+        expected:
+          - "Application launches successfully"
+          - "Login screen is displayed"
+        verification:
+          - type: "screen_visible"
+            target: "LoginScreen"
+      
+      - step_id: 2
+        action: "Enter username"
+        method: "input_text"
+        target: "email_field"
+        data: "${test_data.valid_user.email}"
+        expected:
+          - "Username input field displays the entered content"
+        verification:
+          - type: "text_equals"
+            target: "email_field"
+            value: "${test_data.valid_user.email}"
+      
+      - step_id: 3
+        action: "Enter password"
+        method: "input_text"
+        target: "password_field"
+        data: "${test_data.valid_user.password}"
+        expected:
+          - "Password is displayed as masked characters"
+        verification:
+          - type: "text_masked"
+            target: "password_field"
+      
+      - step_id: 4
+        action: "Click the login button"
+        method: "click"
+        target: "login_button"
+        expected:
+          - "Loading indicator is displayed"
+          - "Login button becomes disabled"
+        verification:
+          - type: "element_visible"
+            target: "loading_indicator"
+          - type: "element_disabled"
+            target: "login_button"
+      
+      - step_id: 5
+        action: "Wait for login to complete"
+        method: "wait"
+        timeout: 5000  # ms
+        expected:
+          - "Successfully navigated to the home screen"
+          - "Token is saved to local storage"
+          - "User info is saved locally"
+        verification:
+          - type: "screen_visible"
+            target: "HomeScreen"
+          - type: "local_storage_contains"
+            key: "auth_token"
+          - type: "local_storage_contains"
+            key: "user_info"
+  
+  # Error scenario 1: Invalid username or password
+  - name: "Invalid username or password"
+    steps:
+      - step_id: 1
+        action: "Open the application"
+        method: "launch_app"
+        expected:
+          - "Login screen is displayed"
+      
+      - step_id: 2
+        action: "Enter incorrect username and password"
+        method: "input_form"
+        data: "${test_data.invalid_user}"
+        expected:
+          - "Input fields display the entered content"
+      
+      - step_id: 3
+        action: "Click the login button"
+        method: "click"
+        target: "login_button"
+        expected:
+          - "Loading indicator is displayed"
+      
+      - step_id: 4
+        action: "Wait for response"
+        method: "wait"
+        timeout: 5000
+        expected:
+          - "Error message is displayed"
+          - "Remains on the login page"
+          - "Token is not saved"
+        verification:
+          - type: "toast_visible"
+            message: "Invalid username or password"
+          - type: "screen_visible"
+            target: "LoginScreen"
+          - type: "local_storage_not_contains"
+            key: "auth_token"
+  
+  # Error scenario 2: Empty fields
+  - name: "Empty username or password"
+    steps:
+      - step_id: 1
+        action: "Open the login page"
+        method: "launch_app"
+      
+      - step_id: 2
+        action: "Click login without entering any content"
+        method: "click"
+        target: "login_button"
+        expected:
+          - "Login button should be disabled or a validation error is displayed"
+        verification:
+          - type: "one_of"
+            options:
+              - type: "element_disabled"
+                target: "login_button"
+              - type: "error_visible"
+                target: "email_field"
+                message: "Please enter your email"
+  
+  # Error scenario 3: Network error
+  - name: "Network connection failure"
+    setup:
+      - action: "Disable network connection"
+        method: "disable_network"
+    steps:
+      - step_id: 1
+        action: "Open the application and enter valid credentials"
+        method: "login_with_credentials"
+        data: "${test_data.valid_user}"
+      
+      - step_id: 2
+        action: "Click the login button"
+        method: "click"
+        target: "login_button"
+        expected:
+          - "Network error message is displayed"
+          - "Remains on the login page"
+        verification:
+          - type: "toast_visible"
+            message: "Network connection failed. Please check your network settings."
+          - type: "screen_visible"
+            target: "LoginScreen"
+    teardown:
+      - action: "Restore network connection"
+        method: "enable_network"
+
+postconditions:
+  # Test postconditions (cleanup)
+  - action: "Clean up test data"
+    steps:
+      - "Clear token from local storage"
+      - "Clear user info cache"
+      - "Restore network state"
+
+performance_criteria:
+  # Performance criteria
+  - metric: "login_response_time"
+    threshold: 2000  # ms
+    description: "Login response time should be less than 2 seconds"
+  
+  - metric: "ui_render_time"
+    threshold: 100  # ms
+    description: "UI render time should be less than 100ms"
+
+accessibility_checks:
+  # Accessibility checks
+  - "All interactive elements have a contentDescription"
+  - "Text contrast meets WCAG standards"
+  - "TalkBack navigation is supported"
+
+notes:
+  - "This test scenario covers the main login flow and common error cases"
+  - "The network error scenario requires an emulator or physical device that supports network state toggling"
+  - "Multiple scenarios can be executed in parallel to improve test efficiency"
+
+related_tests:
+  - TEST-002  # User registration test
+  - TEST-003  # Forgot password test
+
+automation_support:
+  # Automation support info
+  framework: "Jetpack Compose UI Test / Espresso"
+  can_automate: true
+  automation_script: "tests/e2e/LoginTest.kt"
+  estimated_duration: 30  # seconds

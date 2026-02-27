@@ -127,11 +127,25 @@
 
 ## 第二层：adb 视觉验证
 
-**结果：** 跳过
+**结果：** 部分完成 — RFC-001/RFC-002 实现后验证了 Setup 界面
 
-**原因：** RFC-001（Chat 交互）尚未实现。完整的 App 流程（Setup → Chat → Provider 配置）还无法端到端验证。第二层 Flow 1（首次启动 + Provider 设置）将在 RFC-001 或 Setup/导航流程完善后执行。
+**更新：** 所有 RFC 实现后（commit `bdea03c`），在模拟器上验证了 Setup 流程。
 
-环境变量中已有 API key（`ONECLAW_ANTHROPIC_API_KEY` 等），但 App 当前在 Setup 完成后仅显示占位符 Chat 界面，进行视觉验证为时过早。
+**发现并修复的 Bug：** `SetupScreen` 标题"Welcome to OneClawShadow"和步骤标题（"Step 1/2/3 of 3"）没有明确指定颜色，渲染为默认的 `onBackground` 黑色。已通过为这些文本设置 `color = MaterialTheme.colorScheme.primary` 修复。
+
+**发现并修复的第二个 Bug：** `OneClawShadowTheme` 默认 `dynamicColor = true`，导致 Android 12+ 设备/模拟器用系统壁纸颜色（模拟器默认：蓝色）覆盖了 gold/amber 调色板。已通过将默认值改为 `dynamicColor = false` 修复。
+
+### Flow 1 — Setup 第 1 步：选择 Provider
+
+<img src="screenshots/Layer2_SetupScreen_step1_choose_provider.png" width="250">
+
+视觉检查："Welcome to OneClawShadow"标题显示为 gold/amber 主色，"Step 1 of 3: Choose a provider"步骤标题同样为主色。背景为暖米色（`surfaceLight`）。三个 Provider 卡片（OpenAI、Anthropic、Google Gemini）样式正确。底部"Skip for now"为 gold/amber 色。
+
+### Flow 1 — Setup 第 2 步：输入 API Key
+
+<img src="screenshots/Layer2_SetupScreen_step2_enter_api_key.png" width="250">
+
+视觉检查：标题和"Step 2 of 3: Enter API key"均显示为 gold/amber 主色。"Enter your OpenAI API key."为 `onBackground` 色。带"API Key"标签的边框输入框。"Test & Connect"按钮处于禁用状态（未输入 key），显示为柔和的容器颜色。"Skip for now"为 gold/amber 色。
 
 ## 发现的问题
 
@@ -140,9 +154,12 @@
 | 1 | `ProviderDaoTest` 中方法名错误：调用 `delete()` 而非 `deleteCustomProvider()` | 中 | 已在 `4dbe9c3` 修复 |
 | 2 | `compose.ui.test.junit4` 未加入 `testImplementation`，导致 Roborazzi 测试编译失败 | 中 | 已在 `4dbe9c3` 修复 |
 | 3 | Robolectric 每个测试方法都触发 `OneclawApplication.startKoin()`，引发 `KoinAppAlreadyStartedException` | 中 | 已通过 `@Config(application = Application::class)` 在 `4dbe9c3` 修复 |
+| 4 | `SetupScreen` 标题和步骤标题没有颜色（渲染为黑色）；应使用 `primary`（gold/amber） | 低 | 已在 RFC-001/002 实现后修复 |
+| 5 | `OneClawShadowTheme` 默认 `dynamicColor = true`，在 Android 12+ 设备上用系统壁纸颜色覆盖 gold/amber 调色板 | 高 | 已修复：默认值改为 `false` |
 
 ## 变更历史
 
 | 日期 | 变更内容 |
 |------|----------|
 | 2026-02-27 | 初始版本，覆盖第 1–3 阶段 |
+| 2026-02-27 | 更新 Layer 2：新增 Setup 第 1、2 步的 adb 截图，记录颜色修复（问题 4、5） |

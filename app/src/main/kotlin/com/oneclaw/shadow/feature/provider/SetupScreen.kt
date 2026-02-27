@@ -50,7 +50,8 @@ fun SetupScreen(
         ) {
             Text(
                 text = "Welcome to OneClawShadow",
-                style = MaterialTheme.typography.headlineMedium
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -103,7 +104,8 @@ private fun ChooseProviderStep(onSelectProvider: (ProviderType) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = "Step 1 of 3: Choose a provider",
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
         )
 
         val providers = listOf(
@@ -140,7 +142,8 @@ private fun EnterApiKeyStep(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = "Step 2 of 3: Enter API key",
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
         )
 
         val providerName = when (uiState.selectedProviderType) {
@@ -209,7 +212,8 @@ private fun SelectModelStep(
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Step 3 of 3: Select default model",
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(12.dp))
 

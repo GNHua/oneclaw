@@ -127,11 +127,25 @@ Visual check: Black background, white text, "Anthropic" row with purple "Connect
 
 ## Layer 2: adb Visual Verification
 
-**Result:** SKIP
+**Result:** PARTIAL — Setup screens verified after RFC-001/RFC-002 completion
 
-**Reason:** RFC-001 (Chat Interaction) has not been implemented yet. The full app flow (Setup → Chat → Provider configuration) is not navigable end-to-end. Layer 2 Flow 1 (First Launch + Provider Setup) will be executed once RFC-001 or the setup/navigation flow is complete enough to verify.
+**Updated:** After all RFCs were implemented (commit `bdea03c`), the Setup flow was verified on the emulator.
 
-API keys are available as env vars (`ONECLAW_ANTHROPIC_API_KEY` etc.) but the app currently shows a placeholder Chat screen after setup, making visual verification of the complete flow premature.
+**Bug found and fixed:** The `SetupScreen` title "Welcome to OneClawShadow" and step headers ("Step 1/2/3 of 3") had no explicit color, rendering in the default `onBackground` black. Fixed by setting `color = MaterialTheme.colorScheme.primary` on these texts.
+
+**Second bug found and fixed:** `OneClawShadowTheme` had `dynamicColor = true` by default, causing Android 12+ devices/emulators to override the gold/amber palette with the system wallpaper color (emulator default: blue). Fixed by changing default to `dynamicColor = false`.
+
+### Flow 1 — Setup Step 1: Choose Provider
+
+<img src="screenshots/Layer2_SetupScreen_step1_choose_provider.png" width="250">
+
+Visual check: "Welcome to OneClawShadow" title in gold/amber primary color, "Step 1 of 3: Choose a provider" step header also in primary color. Background is warm cream (`surfaceLight`). Three provider cards (OpenAI, Anthropic, Google Gemini) with correct outlined style. "Skip for now" in gold/amber at the bottom.
+
+### Flow 1 — Setup Step 2: Enter API Key
+
+<img src="screenshots/Layer2_SetupScreen_step2_enter_api_key.png" width="250">
+
+Visual check: Title and "Step 2 of 3: Enter API key" in gold/amber primary. "Enter your OpenAI API key." in `onBackground`. Outlined text field with "API Key" label. "Test & Connect" button disabled (no key entered yet) shown in muted container color. "Skip for now" in gold/amber.
 
 ## Issues Found
 
@@ -140,9 +154,12 @@ API keys are available as env vars (`ONECLAW_ANTHROPIC_API_KEY` etc.) but the ap
 | 1 | `ProviderDaoTest`: wrong method name `delete()` instead of `deleteCustomProvider()` | Medium | Fixed in `4dbe9c3` |
 | 2 | `compose.ui.test.junit4` missing from `testImplementation`, causing Roborazzi test compile failure | Medium | Fixed in `4dbe9c3` |
 | 3 | `OneclawApplication.startKoin()` called for each Robolectric test, causing `KoinAppAlreadyStartedException` | Medium | Fixed via `@Config(application = Application::class)` in `4dbe9c3` |
+| 4 | `SetupScreen` title and step headers had no color (rendered black); should use `primary` (gold/amber) | Low | Fixed post-RFC-001/002 |
+| 5 | `OneClawShadowTheme` defaulted to `dynamicColor = true`, overriding gold/amber palette on Android 12+ with system wallpaper color | High | Fixed post-RFC-001/002: default changed to `false` |
 
 ## Change History
 
 | Date | Change |
 |------|--------|
 | 2026-02-27 | Initial report covering Phase 1–3 |
+| 2026-02-27 | Updated Layer 2: added adb screenshots for Setup steps 1–2, documented color fixes (issues 4 and 5) |

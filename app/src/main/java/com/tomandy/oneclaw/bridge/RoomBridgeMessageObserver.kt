@@ -15,10 +15,11 @@ class RoomBridgeMessageObserver(
         afterTimestamp: Long,
         timeoutMs: Long
     ): BridgeMessage = withTimeout(timeoutMs) {
-        // Combine message updates with execution state.
-        // Only return a result when:
-        // 1. There is a final assistant message (no toolCalls, non-empty content)
-        // 2. OR execution has finished (conversation no longer active)
+        // Track whether we've seen execution finish so we can give the Room
+        // Flow a few extra emissions to deliver the final message before
+        // falling back to the "[Execution stopped]" placeholder.
+        var executionDoneSeenCount = 0
+
         combine(
             messageDao.getMessages(conversationId),
             ChatExecutionTracker.activeConversations
@@ -40,17 +41,24 @@ class RoomBridgeMessageObserver(
                     timestamp = finalMessage.timestamp
                 )
             } else if (executionDone) {
-                // Execution finished but no clean final message found.
-                // Fall back to any assistant content, or a cancellation notice.
-                val lastAssistant = messages.lastOrNull { msg ->
-                    msg.role == "assistant" &&
-                        msg.timestamp > afterTimestamp &&
-                        msg.content.isNotBlank()
+                // Execution finished but no clean final message found yet.
+                // The Room Flow may not have propagated the final insert, so
+                // wait for a few more emissions before giving up.
+                executionDoneSeenCount++
+                if (executionDoneSeenCount <= 3) {
+                    null // Give Room Flow time to catch up
+                } else {
+                    // Fall back to any assistant content, or a cancellation notice.
+                    val lastAssistant = messages.lastOrNull { msg ->
+                        msg.role == "assistant" &&
+                            msg.timestamp > afterTimestamp &&
+                            msg.content.isNotBlank()
+                    }
+                    BridgeMessage(
+                        content = lastAssistant?.content ?: "[Execution stopped]",
+                        timestamp = lastAssistant?.timestamp ?: System.currentTimeMillis()
+                    )
                 }
-                BridgeMessage(
-                    content = lastAssistant?.content ?: "[Execution stopped]",
-                    timestamp = lastAssistant?.timestamp ?: System.currentTimeMillis()
-                )
             } else {
                 null // Still executing, keep waiting
             }

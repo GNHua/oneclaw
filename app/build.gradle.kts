@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.roborazzi.plugin)
 }
 
 android {
@@ -50,7 +51,11 @@ android {
     @Suppress("UnstableApiUsage")
     testOptions {
         unitTests.all {
+            // JUnit 5 platform with vintage engine enabled for JUnit 4 (Robolectric screenshot tests)
             it.useJUnitPlatform()
+        }
+        unitTests {
+            isIncludeAndroidResources = true
         }
     }
 }
@@ -107,9 +112,14 @@ dependencies {
 
     // Testing
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.compose.ui.test.junit4)
     testImplementation(libs.junit)
     testImplementation(libs.junit5.api)
     testRuntimeOnly(libs.junit5.engine)
+    testRuntimeOnly(libs.junit5.vintage.engine)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.coroutines.test)

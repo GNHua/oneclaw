@@ -96,7 +96,7 @@ class ProviderDaoTest {
         val modelsBefore = modelDao.getModelsForProvider("p-cascade")
         assertEquals(2, modelsBefore.size)
 
-        providerDao.delete("p-cascade")
+        providerDao.deleteCustomProvider("p-cascade")
 
         val modelsAfter = modelDao.getModelsForProvider("p-cascade")
         assertEquals(0, modelsAfter.size)

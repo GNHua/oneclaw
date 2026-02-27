@@ -43,6 +43,20 @@ fun ProviderListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    ProviderListScreenContent(
+        uiState = uiState,
+        onProviderClick = onProviderClick,
+        onNavigateBack = onNavigateBack
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProviderListScreenContent(
+    uiState: ProviderListUiState,
+    onProviderClick: (String) -> Unit,
+    onNavigateBack: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(

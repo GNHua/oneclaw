@@ -13,8 +13,8 @@
 |------|------|
 | 最后更新 | 2026-02-27 |
 | App 版本 | 0.1.0 |
-| 最后实现的 RFC | RFC-005（Session 管理） |
-| 当前状态 | Provider 管理 + Tool 系统 + Session 管理后端已实现；Chat 功能尚未实现 |
+| 最后实现的 RFC | RFC-001（对话交互）+ RFC-002（Agent 管理） |
+| 当前状态 | 完整应用已实现：Setup、Provider 管理、Tool 系统、Session 管理、Agent 管理和流式 Chat |
 
 ---
 
@@ -37,15 +37,16 @@ adb shell am start -n com.oneclaw.shadow/.MainActivity
 
 ## 当前 App 状态
 
-截至最后实现的 RFC（RFC-005），App 支持以下功能：
+截至最后实现的 RFC（RFC-001 + RFC-002），App 支持以下功能：
 - 首次启动引导流程（选择 Provider、输入 API key、选择默认模型）
 - Provider 管理（列表、详情、API key、连接测试、模型列表）
-- 设置界面
-- Tool 系统（仅后端实现，暂无 Tool 配置 UI）
-- Session 管理（后端 + 抽屉 UI 已就绪，但尚未接入 MainActivity 导航图）
-- Chat 界面（占位符状态，发送消息功能尚未实现）
+- 设置界面（含"Manage Agents"入口）
+- Tool 系统（后端 + AgentDetailScreen 中的每个 Agent 工具配置）
+- Session 管理（抽屉 UI，支持新建/切换/删除/重命名 Session）
+- Agent 管理（列表、创建、编辑、克隆、删除自定义 Agent；查看内置 Agent）
+- 流式 Chat：来自 OpenAI/Anthropic/Gemini 的 SSE 流式传输、工具调用循环、thinking blocks、消息历史
 
-**尚未实现：** Chat 消息发送和流式响应（RFC-001）、Agent 管理 UI（RFC-002）、Session 抽屉接入导航图（RFC-001 集成点）。
+**所有计划的 RFC 均已实现。**
 
 ---
 
@@ -125,6 +126,7 @@ adb shell am start -n com.oneclaw.shadow/.MainActivity
 **验证：**
 - 打开设置界面
 - 可见"Manage Providers"列表项，副标题"Add API keys, configure models"
+- 可见"Manage Agents"列表项，副标题"Create and configure agents"
 - 返回导航有效（左上角返回箭头）
 
 ### 步骤 2.2：进入 Provider 列表
@@ -137,6 +139,13 @@ adb shell am start -n com.oneclaw.shadow/.MainActivity
 - 每个 Provider 行显示：名称、模型数量、状态标签
 - 状态标签为以下之一："Connected"（绿色/紫色）、"Not configured"（灰色）、"Disconnected"（红色/粉色）
 - 右上角可见"+"按钮（为未来自定义 Provider 预留）
+
+### 步骤 2.3：进入 Agent 列表
+
+返回设置界面，点击"Manage Agents"。
+
+**验证：**
+- 打开 Agent 列表界面（详细的 Agent 管理流程见流程 7）
 
 ---
 
@@ -248,45 +257,177 @@ adb shell am start -n com.oneclaw.shadow/.MainActivity
 
 ---
 
-## 流程 6：Chat 界面（占位符状态）
+## 流程 6：Chat — 发送消息和流式响应
 
-**注意：** Chat 功能（RFC-001）尚未实现。本流程仅验证 UI 外壳。
+**前置条件：** 至少一个 Provider 已配置有效 API key（见流程 3）。
 
 ### 步骤 6.1：进入 Chat 界面
 
-从任意界面导航回 Chat 界面。
+从任意界面导航到 Chat 界面（设置完成后的主界面）。
 
 **验证：**
 - Chat 界面可见
-- 显示占位符或空状态（如"How can I help you today?"）
+- 无消息时显示空状态占位符
 - 底部可见文字输入框
-- 顶部栏显示 Agent 名称
+- 顶部栏显示 Agent 名称（默认："General Assistant"）
 - 右上角有设置齿轮图标
 - 左上角有抽屉/汉堡菜单图标
 
-### 步骤 6.2：Session 抽屉（占位符）
+### 步骤 6.2：发送消息
+
+在输入框中输入消息（如"你好，你能做什么？"），点击发送按钮。
+
+**验证：**
+- 用户消息气泡出现在右侧（金/琥珀色背景）
+- 流式传输期间发送按钮变为停止按钮
+- AI 回复出现在左侧，文字逐步流入
+- 流式传输完成后，AI 消息下方显示模型 ID 标签
+- AI 消息下方显示复制和重新生成图标
+
+### 步骤 6.3：中途停止生成
+
+AI 流式传输期间，点击停止按钮。
+
+**验证：**
+- 流式传输立即停止
+- 已生成的部分内容保持可见
+
+### 步骤 6.4：复制 AI 消息
+
+点击已完成的 AI 消息下方的复制图标。
+
+**验证：**
+- 消息内容已复制到剪贴板（可通过粘贴到其他地方验证）
+
+### 步骤 6.5：重新生成回复
+
+点击 AI 消息下方的重新生成图标。
+
+**验证：**
+- AI 对同一对话重新生成一个新回复
+- 新回复以流式方式呈现
+
+### 步骤 6.6：Session 抽屉 — 导航
 
 点击左上角汉堡菜单图标。
 
 **验证：**
 - 抽屉打开
 - 顶部显示"New Conversation"按钮
-- 列出已有 Session（全新安装时为空）
-- 已有 Session 项（创建后）显示：标题、消息预览、相对时间戳、Agent 名称标签
-- 长按某个 Session 项可进入选择模式（显示复选框和批量删除工具栏）
-- 向左滑动 Session 项可触发删除操作
+- 已保存的 Session 列表显示：标题、消息预览、相对时间戳
+- 点击某个 Session 可切换至该对话
+- 长按可进入选择模式（显示复选框和批量删除工具栏）
+- 向左滑动某个 Session 可删除；删除后显示撤销 Snackbar
+
+### 步骤 6.7：开始新对话
+
+在抽屉中点击"New Conversation"。
+
+**验证：**
+- 抽屉关闭
+- Chat 界面重置为空状态
+- 顶部栏显示当前 Agent 名称
+
+### 步骤 6.8：Tool 调用可视化（如适用）
+
+发送一条会触发工具的消息，例如"现在几点了？"。
+
+**验证：**
+- 出现工具调用卡片，显示：工具名称、状态（PENDING → SUCCESS/FAILED）、输入参数
+- 工具完成后出现工具结果卡片，显示输出和耗时
+- AI 最终回复引用工具结果
+
+---
+
+## 流程 7：Agent 管理
+
+**入口：** 设置 → Manage Agents。
+
+### 步骤 7.1：查看 Agent 列表
+
+**验证：**
+- 打开 Agent 列表界面
+- "BUILT-IN"分组显示内置 Agent（如"General Assistant"、"Code Helper"）
+- 内置 Agent 带"Built-in"标签
+- 每个 Agent 名称下方显示工具数量
+- 若有自定义 Agent，则显示"CUSTOM"分组
+- 无自定义 Agent 时显示"No custom agents yet. Tap + to create one."提示
+
+### 步骤 7.2：查看内置 Agent
+
+点击某个内置 Agent（如"General Assistant"）。
+
+**验证：**
+- Agent 详情界面打开，标题为 Agent 名称（不是"Edit Agent"）
+- 名称、描述、系统提示字段为只读
+- 工具复选框显示但禁用（无法修改内置工具）
+- "Preferred Model"区域显示（只读）
+- "Clone Agent"按钮可见
+- 无"Save"按钮；无"Delete Agent"按钮（内置 Agent 不能删除）
+
+### 步骤 7.3：克隆内置 Agent
+
+在内置 Agent 详情界面点击"Clone Agent"。
+
+**验证：**
+- 创建一个新的自定义 Agent（内置 Agent 的副本，名称前缀"Copy of"）
+- 导航返回 Agent 列表
+- 克隆的 Agent 出现在"CUSTOM"分组中
+
+### 步骤 7.4：创建自定义 Agent
+
+在 Agent 列表中点击"+"按钮。
+
+**验证：**
+- Agent 详情界面打开，标题为"Create Agent"
+- 名称字段为空且可编辑
+- 描述和系统提示字段可编辑
+- 可通过复选框切换工具
+- 顶部栏显示"Save"按钮（填写名称前禁用）
+
+输入名称（如"My Test Agent"），可选择编辑其他字段，点击"Save"。
+
+**验证：**
+- 导航返回 Agent 列表
+- 新 Agent 出现在"CUSTOM"分组中，名称和工具数量正确
+
+### 步骤 7.5：编辑自定义 Agent
+
+从 Agent 列表中点击某个自定义 Agent。
+
+**验证：**
+- Agent 详情界面打开，标题为"Edit Agent"
+- 所有字段可编辑
+- 未修改时"Save"按钮禁用
+- 修改某个字段（如更新描述），点击"Save"
+- 出现成功 Snackbar 或返回列表后值已更新
+
+### 步骤 7.6：删除自定义 Agent
+
+在自定义 Agent 详情界面点击"Delete Agent"。
+
+**验证：**
+- 弹出确认对话框："Delete Agent? This agent will be permanently removed. Any sessions using this agent will switch to General Assistant."
+- 点击"Cancel"——对话框关闭，Agent 未被删除
+- 再次点击"Delete Agent"并确认——Agent 被删除
+- 导航返回 Agent 列表，该 Agent 不再显示
+
+### 步骤 7.7：对话中切换 Agent
+
+在 Chat 界面点击顶部栏的 Agent 名称。
+
+**验证：**
+- Agent 选择器底部弹窗打开
+- 显示所有可用 Agent（内置和自定义）
+- 当前 Agent 被高亮/勾选
+- 点击其他 Agent——弹窗关闭，顶部栏更新为新 Agent 名称
+- 新消息将使用所选 Agent
 
 ---
 
 ## 当前已知限制
 
-| 功能 | 状态 | 预计 RFC |
-|------|------|---------|
-| 发送 Chat 消息 | 未实现 | RFC-001 |
-| 流式 AI 响应 | 未实现 | RFC-001 |
-| Agent 创建/管理 UI | 未实现 | RFC-002 |
-| Session 抽屉接入导航图 | 未实现 | RFC-001 集成 |
-| Chat 中的 Tool 调用可视化 | 未实现 | RFC-001 + RFC-004 |
+所有计划的 RFC 均已实现，暂无已知功能限制。
 
 ---
 
@@ -296,3 +437,4 @@ adb shell am start -n com.oneclaw.shadow/.MainActivity
 |------|-----|---------|
 | 2026-02-27 | RFC-003、RFC-004 | 初始版本，涵盖 Setup、Settings、Provider 管理流程 |
 | 2026-02-27 | RFC-005 | 更新当前状态，补充步骤 6.2 Session 抽屉细节，更新已知限制表 |
+| 2026-02-27 | RFC-001、RFC-002 | 完整重写流程 6（含流式 Chat），新增流程 7（Agent 管理），更新 App 状态和设置步骤 2.3，移除所有"未实现"限制说明 |

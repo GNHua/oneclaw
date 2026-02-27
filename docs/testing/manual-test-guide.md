@@ -13,8 +13,8 @@ This document is the cumulative, always-up-to-date guide for manually testing th
 |-------|-------|
 | Last updated | 2026-02-27 |
 | App version | 0.1.0 |
-| Last RFC implemented | RFC-005 (Session Management) |
-| Status | Provider Management + Tool System + Session Management backend implemented; Chat not yet implemented |
+| Last RFC implemented | RFC-001 (Chat Interaction) + RFC-002 (Agent Management) |
+| Status | Full app implemented: Setup, Provider management, Tool system, Session management, Agent management, and Chat with streaming |
 
 ---
 
@@ -37,15 +37,16 @@ adb shell am start -n com.oneclaw.shadow/.MainActivity
 
 ## Current App State
 
-As of the last implemented RFC (RFC-005), the app supports:
+As of the last implemented RFC (RFC-001 + RFC-002), the app supports:
 - First-launch setup flow (choose provider, enter API key, select default model)
 - Provider management (list, detail, API key, connection test, model list)
-- Settings screen
-- Tool system (backend only — no UI for tool configuration yet)
-- Session management (backend + drawer UI ready, but not yet wired to MainActivity nav graph)
-- Chat screen (placeholder — sending messages not yet functional)
+- Settings screen with "Manage Agents" entry point
+- Tool system (backend + per-agent tool configuration in AgentDetailScreen)
+- Session management (drawer UI with new/switch/delete/rename sessions)
+- Agent management (list, create, edit, clone, delete custom agents; view built-in agents)
+- Chat with streaming: SSE streaming from OpenAI/Anthropic/Gemini, tool call loop, thinking blocks, message history
 
-**Not yet implemented:** Chat message sending and streaming (RFC-001), Agent management UI (RFC-002), Session drawer wired to chat (RFC-001 integration point).
+**All planned RFCs have been implemented.**
 
 ---
 
@@ -125,6 +126,7 @@ Select a model and tap "Get Started".
 **Verify:**
 - Settings screen opens
 - "Manage Providers" list item is visible with subtitle "Add API keys, configure models"
+- "Manage Agents" list item is visible with subtitle "Create and configure agents"
 - Back navigation works (arrow in top-left)
 
 ### Step 2.2: Navigate to Provider List
@@ -137,6 +139,13 @@ Tap "Manage Providers".
 - Each provider row shows: name, model count, and a status chip
 - Status chip is one of: "Connected" (green/purple), "Not configured" (grey), "Disconnected" (red/pink)
 - "+" button in top-right is visible (for future custom provider support)
+
+### Step 2.3: Navigate to Agent List
+
+Go back to Settings, then tap "Manage Agents".
+
+**Verify:**
+- Agent list screen opens (see Flow 7 for detailed agent management flows)
 
 ---
 
@@ -248,45 +257,177 @@ adb shell am start -n com.oneclaw.shadow/.MainActivity
 
 ---
 
-## Flow 6: Chat Screen (Placeholder State)
+## Flow 6: Chat — Sending Messages and Streaming
 
-**Note:** Chat functionality (RFC-001) is not yet implemented. This flow only verifies the UI shell.
+**Prerequisites:** At least one provider configured with a valid API key (see Flow 3).
 
 ### Step 6.1: Navigate to Chat
 
-From any screen, navigate back to the Chat screen.
+From any screen, navigate to the Chat screen (main screen after setup).
 
 **Verify:**
 - Chat screen is visible
-- A placeholder or empty state is shown (e.g., "How can I help you today?")
+- Empty state placeholder is shown when no messages exist
 - Input text field is visible at the bottom
-- Agent name is shown in the top bar
+- Agent name is shown in the top bar (default: "General Assistant")
 - Settings gear icon is in the top-right
 - Hamburger/drawer icon is in the top-left
 
-### Step 6.2: Session drawer (placeholder)
+### Step 6.2: Send a message
+
+Type a message in the input field (e.g., "Hello, what can you do?"). Tap the Send button.
+
+**Verify:**
+- User message bubble appears on the right (gold/amber background)
+- Send button changes to Stop button while streaming
+- AI response appears on the left, text streams in progressively
+- After streaming completes, model ID label appears below the AI message
+- Copy and Regenerate icons appear below the AI message
+
+### Step 6.3: Stop generation mid-stream
+
+While the AI is streaming, tap the Stop button.
+
+**Verify:**
+- Streaming stops immediately
+- Partial response remains visible
+
+### Step 6.4: Copy an AI message
+
+Tap the copy icon below a completed AI message.
+
+**Verify:**
+- The message content is copied to clipboard (verify by pasting elsewhere)
+
+### Step 6.5: Regenerate response
+
+Tap the Regenerate icon below an AI message.
+
+**Verify:**
+- AI generates a new response to the same conversation
+- New response streams in
+
+### Step 6.6: Session drawer — navigation
 
 Tap the hamburger icon (top-left).
 
 **Verify:**
 - Drawer opens
-- "New Conversation" button is visible at the top
-- Any existing sessions are listed (initially empty on fresh install)
-- Session items (once created) show: title, message preview, relative timestamp, agent name chip
-- Long-pressing a session item enters selection mode (checkboxes appear, bulk-delete toolbar shown)
-- Swiping a session item to the left reveals delete action
+- "New Conversation" button is at the top
+- Any saved sessions are listed with: title, message preview, relative timestamp
+- Tapping a session switches to that conversation
+- Long-pressing enters selection mode (checkboxes + bulk-delete toolbar)
+- Swiping left on a session reveals delete; undo snackbar appears after deletion
+
+### Step 6.7: Start a new conversation
+
+In the drawer, tap "New Conversation".
+
+**Verify:**
+- Drawer closes
+- Chat screen resets to empty state
+- Top bar shows current agent name
+
+### Step 6.8: Tool call visualization (if applicable)
+
+Send a message that triggers a tool, e.g., "What is the current time?".
+
+**Verify:**
+- A tool call card appears showing: tool name, status (PENDING → SUCCESS/FAILED), input arguments
+- A tool result card appears after the tool completes, showing output and duration
+- Final AI response references the tool result
+
+---
+
+## Flow 7: Agent Management
+
+**Access:** Settings → Manage Agents.
+
+### Step 7.1: View agent list
+
+**Verify:**
+- Agent list screen opens
+- "BUILT-IN" section shows built-in agents (e.g., "General Assistant", "Code Helper")
+- Built-in agents have a "Built-in" chip label
+- Tool count is shown under each agent name
+- "CUSTOM" section appears if any custom agents exist
+- "No custom agents yet. Tap + to create one." hint when no custom agents
+
+### Step 7.2: View a built-in agent
+
+Tap a built-in agent (e.g., "General Assistant").
+
+**Verify:**
+- Agent detail screen opens with title = agent name (not "Edit Agent")
+- Name, description, and system prompt fields are read-only
+- Tool checkboxes are shown but disabled (cannot change built-in tools)
+- "Preferred Model" section is shown (read-only)
+- "Clone Agent" button is visible
+- No "Save" button; no "Delete Agent" button (built-in agents cannot be deleted)
+
+### Step 7.3: Clone a built-in agent
+
+On a built-in agent's detail screen, tap "Clone Agent".
+
+**Verify:**
+- A new custom agent is created (copy of the built-in agent, name prefixed with "Copy of")
+- Navigation returns to the agent list
+- The cloned agent appears in the "CUSTOM" section
+
+### Step 7.4: Create a custom agent
+
+From the agent list, tap the "+" button.
+
+**Verify:**
+- Agent detail screen opens with title "Create Agent"
+- Name field is empty and editable
+- Description and system prompt fields are editable
+- Tools can be toggled via checkboxes
+- "Save" button appears in the top bar (disabled until name is filled)
+
+Enter a name (e.g., "My Test Agent"), optionally edit other fields, tap "Save".
+
+**Verify:**
+- Navigation returns to agent list
+- New agent appears in the "CUSTOM" section with correct name and tool count
+
+### Step 7.5: Edit a custom agent
+
+From the agent list, tap a custom agent.
+
+**Verify:**
+- Agent detail screen opens with title "Edit Agent"
+- All fields are editable
+- "Save" button is disabled until a change is made
+- Make a change (e.g., update description) and tap "Save"
+- Success snackbar or navigation back with updated values
+
+### Step 7.6: Delete a custom agent
+
+On a custom agent's detail screen, tap "Delete Agent".
+
+**Verify:**
+- Confirmation dialog appears: "Delete Agent? This agent will be permanently removed. Any sessions using this agent will switch to General Assistant."
+- Tap "Cancel" — dialog dismisses, agent is not deleted
+- Tap "Delete Agent" again, then confirm — agent is removed
+- Navigation returns to agent list; the agent is no longer listed
+
+### Step 7.7: Switch agent during chat
+
+From the Chat screen, tap the agent name in the top bar.
+
+**Verify:**
+- Agent selector bottom sheet opens
+- All available agents are listed (built-in and custom)
+- Current agent is highlighted/checked
+- Tap a different agent — sheet dismisses and top bar updates with new agent name
+- New messages will use the selected agent
 
 ---
 
 ## Known Limitations (current state)
 
-| Feature | Status | Expected RFC |
-|---------|--------|--------------|
-| Sending chat messages | Not implemented | RFC-001 |
-| Streaming AI response | Not implemented | RFC-001 |
-| Agent creation/management UI | Not implemented | RFC-002 |
-| Session drawer wired to nav graph | Not implemented | RFC-001 integration |
-| Tool call visualization in chat | Not implemented | RFC-001 + RFC-004 |
+All planned RFCs are implemented. No known functional limitations.
 
 ---
 
@@ -296,3 +437,4 @@ Tap the hamburger icon (top-left).
 |------|-----|---------|
 | 2026-02-27 | RFC-003, RFC-004 | Initial guide — covers Setup, Settings, Provider management flows |
 | 2026-02-27 | RFC-005 | Updated current state, Flow 6.2 session drawer detail, known limitations |
+| 2026-02-27 | RFC-001, RFC-002 | Complete rewrite of Flow 6 (full Chat with streaming), added Flow 7 (Agent Management), updated app state and Settings step 2.3, removed all "not yet implemented" limitations |

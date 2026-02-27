@@ -83,7 +83,7 @@ class SessionDrawerScreenshotTest {
             )
         }
         composeRule.onRoot()
-            .captureRoboImage("../docs/testing/screenshots/RFC-005_SessionDrawer_loading.png")
+            .captureRoboImage("../docs/testing/reports/screenshots/RFC-005_SessionDrawer_loading.png")
     }
 
     @Test
@@ -105,7 +105,7 @@ class SessionDrawerScreenshotTest {
             )
         }
         composeRule.onRoot()
-            .captureRoboImage("../docs/testing/screenshots/RFC-005_SessionDrawer_empty.png")
+            .captureRoboImage("../docs/testing/reports/screenshots/RFC-005_SessionDrawer_empty.png")
     }
 
     @Test
@@ -127,7 +127,7 @@ class SessionDrawerScreenshotTest {
             )
         }
         composeRule.onRoot()
-            .captureRoboImage("../docs/testing/screenshots/RFC-005_SessionDrawer_populated.png")
+            .captureRoboImage("../docs/testing/reports/screenshots/RFC-005_SessionDrawer_populated.png")
     }
 
     @Test
@@ -156,7 +156,7 @@ class SessionDrawerScreenshotTest {
             )
         }
         composeRule.onRoot()
-            .captureRoboImage("../docs/testing/screenshots/RFC-005_SessionDrawer_selectionMode.png")
+            .captureRoboImage("../docs/testing/reports/screenshots/RFC-005_SessionDrawer_selectionMode.png")
     }
 
     // RenameSessionDialog uses AlertDialog which triggers AppNotIdleException in Robolectric
@@ -188,7 +188,7 @@ class SessionDrawerScreenshotTest {
             )
         }
         composeRule.onRoot()
-            .captureRoboImage("../docs/testing/screenshots/RFC-005_SessionDrawer_undoState.png")
+            .captureRoboImage("../docs/testing/reports/screenshots/RFC-005_SessionDrawer_undoState.png")
     }
 
     @Test
@@ -212,6 +212,6 @@ class SessionDrawerScreenshotTest {
             }
         }
         composeRule.onRoot()
-            .captureRoboImage("../docs/testing/screenshots/RFC-005_SessionDrawer_dark.png")
+            .captureRoboImage("../docs/testing/reports/screenshots/RFC-005_SessionDrawer_dark.png")
     }
 }

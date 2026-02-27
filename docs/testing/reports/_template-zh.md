@@ -61,7 +61,7 @@
 
 #### [屏幕名称] — [变体]
 
-![ScreenName](../screenshots/RFC-XXX_ScreenName.png)
+![ScreenName](screenshots/RFC-XXX_ScreenName.png)
 
 视觉检查：[描述截图内容，确认符合预期]
 

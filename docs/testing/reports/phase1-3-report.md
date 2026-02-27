@@ -97,31 +97,31 @@ Test classes:
 
 #### SettingsScreen — default
 
-![SettingsScreen](../screenshots/Phase1-3_SettingsScreen.png)
+![SettingsScreen](screenshots/Phase1-3_SettingsScreen.png)
 
 Visual check: "Settings" title in top bar, back arrow navigation icon, "Manage Providers" list item with subtitle "Add API keys, configure models" and right chevron. Layout is clean and correct.
 
 #### ProviderListScreen — populated (3 providers)
 
-![ProviderListScreen_populated](../screenshots/Phase1-3_ProviderListScreen_populated.png)
+![ProviderListScreen_populated](screenshots/Phase1-3_ProviderListScreen_populated.png)
 
 Visual check: "Providers" title, "+" add button in top bar, "BUILT-IN" section header, three rows: OpenAI (4 models, red "Disconnected" chip), Anthropic (2 models, grey "Not configured" chip), Google Gemini (2 models, purple "Connected" chip). All status chip colors are correct per Material 3 theme.
 
 #### ProviderListScreen — loading state
 
-![ProviderListScreen_loading](../screenshots/Phase1-3_ProviderListScreen_loading.png)
+![ProviderListScreen_loading](screenshots/Phase1-3_ProviderListScreen_loading.png)
 
 Visual check: "Providers" title and "+" button visible, single blue dot in center of screen (CircularProgressIndicator captured at its initial frame). Correct loading state behavior.
 
 #### ProviderListScreen — empty state
 
-![ProviderListScreen_empty](../screenshots/Phase1-3_ProviderListScreen_empty.png)
+![ProviderListScreen_empty](screenshots/Phase1-3_ProviderListScreen_empty.png)
 
 Visual check: "Providers" title, "No providers available." text centered in the content area. Correct empty state.
 
 #### ProviderListScreen — dark theme
 
-![ProviderListScreen_dark](../screenshots/Phase1-3_ProviderListScreen_dark.png)
+![ProviderListScreen_dark](screenshots/Phase1-3_ProviderListScreen_dark.png)
 
 Visual check: Black background, white text, "Anthropic" row with purple "Connected" chip. Dark theme renders correctly.
 

@@ -72,37 +72,37 @@ Note: `RenameSessionDialog` (uses `AlertDialog`) was excluded from screenshot te
 
 ### SessionDrawer — populated
 
-![SessionDrawer_populated](../screenshots/RFC-005_SessionDrawer_populated.png)
+![SessionDrawer_populated](screenshots/RFC-005_SessionDrawer_populated.png)
 
 Shows "New conversation" button at top, three session list items with title, message preview, relative timestamp, and agent name chip. Background is warm cream (`#FFF9EE`), custom gold/amber theme applied correctly (not Android Dynamic Color). Layout and typography correct.
 
 ### SessionDrawer — selectionMode
 
-![SessionDrawer_selectionMode](../screenshots/RFC-005_SessionDrawer_selectionMode.png)
+![SessionDrawer_selectionMode](screenshots/RFC-005_SessionDrawer_selectionMode.png)
 
 Top toolbar shows X (cancel), "1 selected" text, "All" button, and trash icon. Session items show checkboxes on the left with the first item checked. Correct.
 
 ### SessionDrawer — empty
 
-![SessionDrawer_empty](../screenshots/RFC-005_SessionDrawer_empty.png)
+![SessionDrawer_empty](screenshots/RFC-005_SessionDrawer_empty.png)
 
 Shows "New conversation" button and "No conversations yet." centered message.
 
 ### SessionDrawer — loading
 
-![SessionDrawer_loading](../screenshots/RFC-005_SessionDrawer_loading.png)
+![SessionDrawer_loading](screenshots/RFC-005_SessionDrawer_loading.png)
 
 Shows "New conversation" button and centered `CircularProgressIndicator`.
 
 ### SessionDrawer — undoState
 
-![SessionDrawer_undoState](../screenshots/RFC-005_SessionDrawer_undoState.png)
+![SessionDrawer_undoState](screenshots/RFC-005_SessionDrawer_undoState.png)
 
 Shows two remaining sessions after one was deleted (undo state is in ViewModel, not rendered as a visible snackbar in the drawer itself — snackbar integration is deferred to chat scaffold in RFC-001).
 
 ### SessionDrawer — dark theme
 
-![SessionDrawer_dark](../screenshots/RFC-005_SessionDrawer_dark.png)
+![SessionDrawer_dark](screenshots/RFC-005_SessionDrawer_dark.png)
 
 Dark background (`#15130B` near-black with warm brown tint), unified color throughout — no white/split background. Custom dark scheme (`darkScheme`) applied, not Android Dynamic Color.
 

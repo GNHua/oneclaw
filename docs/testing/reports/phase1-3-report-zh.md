@@ -97,31 +97,31 @@
 
 #### SettingsScreen — 默认状态
 
-![SettingsScreen](../screenshots/Phase1-3_SettingsScreen.png)
+![SettingsScreen](screenshots/Phase1-3_SettingsScreen.png)
 
 视觉检查：顶部显示"Settings"标题和返回箭头，列表有"Manage Providers"条目，副标题"Add API keys, configure models"，右侧有箭头。布局清晰，符合预期。
 
 #### ProviderListScreen — 已填充状态（3 个 Provider）
 
-![ProviderListScreen_populated](../screenshots/Phase1-3_ProviderListScreen_populated.png)
+![ProviderListScreen_populated](screenshots/Phase1-3_ProviderListScreen_populated.png)
 
 视觉检查：顶部"Providers"标题和"+"按钮，"BUILT-IN"分区标题，三行：OpenAI（4 个模型，红色"Disconnected"标签）、Anthropic（2 个模型，灰色"Not configured"标签）、Google Gemini（2 个模型，紫色"Connected"标签）。状态颜色符合 Material 3 主题。
 
 #### ProviderListScreen — 加载状态
 
-![ProviderListScreen_loading](../screenshots/Phase1-3_ProviderListScreen_loading.png)
+![ProviderListScreen_loading](screenshots/Phase1-3_ProviderListScreen_loading.png)
 
 视觉检查：顶部"Providers"和"+"按钮可见，屏幕中央显示一个蓝色圆点（CircularProgressIndicator 初始帧）。加载状态正确。
 
 #### ProviderListScreen — 空列表状态
 
-![ProviderListScreen_empty](../screenshots/Phase1-3_ProviderListScreen_empty.png)
+![ProviderListScreen_empty](screenshots/Phase1-3_ProviderListScreen_empty.png)
 
 视觉检查："Providers"标题，内容区域居中显示"No providers available."文本。空状态正确。
 
 #### ProviderListScreen — 深色主题
 
-![ProviderListScreen_dark](../screenshots/Phase1-3_ProviderListScreen_dark.png)
+![ProviderListScreen_dark](screenshots/Phase1-3_ProviderListScreen_dark.png)
 
 视觉检查：黑色背景，白色文字，"Anthropic"行显示紫色"Connected"标签。深色主题渲染正确。
 

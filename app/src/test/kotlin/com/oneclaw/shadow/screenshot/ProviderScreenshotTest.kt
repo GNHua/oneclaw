@@ -46,7 +46,7 @@ class ProviderScreenshotTest {
             )
         }
         composeRule.onRoot()
-            .captureRoboImage("../docs/testing/screenshots/Phase1-3_SettingsScreen.png")
+            .captureRoboImage("../docs/testing/reports/screenshots/Phase1-3_SettingsScreen.png")
     }
 
     // --- ProviderListScreen (stateless variant) ---
@@ -61,7 +61,7 @@ class ProviderScreenshotTest {
             )
         }
         composeRule.onRoot()
-            .captureRoboImage("../docs/testing/screenshots/Phase1-3_ProviderListScreen_loading.png")
+            .captureRoboImage("../docs/testing/reports/screenshots/Phase1-3_ProviderListScreen_loading.png")
     }
 
     @Test
@@ -106,7 +106,7 @@ class ProviderScreenshotTest {
             )
         }
         composeRule.onRoot()
-            .captureRoboImage("../docs/testing/screenshots/Phase1-3_ProviderListScreen_populated.png")
+            .captureRoboImage("../docs/testing/reports/screenshots/Phase1-3_ProviderListScreen_populated.png")
     }
 
     @Test
@@ -119,7 +119,7 @@ class ProviderScreenshotTest {
             )
         }
         composeRule.onRoot()
-            .captureRoboImage("../docs/testing/screenshots/Phase1-3_ProviderListScreen_empty.png")
+            .captureRoboImage("../docs/testing/reports/screenshots/Phase1-3_ProviderListScreen_empty.png")
     }
 
     @Test
@@ -148,6 +148,6 @@ class ProviderScreenshotTest {
             }
         }
         composeRule.onRoot()
-            .captureRoboImage("../docs/testing/screenshots/Phase1-3_ProviderListScreen_dark.png")
+            .captureRoboImage("../docs/testing/reports/screenshots/Phase1-3_ProviderListScreen_dark.png")
     }
 }

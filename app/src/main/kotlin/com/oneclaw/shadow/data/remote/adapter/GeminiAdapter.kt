@@ -8,6 +8,7 @@ import com.oneclaw.shadow.core.model.ToolDefinition
 import com.oneclaw.shadow.core.util.AppResult
 import com.oneclaw.shadow.core.util.ErrorCode
 import com.oneclaw.shadow.data.remote.dto.gemini.GeminiModelListResponse
+import com.oneclaw.shadow.tool.engine.ToolSchemaSerializer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -123,8 +124,14 @@ class GeminiAdapter(
     }
 
     override fun formatToolDefinitions(tools: List<ToolDefinition>): Any {
-        // TODO: Implement in RFC-004
-        return emptyList<Any>()
+        val declarations = tools.map { tool ->
+            mapOf(
+                "name" to tool.name,
+                "description" to tool.description,
+                "parameters" to ToolSchemaSerializer.toGeminiSchemaMap(tool.parametersSchema)
+            )
+        }
+        return mapOf("function_declarations" to declarations)
     }
 
     override suspend fun generateSimpleCompletion(

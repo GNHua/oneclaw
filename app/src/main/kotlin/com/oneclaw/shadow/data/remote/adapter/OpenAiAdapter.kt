@@ -8,6 +8,7 @@ import com.oneclaw.shadow.core.model.ToolDefinition
 import com.oneclaw.shadow.core.util.AppResult
 import com.oneclaw.shadow.core.util.ErrorCode
 import com.oneclaw.shadow.data.remote.dto.openai.OpenAiModelListResponse
+import com.oneclaw.shadow.tool.engine.ToolSchemaSerializer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -133,8 +134,16 @@ class OpenAiAdapter(
     }
 
     override fun formatToolDefinitions(tools: List<ToolDefinition>): Any {
-        // TODO: Implement in RFC-004
-        return emptyList<Any>()
+        return tools.map { tool ->
+            mapOf(
+                "type" to "function",
+                "function" to mapOf(
+                    "name" to tool.name,
+                    "description" to tool.description,
+                    "parameters" to ToolSchemaSerializer.toJsonSchemaMap(tool.parametersSchema)
+                )
+            )
+        }
     }
 
     override suspend fun generateSimpleCompletion(

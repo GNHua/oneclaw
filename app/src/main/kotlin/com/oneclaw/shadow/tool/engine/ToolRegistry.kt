@@ -2,21 +2,41 @@ package com.oneclaw.shadow.tool.engine
 
 import com.oneclaw.shadow.core.model.ToolDefinition
 
+/**
+ * Registry of all available tools. Singleton, created at app startup.
+ */
 class ToolRegistry {
-    private val tools = mutableMapOf<String, ToolEntry>()
 
-    fun register(name: String, definition: ToolDefinition) {
-        tools[name] = ToolEntry(definition)
+    private val tools = mutableMapOf<String, Tool>()
+
+    /**
+     * Register a tool. Throws IllegalArgumentException if a tool with the same name
+     * is already registered.
+     */
+    fun register(tool: Tool) {
+        val name = tool.definition.name
+        require(!tools.containsKey(name)) {
+            "Tool '$name' is already registered"
+        }
+        tools[name] = tool
     }
 
-    fun getToolDefinition(name: String): ToolDefinition? = tools[name]?.definition
+    /** Get a tool by name. Returns null if not found. */
+    fun getTool(name: String): Tool? = tools[name]
 
+    /** Get all registered tool definitions. */
     fun getAllToolDefinitions(): List<ToolDefinition> = tools.values.map { it.definition }
 
-    fun getToolsByIds(ids: List<String>): List<ToolDefinition> =
-        ids.mapNotNull { tools[it]?.definition }
+    /**
+     * Get tool definitions for a specific set of tool names.
+     * Unknown names are silently ignored.
+     */
+    fun getToolDefinitionsByNames(names: List<String>): List<ToolDefinition> =
+        names.mapNotNull { tools[it]?.definition }
 
-    fun hasTools(): Boolean = tools.isNotEmpty()
+    /** Check if a tool name exists in the registry. */
+    fun hasTool(name: String): Boolean = tools.containsKey(name)
 
-    private data class ToolEntry(val definition: ToolDefinition)
+    /** Get all registered tool names. */
+    fun getAllToolNames(): List<String> = tools.keys.toList()
 }

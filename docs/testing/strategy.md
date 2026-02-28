@@ -1009,14 +1009,41 @@ Steps:
 #### Flow 7: Stop Generation
 
 ```
-Goal: Verify stop generation saves partial text.
+Goal: Verify stop generation saves partial text AND that the UI fully resets.
 
 Steps:
 1. Send a message that will produce a long response: "Write a 500 word essay about the ocean."
 2. Wait 2 seconds (partial response should be streaming)
 3. Tap stop button
-4. Screenshot -> Verify: Partial AI response visible, send button back, streaming stopped
+4. Screenshot -> Verify ALL of the following:
+   - Stop button has switched back to the send button (CRITICAL: UI must not stay stuck in streaming state)
+   - Streaming cursor is gone
+   - Partial AI response text is preserved in the chat
 5. Send another message to verify chat still works
+
+Critical check: If the stop button is still visible after tapping stop, this is a bug.
+The fix is to wrap savePartialResponse() and finishStreaming() in withContext(NonCancellable) {}
+inside the CancellationException catch block in ChatViewModel.
+```
+
+#### Flow 8: Keyboard Does Not Push Top Bar Off-Screen
+
+```
+Goal: Verify that the soft keyboard only adjusts the input area, not the entire screen.
+
+Steps:
+1. Open any chat conversation
+2. Tap the message input field to focus it
+3. Wait for the soft keyboard to appear
+4. Screenshot -> Verify ALL of the following:
+   - Top app bar is fully visible (hamburger icon on left, settings gear on right)
+   - Neither the hamburger icon nor the settings gear is hidden or clipped
+   - The input field is visible just above the keyboard
+   - The message list is still visible between the top bar and the input field
+
+Critical check: If the hamburger icon or settings gear is pushed off-screen by the keyboard,
+this is a bug. The fix is to set contentWindowInsets = WindowInsets.ime.union(WindowInsets.navigationBars)
+on the Scaffold in ChatScreen.kt.
 ```
 
 ### Layer 2 AI Verification Method

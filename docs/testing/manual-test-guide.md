@@ -273,7 +273,17 @@ From any screen, navigate to the Chat screen (main screen after setup).
 - Settings gear icon is in the top-right
 - Hamburger/drawer icon is in the top-left
 
-### Step 6.2: Send a message
+### Step 6.2: Keyboard does not push top bar off-screen
+
+Tap the message input field to open the soft keyboard.
+
+**Verify:**
+- The soft keyboard appears above the input field
+- **The top app bar remains fully visible** — the hamburger icon (top-left) and settings gear (top-right) must not be hidden or pushed off-screen
+- The message list is still visible between the top bar and the input field
+- If the top bar is pushed off-screen by the keyboard, this is a bug
+
+### Step 6.3: Send a message
 
 Type a message in the input field (e.g., "Hello, what can you do?"). Tap the Send button.
 
@@ -291,15 +301,17 @@ While the AI is streaming, tap the Stop button.
 **Verify:**
 - Streaming stops immediately
 - Partial response remains visible
+- **Stop button switches back to the send button** — if the stop button remains visible after tapping, this is a bug (UI stuck in streaming state)
+- Input field becomes active and a new message can be sent
 
-### Step 6.4: Copy an AI message
+### Step 6.5: Copy an AI message
 
 Tap the copy icon below a completed AI message.
 
 **Verify:**
 - The message content is copied to clipboard (verify by pasting elsewhere)
 
-### Step 6.5: Regenerate response
+### Step 6.6: Regenerate response
 
 Tap the Regenerate icon below an AI message.
 
@@ -307,7 +319,7 @@ Tap the Regenerate icon below an AI message.
 - AI generates a new response to the same conversation
 - New response streams in
 
-### Step 6.6: Session drawer — navigation
+### Step 6.7: Session drawer — navigation
 
 Tap the hamburger icon (top-left).
 
@@ -319,7 +331,7 @@ Tap the hamburger icon (top-left).
 - Long-pressing enters selection mode (checkboxes + bulk-delete toolbar)
 - Swiping left on a session reveals delete; undo snackbar appears after deletion
 
-### Step 6.7: Start a new conversation
+### Step 6.8: Start a new conversation
 
 In the drawer, tap "New Conversation".
 
@@ -328,7 +340,7 @@ In the drawer, tap "New Conversation".
 - Chat screen resets to empty state
 - Top bar shows current agent name
 
-### Step 6.8: Tool call visualization (if applicable)
+### Step 6.9: Tool call visualization (if applicable)
 
 Send a message that triggers a tool, e.g., "What is the current time?".
 

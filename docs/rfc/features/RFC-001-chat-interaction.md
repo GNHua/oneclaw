@@ -8,7 +8,7 @@
 - **Depends On**: [RFC-002 (Agent Management)](RFC-002-agent-management.md), [RFC-003 (Provider Management)](RFC-003-provider-management.md), [RFC-004 (Tool System)](RFC-004-tool-system.md), [RFC-005 (Session Management)](RFC-005-session-management.md)
 - **Depended On By**: None (this is the top-level feature)
 - **Created**: 2026-02-27
-- **Last Updated**: 2026-02-27
+- **Last Updated**: 2026-02-27 (updated with implementation fixes from Layer 2 testing)
 - **Status**: Draft
 - **Author**: TBD
 
@@ -714,6 +714,35 @@ interface MessageRepository {
 }
 ```
 
+### ID Generation in Repository Implementations
+
+**Critical implementation note (discovered in Layer 2 testing):**
+
+When `addMessage()` receives a `Message` with `id = ""` (blank), the repository implementation MUST generate a UUID before persisting. Similarly, `createSession()` must generate a UUID when given a blank ID. Failing to do so causes all records to share the same empty-string primary key and overwrite each other.
+
+```kotlin
+// MessageRepositoryImpl.addMessage() — correct pattern
+override suspend fun addMessage(message: Message): Message {
+    val id = if (message.id.isBlank()) UUID.randomUUID().toString() else message.id
+    val createdAt = if (message.createdAt == 0L) System.currentTimeMillis() else message.createdAt
+    val entity = message.copy(id = id, createdAt = createdAt).toEntity()
+    messageDao.insertMessage(entity)
+    return message.copy(id = id, createdAt = createdAt)
+}
+
+// SessionRepositoryImpl.createSession() — correct pattern
+override suspend fun createSession(session: Session): Session {
+    val id = if (session.id.isBlank()) UUID.randomUUID().toString() else session.id
+    val now = System.currentTimeMillis()
+    val createdAt = if (session.createdAt == 0L) now else session.createdAt
+    val entity = session.copy(id = id, createdAt = createdAt, updatedAt = now).toEntity()
+    sessionDao.insertSession(entity)
+    return session.copy(id = id, createdAt = createdAt)
+}
+```
+
+All callers pass `id = ""` and `createdAt = 0` as a convention; the repository is responsible for filling them in.
+
 ## ChatViewModel
 
 ```kotlin
@@ -915,22 +944,16 @@ class ChatViewModel(
                         }
                     }
                 } catch (e: CancellationException) {
-                    // User stopped generation -- save partial text
-                    if (accumulatedText.isNotBlank()) {
-                        messageRepository.addMessage(Message(
-                            id = "",
-                            sessionId = sessionId,
-                            type = MessageType.AI_RESPONSE,
-                            content = accumulatedText,
-                            thinkingContent = accumulatedThinking.ifEmpty { null },
-                            toolCallId = null, toolName = null, toolInput = null,
-                            toolOutput = null, toolStatus = null, toolDurationMs = null,
-                            tokenCountInput = null, tokenCountOutput = null,
-                            modelId = null, providerId = null,
-                            createdAt = 0
-                        ))
+                    // User stopped generation -- save partial text.
+                    // IMPORTANT: wrap in withContext(NonCancellable) so that suspend
+                    // calls (savePartialResponse, finishStreaming) are not immediately
+                    // re-cancelled by the already-cancelled coroutine context.
+                    withContext(NonCancellable) {
+                        if (accumulatedText.isNotBlank()) {
+                            savePartialResponse(sessionId, accumulatedText, accumulatedThinking)
+                        }
+                        finishStreaming(sessionId)
                     }
-                    finishStreaming(sessionId)
                 }
             }
         }
@@ -938,6 +961,12 @@ class ChatViewModel(
 
     fun stopGeneration() {
         streamingJob?.cancel()
+        // streamingJob.cancel() throws CancellationException into the streaming coroutine.
+        // The catch block MUST use withContext(NonCancellable) { ... } when calling any
+        // suspend functions (savePartialResponse, finishStreaming). Without NonCancellable,
+        // the already-cancelled context causes those suspend calls to immediately throw
+        // CancellationException again, so finishStreaming() never runs, leaving isStreaming=true
+        // and the stop button visible forever. (Bug found in Layer 2 testing.)
     }
 
     fun regenerate() {
@@ -996,10 +1025,12 @@ class ChatViewModel(
                         { accumulatedThinking += it; accumulatedThinking })
                 }
             } catch (e: CancellationException) {
-                if (accumulatedText.isNotBlank()) {
-                    savePartialResponse(sessionId, accumulatedText, accumulatedThinking)
+                withContext(NonCancellable) {
+                    if (accumulatedText.isNotBlank()) {
+                        savePartialResponse(sessionId, accumulatedText, accumulatedThinking)
+                    }
+                    finishStreaming(sessionId)
                 }
-                finishStreaming(sessionId)
             }
         }
     }
@@ -1272,41 +1303,62 @@ data: {"candidates":[{"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount
  * Generic SSE line parser. Reads from an OkHttp ResponseBody and emits SSE events.
  *
  * Located in: data/remote/sse/SseParser.kt
+ *
+ * IMPORTANT IMPLEMENTATION NOTES (from Layer 2 bug fixes):
+ *
+ * 1. Use `channelFlow` + `withContext(Dispatchers.IO)` + `byteStream().bufferedReader()`.
+ *    DO NOT use `callbackFlow` + `source().buffer()` — on a non-IO dispatcher,
+ *    `source.exhausted()` returns true immediately (reads 0 lines).
+ *
+ * 2. Do NOT call `awaitClose()` after `withContext`. The `channelFlow` completes
+ *    automatically when all producers inside it finish. Adding `awaitClose()` keeps
+ *    the flow open indefinitely after the stream ends, causing `isStreaming` to stay
+ *    `true` forever.
+ *
+ * 3. Adapters MUST call `body.asSseFlow().collect { ... }` directly inside `flow { }`.
+ *    DO NOT wrap the collect in `withContext(Dispatchers.IO) { ... }` — emitting from
+ *    a non-flow dispatcher inside a `flow { }` builder violates the flow invariant and
+ *    causes events to be silently dropped.
  */
-fun ResponseBody.asSseFlow(): Flow<SseEvent> = callbackFlow {
-    val reader = source().buffer()
-    try {
-        var eventType: String? = null
-        var data = StringBuilder()
+fun ResponseBody.asSseFlow(): Flow<SseEvent> = channelFlow {
+    withContext(Dispatchers.IO) {
+        val reader = byteStream().bufferedReader(Charsets.UTF_8)
+        try {
+            var eventType: String? = null
+            val dataBuilder = StringBuilder()
 
-        while (!reader.exhausted()) {
-            val line = reader.readUtf8Line() ?: break
-
-            when {
-                line.startsWith("event:") -> {
-                    eventType = line.removePrefix("event:").trim()
-                }
-                line.startsWith("data:") -> {
-                    data.append(line.removePrefix("data:").trim())
-                }
-                line.isEmpty() -> {
-                    // Empty line = end of event
-                    if (data.isNotEmpty()) {
-                        trySend(SseEvent(type = eventType, data = data.toString()))
-                        eventType = null
-                        data = StringBuilder()
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                val l = line!!
+                when {
+                    l.startsWith("event:") -> {
+                        eventType = l.removePrefix("event:").trim()
+                    }
+                    l.startsWith("data:") -> {
+                        dataBuilder.append(l.removePrefix("data:").trim())
+                    }
+                    l.isEmpty() -> {
+                        if (dataBuilder.isNotEmpty()) {
+                            send(SseEvent(type = eventType, data = dataBuilder.toString()))
+                            eventType = null
+                            dataBuilder.clear()
+                        }
                     }
                 }
             }
+            // Flush remaining data if stream ends without trailing newline
+            if (dataBuilder.isNotEmpty()) {
+                send(SseEvent(type = eventType, data = dataBuilder.toString()))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw e
+        } finally {
+            reader.close()
         }
-    } catch (e: Exception) {
-        if (e !is CancellationException) {
-            close(e)
-        }
-    } finally {
-        reader.close()
-        close()
     }
+    // DO NOT call awaitClose() here — it would keep the channelFlow open forever
 }
 
 data class SseEvent(
@@ -1316,6 +1368,22 @@ data class SseEvent(
 ```
 
 Each adapter then collects `SseEvent`s and maps them to `StreamEvent`s based on the provider-specific JSON format.
+
+**Adapter collect pattern** — use this inside each adapter's `flow { }` builder:
+
+```kotlin
+// CORRECT: collect directly; asSseFlow() handles IO internally
+body.asSseFlow().collect { sseEvent ->
+    // process event and emit StreamEvent
+}
+
+// WRONG: do not wrap in withContext — emit() from IO dispatcher violates flow invariant
+withContext(Dispatchers.IO) {
+    body.asSseFlow().collect { sseEvent ->
+        emit(StreamEvent.TextDelta(...))  // THIS BREAKS: emit called from wrong context
+    }
+}
+```
 
 ## UI Layer
 

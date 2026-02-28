@@ -6,7 +6,7 @@
 - **关联设计**: [UI设计规范](../../design/ui-design-spec-zh.md)（聊天页面中的工具调用展示）
 - **关联架构**: [RFC-000 (整体架构)](../architecture/RFC-000-overall-architecture-zh.md)
 - **创建日期**: 2026-02-27
-- **最后更新**: 2026-02-27
+- **最后更新**: 2026-02-27（根据第二层测试实现修复更新）
 - **状态**: 草稿
 - **作者**: TBD
 
@@ -991,6 +991,48 @@ object ToolSchemaSerializer {
         return result
     }
 }
+```
+
+**重要序列化说明（来自第二层测试 bug 修复）：**
+
+`toJsonSchemaMap()` 返回 `Map<String, Any>`。当此 map 被嵌入到 `buildJsonObject { }` 中（kotlinx.serialization）时，嵌套的 `Map` 和 `List` 值必须转换为 `JsonElement` —— 不能直接传入原始 Kotlin 对象。对 `Map<String, Any>` 使用 `.toString()` 会产生 Kotlin 语法（`{key=value}`）而非 JSON。
+
+每个适配器在将 schema map 嵌入请求体时必须使用 `anyToJsonElement()` 辅助函数：
+
+```kotlin
+@Suppress("UNCHECKED_CAST")
+private fun anyToJsonElement(value: Any?): JsonElement = when (value) {
+    null -> JsonNull
+    is Boolean -> JsonPrimitive(value)
+    is Number -> JsonPrimitive(value)
+    is String -> JsonPrimitive(value)
+    is Map<*, *> -> buildJsonObject {
+        (value as Map<String, Any?>).forEach { (k, v) -> put(k, anyToJsonElement(v)) }
+    }
+    is List<*> -> buildJsonArray {
+        value.forEach { add(anyToJsonElement(it)) }
+    }
+    else -> JsonPrimitive(value.toString())
+}
+```
+
+各适配器中的使用方式：
+
+```kotlin
+// AnthropicAdapter —— 在 buildAnthropicRequest() 中
+put("input_schema", anyToJsonElement(
+    ToolSchemaSerializer.toJsonSchemaMap(tool.parametersSchema)
+))
+
+// OpenAiAdapter —— 在 buildOpenAiRequest() 中
+put("parameters", anyToJsonElement(
+    ToolSchemaSerializer.toJsonSchemaMap(tool.parametersSchema)
+))
+
+// GeminiAdapter —— 在 buildGeminiRequest() 中
+put("parameters", anyToJsonElement(
+    toGeminiSchemaMap(tool.parametersSchema)
+))
 ```
 
 ### OpenAI 格式

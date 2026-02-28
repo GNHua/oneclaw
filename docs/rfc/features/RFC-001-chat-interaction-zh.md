@@ -8,7 +8,7 @@
 - **依赖**: [RFC-002 (Agent 管理)](RFC-002-agent-management-zh.md)、[RFC-003 (Provider 管理)](RFC-003-provider-management-zh.md)、[RFC-004 (工具系统)](RFC-004-tool-system-zh.md)、[RFC-005 (会话管理)](RFC-005-session-management-zh.md)
 - **被依赖**: 无（这是顶层功能）
 - **创建日期**: 2026-02-27
-- **最后更新**: 2026-02-27
+- **最后更新**: 2026-02-27（根据第二层测试实现修复更新）
 - **状态**: 草稿
 - **作者**: TBD
 
@@ -714,6 +714,35 @@ interface MessageRepository {
 }
 ```
 
+### Repository 实现中的 ID 生成
+
+**重要实现说明（在第二层测试中发现）：**
+
+当 `addMessage()` 接收到 `id = ""`（空白）的 `Message` 时，Repository 实现必须在持久化之前生成一个 UUID。同样，`createSession()` 在接收到空白 ID 时也必须生成 UUID。若不这样做，所有记录将共用同一个空字符串主键并相互覆盖。
+
+```kotlin
+// MessageRepositoryImpl.addMessage() —— 正确模式
+override suspend fun addMessage(message: Message): Message {
+    val id = if (message.id.isBlank()) UUID.randomUUID().toString() else message.id
+    val createdAt = if (message.createdAt == 0L) System.currentTimeMillis() else message.createdAt
+    val entity = message.copy(id = id, createdAt = createdAt).toEntity()
+    messageDao.insertMessage(entity)
+    return message.copy(id = id, createdAt = createdAt)
+}
+
+// SessionRepositoryImpl.createSession() —— 正确模式
+override suspend fun createSession(session: Session): Session {
+    val id = if (session.id.isBlank()) UUID.randomUUID().toString() else session.id
+    val now = System.currentTimeMillis()
+    val createdAt = if (session.createdAt == 0L) now else session.createdAt
+    val entity = session.copy(id = id, createdAt = createdAt, updatedAt = now).toEntity()
+    sessionDao.insertSession(entity)
+    return session.copy(id = id, createdAt = createdAt)
+}
+```
+
+所有调用方均以 `id = ""` 和 `createdAt = 0` 作为惯例传入；由 Repository 负责填充这些值。
+
 ## ChatViewModel
 
 ```kotlin
@@ -915,22 +944,18 @@ class ChatViewModel(
                         }
                     }
                 } catch (e: CancellationException) {
-                    // 用户停止生成 -- 保存部分文本
-                    if (accumulatedText.isNotBlank()) {
-                        messageRepository.addMessage(Message(
-                            id = "",
-                            sessionId = sessionId,
-                            type = MessageType.AI_RESPONSE,
-                            content = accumulatedText,
-                            thinkingContent = accumulatedThinking.ifEmpty { null },
-                            toolCallId = null, toolName = null, toolInput = null,
-                            toolOutput = null, toolStatus = null, toolDurationMs = null,
-                            tokenCountInput = null, tokenCountOutput = null,
-                            modelId = null, providerId = null,
-                            createdAt = 0
-                        ))
+                    // 用户停止生成 -- 保存部分文本。
+                    // 重要：必须用 withContext(NonCancellable) 包裹，以便在已取消的
+                    // 协程上下文中仍能调用 suspend 函数（savePartialResponse、finishStreaming）。
+                    // 若不加 NonCancellable，已取消的上下文会导致这些 suspend 调用立即再次
+                    // 抛出 CancellationException，使 finishStreaming() 永远无法执行，
+                    // 从而导致 isStreaming 保持为 true，停止按钮永远不会恢复。
+                    withContext(NonCancellable) {
+                        if (accumulatedText.isNotBlank()) {
+                            savePartialResponse(sessionId, accumulatedText, accumulatedThinking)
+                        }
+                        finishStreaming(sessionId)
                     }
-                    finishStreaming(sessionId)
                 }
             }
         }
@@ -938,6 +963,10 @@ class ChatViewModel(
 
     fun stopGeneration() {
         streamingJob?.cancel()
+        // streamingJob.cancel() 向流式协程抛出 CancellationException。
+        // catch 块中调用任何 suspend 函数时必须使用 withContext(NonCancellable)。
+        // 否则已取消的上下文会导致 finishStreaming() 永远不会执行，
+        // isStreaming 保持为 true，停止按钮一直显示。（第二层测试中发现的 bug）
     }
 
     fun regenerate() {
@@ -996,10 +1025,12 @@ class ChatViewModel(
                         { accumulatedThinking += it; accumulatedThinking })
                 }
             } catch (e: CancellationException) {
-                if (accumulatedText.isNotBlank()) {
-                    savePartialResponse(sessionId, accumulatedText, accumulatedThinking)
+                withContext(NonCancellable) {
+                    if (accumulatedText.isNotBlank()) {
+                        savePartialResponse(sessionId, accumulatedText, accumulatedThinking)
+                    }
+                    finishStreaming(sessionId)
                 }
-                finishStreaming(sessionId)
             }
         }
     }
@@ -1272,41 +1303,60 @@ data: {"candidates":[{"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount
  * 通用 SSE 行解析器。从 OkHttp ResponseBody 读取并发出 SSE 事件。
  *
  * 位于：data/remote/sse/SseParser.kt
+ *
+ * 重要实现说明（来自第二层测试 bug 修复）：
+ *
+ * 1. 使用 `channelFlow` + `withContext(Dispatchers.IO)` + `byteStream().bufferedReader()`。
+ *    禁止使用 `callbackFlow` + `source().buffer()` —— 在非 IO dispatcher 上，
+ *    `source.exhausted()` 会立即返回 true（读取 0 行）。
+ *
+ * 2. 禁止在 `withContext` 之后调用 `awaitClose()`。`channelFlow` 会在其内部
+ *    所有生产者完成后自动结束。添加 `awaitClose()` 会使流在结束后永久保持
+ *    打开状态，导致 `isStreaming` 永远为 `true`。
+ *
+ * 3. 适配器必须在 `flow { }` 构建器内直接调用 `body.asSseFlow().collect { ... }`。
+ *    禁止将 collect 包裹在 `withContext(Dispatchers.IO) { ... }` 中 —— 从
+ *    非 flow dispatcher 调用 `emit()` 会违反 flow 不变量，导致事件被静默丢弃。
  */
-fun ResponseBody.asSseFlow(): Flow<SseEvent> = callbackFlow {
-    val reader = source().buffer()
-    try {
-        var eventType: String? = null
-        var data = StringBuilder()
+fun ResponseBody.asSseFlow(): Flow<SseEvent> = channelFlow {
+    withContext(Dispatchers.IO) {
+        val reader = byteStream().bufferedReader(Charsets.UTF_8)
+        try {
+            var eventType: String? = null
+            val dataBuilder = StringBuilder()
 
-        while (!reader.exhausted()) {
-            val line = reader.readUtf8Line() ?: break
-
-            when {
-                line.startsWith("event:") -> {
-                    eventType = line.removePrefix("event:").trim()
-                }
-                line.startsWith("data:") -> {
-                    data.append(line.removePrefix("data:").trim())
-                }
-                line.isEmpty() -> {
-                    // 空行 = 事件结束
-                    if (data.isNotEmpty()) {
-                        trySend(SseEvent(type = eventType, data = data.toString()))
-                        eventType = null
-                        data = StringBuilder()
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                val l = line!!
+                when {
+                    l.startsWith("event:") -> {
+                        eventType = l.removePrefix("event:").trim()
+                    }
+                    l.startsWith("data:") -> {
+                        dataBuilder.append(l.removePrefix("data:").trim())
+                    }
+                    l.isEmpty() -> {
+                        if (dataBuilder.isNotEmpty()) {
+                            send(SseEvent(type = eventType, data = dataBuilder.toString()))
+                            eventType = null
+                            dataBuilder.clear()
+                        }
                     }
                 }
             }
+            // 如果流在无尾随换行符的情况下结束，则刷新剩余数据
+            if (dataBuilder.isNotEmpty()) {
+                send(SseEvent(type = eventType, data = dataBuilder.toString()))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw e
+        } finally {
+            reader.close()
         }
-    } catch (e: Exception) {
-        if (e !is CancellationException) {
-            close(e)
-        }
-    } finally {
-        reader.close()
-        close()
     }
+    // 禁止在此处调用 awaitClose() —— 会使 channelFlow 永久保持打开
 }
 
 data class SseEvent(
@@ -1316,6 +1366,22 @@ data class SseEvent(
 ```
 
 每个适配器随后收集 `SseEvent` 并根据 Provider 特定的 JSON 格式将其映射为 `StreamEvent`。
+
+**适配器收集模式** —— 在每个适配器的 `flow { }` 构建器中使用此模式：
+
+```kotlin
+// 正确：直接收集；asSseFlow() 在内部处理 IO
+body.asSseFlow().collect { sseEvent ->
+    // 处理事件并发出 StreamEvent
+}
+
+// 错误：不要包裹在 withContext 中 —— 从 IO dispatcher 调用 emit() 违反 flow 不变量
+withContext(Dispatchers.IO) {
+    body.asSseFlow().collect { sseEvent ->
+        emit(StreamEvent.TextDelta(...))  // 此处有问题：emit 从错误的 context 调用
+    }
+}
+```
 
 ## UI 层
 

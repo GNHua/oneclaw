@@ -6,7 +6,7 @@
 - **Related Design**: [UI Design Spec](../../design/ui-design-spec.md) (Tool Call Display in Chat Screen)
 - **Related Architecture**: [RFC-000 (Overall Architecture)](../architecture/RFC-000-overall-architecture.md)
 - **Created**: 2026-02-27
-- **Last Updated**: 2026-02-27
+- **Last Updated**: 2026-02-27 (updated with implementation fixes from Layer 2 testing)
 - **Status**: Draft
 - **Author**: TBD
 
@@ -1054,6 +1054,48 @@ object ToolSchemaSerializer {
         return result
     }
 }
+```
+
+**Critical serialization note (from Layer 2 bug fix):**
+
+`toJsonSchemaMap()` returns `Map<String, Any>`. When this map is embedded into a `buildJsonObject { }` (kotlinx.serialization), the nested `Map` and `List` values must be converted to `JsonElement` — they cannot be passed as raw Kotlin objects. Using `.toString()` on a `Map<String, Any>` produces Kotlin syntax (`{key=value}`) instead of JSON.
+
+Every adapter must use an `anyToJsonElement()` helper when embedding the schema map into the request body:
+
+```kotlin
+@Suppress("UNCHECKED_CAST")
+private fun anyToJsonElement(value: Any?): JsonElement = when (value) {
+    null -> JsonNull
+    is Boolean -> JsonPrimitive(value)
+    is Number -> JsonPrimitive(value)
+    is String -> JsonPrimitive(value)
+    is Map<*, *> -> buildJsonObject {
+        (value as Map<String, Any?>).forEach { (k, v) -> put(k, anyToJsonElement(v)) }
+    }
+    is List<*> -> buildJsonArray {
+        value.forEach { add(anyToJsonElement(it)) }
+    }
+    else -> JsonPrimitive(value.toString())
+}
+```
+
+Usage in adapters:
+
+```kotlin
+// AnthropicAdapter — in buildAnthropicRequest()
+put("input_schema", anyToJsonElement(
+    ToolSchemaSerializer.toJsonSchemaMap(tool.parametersSchema)
+))
+
+// OpenAiAdapter — in buildOpenAiRequest()
+put("parameters", anyToJsonElement(
+    ToolSchemaSerializer.toJsonSchemaMap(tool.parametersSchema)
+))
+
+// GeminiAdapter — in buildGeminiRequest()
+put("parameters", anyToJsonElement(
+    toGeminiSchemaMap(tool.parametersSchema)
+))
 ```
 
 ### OpenAI Format

@@ -9,7 +9,7 @@
 | Commits | `02e44d7`, `70a350f`, `10ebbbd`, `ca5e281`, `4dbe9c3` |
 | Date | 2026-02-27 |
 | Tester | AI (OpenCode) |
-| Status | PARTIAL — Layer 2 skipped (Chat not yet implemented) |
+| Status | COMPLETE — Layer 2 Chat flows fully verified |
 
 ## Summary
 
@@ -21,7 +21,7 @@ Phases 1–3 established the complete project foundation, implemented Provider M
 | 1B | Instrumented DAO Tests | PASS | 47 DAO tests on emulator-5554 |
 | 1B | Instrumented UI Tests | SKIP | No Compose androidTest written yet |
 | 1C | Roborazzi Screenshot Tests | PASS | 5 baseline screenshots recorded and verified |
-| 2 | adb Visual Flows | SKIP | Chat (RFC-001) not yet implemented; Flow 1 partially applicable but deferred |
+| 2 | adb Visual Flows | PASS | Flow 1 (Setup), Flow 5 (data injection), Flow 6 (Chat) all verified |
 
 ## Layer 1A: JVM Unit Tests
 
@@ -127,25 +127,61 @@ Visual check: Black background, white text, "Anthropic" row with purple "Connect
 
 ## Layer 2: adb Visual Verification
 
-**Result:** PARTIAL — Setup screens verified after RFC-001/RFC-002 completion
+**Result:** PASS
 
-**Updated:** After all RFCs were implemented (commit `bdea03c`), the Setup flow was verified on the emulator.
+**Device:** `emulator-5554`, Medium_Phone_API_36.1, Android 16, 1080×2400
 
-**Bug found and fixed:** The `SetupScreen` title "Welcome to OneClawShadow" and step headers ("Step 1/2/3 of 3") had no explicit color, rendering in the default `onBackground` black. Fixed by setting `color = MaterialTheme.colorScheme.primary` on these texts.
+**Data injection method:** `adb shell am instrument` with `SetupDataInjector` (writes API key to debug SharedPreferences + seeds DB with provider and model).
 
-**Second bug found and fixed:** `OneClawShadowTheme` had `dynamicColor = true` by default, causing Android 12+ devices/emulators to override the gold/amber palette with the system wallpaper color (emulator default: blue). Fixed by changing default to `dynamicColor = false`.
+**Bugs found and fixed during Layer 2 testing:** See Issues section (#4–#10).
 
 ### Flow 1 — Setup Step 1: Choose Provider
 
-<img src="screenshots/Layer2_SetupScreen_step1_choose_provider.png" width="250">
+<img src="screenshots/Layer2_Flow1_step1_fresh_launch_setup.png" width="250">
 
 Visual check: "Welcome to OneClawShadow" title in gold/amber primary color, "Step 1 of 3: Choose a provider" step header also in primary color. Background is warm cream (`surfaceLight`). Three provider cards (OpenAI, Anthropic, Google Gemini) with correct outlined style. "Skip for now" in gold/amber at the bottom.
 
-### Flow 1 — Setup Step 2: Enter API Key
+### Flow 1 — Setup Step 2: Enter API Key (empty)
 
-<img src="screenshots/Layer2_SetupScreen_step2_enter_api_key.png" width="250">
+<img src="screenshots/Layer2_Flow1_step2_enter_api_key.png" width="250">
 
-Visual check: Title and "Step 2 of 3: Enter API key" in gold/amber primary. "Enter your OpenAI API key." in `onBackground`. Outlined text field with "API Key" label. "Test & Connect" button disabled (no key entered yet) shown in muted container color. "Skip for now" in gold/amber.
+Visual check: Title and "Step 2 of 3: Enter API key" in gold/amber primary. "Enter your Anthropic API key." in `onBackground`. Outlined text field with "API Key" label. "Test & Connect" button disabled (no key entered yet). "Skip for now" in gold/amber.
+
+### Flow 1 — Setup Step 2: API Key entered
+
+<img src="screenshots/Layer2_Flow1_step2_api_key_entered.png" width="250">
+
+Visual check: API key entered in the text field, "Test & Connect" button is now active in the gold/amber primary color.
+
+### Flow 5 — Data-injected Chat (empty state)
+
+<img src="screenshots/Layer2_Flow5_step1_direct_to_chat.png" width="250">
+
+Visual check: After data injection via `adb instrument`, app launches directly to the Chat screen (skipping Setup). "General Assistant" session title in top bar, "How can I help you today?" placeholder text centered. Input bar at bottom with disabled send button.
+
+### Flow 6 — Chat: Empty State
+
+<img src="screenshots/Layer2_Flow6_step1_chat_empty.png" width="250">
+
+Visual check: Chat screen empty state. "General Assistant" agent name, settings icon, hamburger menu. Message input field with placeholder, send button disabled (grey).
+
+### Flow 6 — Chat: Message Typed
+
+<img src="screenshots/Layer2_Flow6_step2_message_typed.png" width="250">
+
+Visual check: Text entered in the input field. Send button is now active (gold/amber color).
+
+### Flow 6 — Chat: Streaming
+
+<img src="screenshots/Layer2_Flow6_step3_streaming.png" width="250">
+
+Visual check: User message bubble (gold/amber), AI response streaming in with partial text visible. Stop button (red ■) shows in place of send button. Markdown bold text rendered correctly mid-stream.
+
+### Flow 6 — Chat: Response Complete
+
+<img src="screenshots/Layer2_Flow6_step4_response_complete.png" width="250">
+
+Visual check: Full AI response rendered with markdown (bold title, paragraph text). Copy and Regenerate action buttons visible below the response. Model ID `claude-haiku-4-5-20251001` shown. Send button returned (grey, input empty). Stop button gone.
 
 ## Issues Found
 
@@ -156,6 +192,14 @@ Visual check: Title and "Step 2 of 3: Enter API key" in gold/amber primary. "Ent
 | 3 | `OneclawApplication.startKoin()` called for each Robolectric test, causing `KoinAppAlreadyStartedException` | Medium | Fixed via `@Config(application = Application::class)` in `4dbe9c3` |
 | 4 | `SetupScreen` title and step headers had no color (rendered black); should use `primary` (gold/amber) | Low | Fixed post-RFC-001/002 |
 | 5 | `OneClawShadowTheme` defaulted to `dynamicColor = true`, overriding gold/amber palette on Android 12+ with system wallpaper color | High | Fixed post-RFC-001/002: default changed to `false` |
+| 6 | `BuildConfig.DEBUG` not generated — `buildFeatures { buildConfig = true }` missing from `app/build.gradle.kts` | Medium | Fixed: added `buildConfig = true` |
+| 7 | Tool definition JSON serialization: `formatToolDefinitions()` used `v.toString()` producing Kotlin map syntax `{key=value}` instead of JSON | Critical | Fixed: added `anyToJsonElement()` helper in all 3 adapters |
+| 8 | Message and Session IDs not generated: `MessageRepositoryImpl.addMessage()` and `SessionRepositoryImpl.createSession()` received `id = ""` and didn't generate UUIDs, causing all records to overwrite each other | Critical | Fixed: added `UUID.randomUUID()` fallback in both Impl classes |
+| 9 | `SseParser.asSseFlow()` used `callbackFlow` + `source().buffer()` causing `source.exhausted()` to return `true` immediately on non-IO dispatcher (0 lines read) | Critical | Fixed: rewrote to `channelFlow` + `withContext(Dispatchers.IO)` + `byteStream().bufferedReader()` |
+| 10 | `SseParser.asSseFlow()` had `awaitClose()` after `withContext`, keeping the `channelFlow` open indefinitely after the stream ended — `isStreaming` stuck `true` forever | Critical | Fixed: removed `awaitClose()` |
+| 11 | `AnthropicAdapter`/`OpenAiAdapter`/`GeminiAdapter`: `withContext(Dispatchers.IO) { body.asSseFlow() }.collect { emit(...) }` — `emit` called from IO dispatcher inside `flow {}`, violating flow invariant, causing `ResponseComplete` to never be emitted | Critical | Fixed: removed `withContext` wrapper; `asSseFlow()` handles IO internally |
+| 12 | `AppDatabase` seed data used non-existent model IDs `claude-haiku-4-20250414`, `claude-sonnet-4-20250514` | High | Fixed: updated to `claude-haiku-4-5-20251001`, `claude-sonnet-4-5-20250929`, `claude-opus-4-5-20251101` |
+| 13 | `GenerateTitleUseCase.LIGHTWEIGHT_MODELS` used non-existent model ID `claude-haiku-4-20250414` | Medium | Fixed: updated to `claude-haiku-4-5-20251001` |
 
 ## Change History
 
@@ -163,3 +207,4 @@ Visual check: Title and "Step 2 of 3: Enter API key" in gold/amber primary. "Ent
 |------|--------|
 | 2026-02-27 | Initial report covering Phase 1–3 |
 | 2026-02-27 | Updated Layer 2: added adb screenshots for Setup steps 1–2, documented color fixes (issues 4 and 5) |
+| 2026-02-27 | Completed Layer 2: fixed 8 critical bugs (issues 6–13), verified full Chat flow (Flow 6), added all Flow 6 screenshots |

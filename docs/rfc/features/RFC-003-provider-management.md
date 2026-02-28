@@ -6,7 +6,7 @@
 - **Related Design**: [UI Design Spec](../../design/ui-design-spec.md) (Sections 3, 4, 7)
 - **Related Architecture**: [RFC-000 (Overall Architecture)](../architecture/RFC-000-overall-architecture.md)
 - **Created**: 2026-02-27
-- **Last Updated**: 2026-02-27
+- **Last Updated**: 2026-02-27 (updated with implementation fixes from Layer 2 testing)
 - **Status**: Draft
 - **Author**: TBD
 
@@ -295,15 +295,29 @@ API keys are stored in EncryptedSharedPreferences, completely separate from the 
 ```kotlin
 class ApiKeyStorage(context: Context) {
 
+    private val masterKey = MasterKey.Builder(context)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
+
     private val prefs: SharedPreferences = EncryptedSharedPreferences.create(
-        "oneclaw_api_keys",                          // File name
-        MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC),  // Master key
         context,
+        "oneclaw_api_keys",
+        masterKey,
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
 
+    // DEBUG builds support a plain-text fallback prefs file so that instrumented tests
+    // can inject API keys without requiring cross-process EncryptedSharedPreferences access.
+    // The fallback file "oneclaw_api_keys_debug" is written by SetupDataInjector in tests.
+    private val debugPrefs: SharedPreferences? = if (BuildConfig.DEBUG) {
+        context.getSharedPreferences("oneclaw_api_keys_debug", Context.MODE_PRIVATE)
+    } else null
+
     fun getApiKey(providerId: String): String? {
+        // In DEBUG builds, the plain fallback takes priority (set by instrumented tests)
+        val debugKey = debugPrefs?.getString("api_key_$providerId", null)
+        if (debugKey != null) return debugKey
         return prefs.getString("api_key_$providerId", null)
     }
 
@@ -313,19 +327,23 @@ class ApiKeyStorage(context: Context) {
 
     fun deleteApiKey(providerId: String) {
         prefs.edit().remove("api_key_$providerId").apply()
+        debugPrefs?.edit()?.remove("api_key_$providerId")?.apply()
     }
 
     fun hasApiKey(providerId: String): Boolean {
-        return prefs.getString("api_key_$providerId", null) != null
+        if (debugPrefs?.contains("api_key_$providerId") == true) return true
+        return prefs.contains("api_key_$providerId")
     }
 }
 ```
 
 ### Key Design Decisions
-- **Key format**: `api_key_{providerId}` -- simple, collision-free since providerId is UUID
+- **Key format**: `api_key_{providerId}` — simple, collision-free since providerId is a fixed string (e.g., `provider-anthropic`)
 - **Trim on save**: `apiKey.trim()` removes accidental whitespace (common user error when pasting keys)
-- **EncryptedSharedPreferences**: Uses AES256-GCM for value encryption, AES256-SIV for key encryption, backed by Android Keystore master key
+- **EncryptedSharedPreferences**: Uses AES256-GCM for value encryption, AES256-SIV for key encryption, backed by Android Keystore master key via `MasterKey.Builder`
 - **No caching**: Reads directly from EncryptedSharedPreferences each time. The underlying implementation has its own caching, and API key reads are infrequent enough that this is not a performance concern.
+- **Debug fallback**: In `BuildConfig.DEBUG` builds, a plain `SharedPreferences` file (`oneclaw_api_keys_debug`) is checked first. This allows instrumented tests to inject API keys without needing to interact with `EncryptedSharedPreferences` cross-process. The fallback is inert in release builds.
+- **`buildConfig = true` required**: `BuildConfig.DEBUG` is only generated if `buildFeatures { buildConfig = true }` is set in `app/build.gradle.kts`.
 
 ## DAO Interfaces
 
@@ -973,10 +991,14 @@ class AppDatabaseCallback : RoomDatabase.Callback() {
                VALUES ('o3-mini', 'o3 Mini', 'provider-openai', 0, 'PRESET')""",
 
             // Anthropic preset models
+            // NOTE: Use the correct versioned model IDs as they appear in the Anthropic API.
+            // These were corrected after Layer 2 testing found the old IDs did not exist.
             """INSERT INTO models (id, display_name, provider_id, is_default, source)
-               VALUES ('claude-sonnet-4-20250514', 'Claude Sonnet 4', 'provider-anthropic', 0, 'PRESET')""",
+               VALUES ('claude-opus-4-5-20251101', 'Claude Opus 4.5', 'provider-anthropic', 0, 'PRESET')""",
             """INSERT INTO models (id, display_name, provider_id, is_default, source)
-               VALUES ('claude-haiku-4-20250414', 'Claude Haiku 4', 'provider-anthropic', 0, 'PRESET')""",
+               VALUES ('claude-sonnet-4-5-20250929', 'Claude Sonnet 4.5', 'provider-anthropic', 0, 'PRESET')""",
+            """INSERT INTO models (id, display_name, provider_id, is_default, source)
+               VALUES ('claude-haiku-4-5-20251001', 'Claude Haiku 4.5', 'provider-anthropic', 0, 'PRESET')""",
 
             // Gemini preset models
             """INSERT INTO models (id, display_name, provider_id, is_default, source)

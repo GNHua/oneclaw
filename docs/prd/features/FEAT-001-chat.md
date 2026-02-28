@@ -71,6 +71,7 @@ When the model's response includes tool calls:
 - While a response is being generated, a stop button replaces the send button
 - Tapping stop cancels the in-flight request
 - Whatever has been received so far is kept in the chat
+- The stop button **must** switch back to the send button immediately after the user taps it — the UI must never remain stuck in the "streaming" state after a stop
 - The user can then send a new message
 
 #### Copying Messages
@@ -121,11 +122,13 @@ Must pass (all required):
 - [ ] A typing/loading indicator is shown while waiting for the first response token
 - [ ] User can stop an in-progress response generation
 - [ ] Partially received content is preserved after stopping
+- [ ] Stop button switches back to send button immediately after tapping stop (UI never stays stuck in streaming state)
 - [ ] All message types can be copied (long-press to copy)
 - [ ] Error messages are displayed clearly when API calls or tool execution fails
 - [ ] Chat auto-scrolls to the bottom on new messages and during streaming
 - [ ] User can scroll up to view history; a "scroll to bottom" button appears when scrolled away
 - [ ] Send button is disabled when input is empty or a request is in-flight
+- [ ] When the soft keyboard opens, the top app bar (hamburger icon and settings gear) remains fully visible and is not pushed off-screen
 
 Optional (nice to have for V1):
 - [ ] Haptic feedback on send
@@ -141,6 +144,7 @@ For detailed visual specifications, layouts, spacing, and component designs, see
 - Top app bar: hamburger menu (left), Agent selector with dropdown chevron (center), settings gear (right)
 - Message list occupies most of the screen
 - Input area fixed at the bottom: pill-shaped text field + send/stop button
+- When the soft keyboard opens, **only the message list and input area adjust** — the top app bar must remain fully visible. The hamburger icon and settings gear must never be pushed off-screen by the keyboard. This is achieved by using `WindowCompat.setDecorFitsSystemWindows(false)` with Compose `imePadding()` on the input area, rather than relying on `windowSoftInputMode=adjustResize`.
 
 ### Message Bubbles
 - User messages: right-aligned, `primaryContainer` background, rounded corners (18dp)

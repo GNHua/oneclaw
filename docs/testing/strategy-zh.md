@@ -1009,14 +1009,41 @@ adb shell dumpsys activity activities | head -20
 #### 流程 7：停止生成
 
 ```
-目标：验证停止生成保存部分文本。
+目标：验证停止生成保存部分文本，并且 UI 完全恢复。
 
 步骤：
 1. 发送会产生长响应的消息："Write a 500 word essay about the ocean."
 2. 等待 2 秒（部分响应应该正在流式传输）
 3. 点击停止按钮
-4. 截图 -> 验证：部分 AI 响应可见，发送按钮恢复，流式传输停止
+4. 截图 -> 验证以下所有内容：
+   - 停止按钮已切换回发送按钮（关键：UI 不得停留在流式传输状态）
+   - 流式光标消失
+   - 部分 AI 响应文本保留在聊天中
 5. 发送另一条消息验证聊天仍然正常工作
+
+关键检查：如果点击停止后停止按钮仍然可见，这是一个 bug。
+修复方法是在 ChatViewModel 的 CancellationException catch 块中，
+用 withContext(NonCancellable) {} 包裹 savePartialResponse() 和 finishStreaming()。
+```
+
+#### 流程 8：键盘弹出不推动顶部栏
+
+```
+目标：验证软键盘只调整输入区域，不影响整个屏幕。
+
+步骤：
+1. 打开任意聊天对话
+2. 点击消息输入框使其获得焦点
+3. 等待软键盘出现
+4. 截图 -> 验证以下所有内容：
+   - 顶部应用栏完整可见（左侧汉堡图标，右侧设置齿轮）
+   - 汉堡图标和设置齿轮均未被隐藏或裁剪
+   - 输入框在键盘正上方可见
+   - 消息列表在顶部栏和输入框之间仍然可见
+
+关键检查：如果键盘弹出后汉堡图标或设置齿轮被推出屏幕，这是一个 bug。
+修复方法是在 ChatScreen.kt 的 Scaffold 上设置
+contentWindowInsets = WindowInsets.ime.union(WindowInsets.navigationBars)。
 ```
 
 ### 第二层 AI 验证方法

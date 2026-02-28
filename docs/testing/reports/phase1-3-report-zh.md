@@ -9,7 +9,7 @@
 | Commits | `02e44d7`、`70a350f`、`10ebbbd`、`ca5e281`、`4dbe9c3` |
 | 日期 | 2026-02-27 |
 | 测试人 | AI (OpenCode) |
-| 状态 | 部分通过 — 第二层跳过（Chat 功能尚未实现） |
+| 状态 | 完成 — 第二层 Chat 流程已全面验证 |
 
 ## 摘要
 
@@ -21,7 +21,7 @@
 | 1B | 设备 DAO 测试 | 通过 | 47 个 DAO 测试，在 emulator-5554 运行 |
 | 1B | 设备 UI 测试 | 跳过 | 暂未编写 Compose androidTest |
 | 1C | Roborazzi 截图测试 | 通过 | 5 张基线截图，已记录并验证 |
-| 2 | adb 视觉验证 | 跳过 | RFC-001（Chat）尚未实现；Flow 1 部分可用但推迟执行 |
+| 2 | adb 视觉验证 | 通过 | Flow 1（Setup）、Flow 5（数据注入）、Flow 6（Chat）均已验证 |
 
 ## 第一层 A：JVM 单元测试
 
@@ -127,25 +127,61 @@
 
 ## 第二层：adb 视觉验证
 
-**结果：** 部分完成 — RFC-001/RFC-002 实现后验证了 Setup 界面
+**结果：** 通过
 
-**更新：** 所有 RFC 实现后（commit `bdea03c`），在模拟器上验证了 Setup 流程。
+**设备：** `emulator-5554`，Medium_Phone_API_36.1，Android 16，1080×2400
 
-**发现并修复的 Bug：** `SetupScreen` 标题"Welcome to OneClawShadow"和步骤标题（"Step 1/2/3 of 3"）没有明确指定颜色，渲染为默认的 `onBackground` 黑色。已通过为这些文本设置 `color = MaterialTheme.colorScheme.primary` 修复。
+**数据注入方式：** `adb shell am instrument` 运行 `SetupDataInjector`（将 API key 写入 debug SharedPreferences + 向数据库 seed Provider 和模型数据）。
 
-**发现并修复的第二个 Bug：** `OneClawShadowTheme` 默认 `dynamicColor = true`，导致 Android 12+ 设备/模拟器用系统壁纸颜色（模拟器默认：蓝色）覆盖了 gold/amber 调色板。已通过将默认值改为 `dynamicColor = false` 修复。
+**Layer 2 测试期间发现并修复的 Bug：** 详见下方"发现的问题"第 6–13 条。
 
 ### Flow 1 — Setup 第 1 步：选择 Provider
 
-<img src="screenshots/Layer2_SetupScreen_step1_choose_provider.png" width="250">
+<img src="screenshots/Layer2_Flow1_step1_fresh_launch_setup.png" width="250">
 
 视觉检查："Welcome to OneClawShadow"标题显示为 gold/amber 主色，"Step 1 of 3: Choose a provider"步骤标题同样为主色。背景为暖米色（`surfaceLight`）。三个 Provider 卡片（OpenAI、Anthropic、Google Gemini）样式正确。底部"Skip for now"为 gold/amber 色。
 
-### Flow 1 — Setup 第 2 步：输入 API Key
+### Flow 1 — Setup 第 2 步：输入 API Key（空状态）
 
-<img src="screenshots/Layer2_SetupScreen_step2_enter_api_key.png" width="250">
+<img src="screenshots/Layer2_Flow1_step2_enter_api_key.png" width="250">
 
-视觉检查：标题和"Step 2 of 3: Enter API key"均显示为 gold/amber 主色。"Enter your OpenAI API key."为 `onBackground` 色。带"API Key"标签的边框输入框。"Test & Connect"按钮处于禁用状态（未输入 key），显示为柔和的容器颜色。"Skip for now"为 gold/amber 色。
+视觉检查：标题和"Step 2 of 3: Enter API key"均显示为 gold/amber 主色。"Enter your Anthropic API key."为 `onBackground` 色。带"API Key"标签的边框输入框。"Test & Connect"按钮处于禁用状态。"Skip for now"为 gold/amber 色。
+
+### Flow 1 — Setup 第 2 步：已输入 API Key
+
+<img src="screenshots/Layer2_Flow1_step2_api_key_entered.png" width="250">
+
+视觉检查：API key 已填入输入框，"Test & Connect"按钮变为激活状态（gold/amber 主色）。
+
+### Flow 5 — 数据注入后直接进入 Chat（空状态）
+
+<img src="screenshots/Layer2_Flow5_step1_direct_to_chat.png" width="250">
+
+视觉检查：通过 `adb instrument` 注入数据后，app 直接启动到 Chat 界面（跳过 Setup）。顶部显示"General Assistant"会话标题，屏幕中央显示"How can I help you today?"占位文字。底部输入栏，发送按钮为禁用状态。
+
+### Flow 6 — Chat：空状态
+
+<img src="screenshots/Layer2_Flow6_step1_chat_empty.png" width="250">
+
+视觉检查：Chat 空状态界面。"General Assistant"Agent 名称、设置图标、汉堡菜单。底部消息输入框和禁用的发送按钮（灰色）。
+
+### Flow 6 — Chat：已输入消息
+
+<img src="screenshots/Layer2_Flow6_step2_message_typed.png" width="250">
+
+视觉检查：输入框中已有文字。发送按钮激活（gold/amber 色）。
+
+### Flow 6 — Chat：Streaming 中
+
+<img src="screenshots/Layer2_Flow6_step3_streaming.png" width="250">
+
+视觉检查：用户消息气泡（gold/amber 色），AI 响应正在流式传输，部分文字已显示。发送按钮位置变为红色停止按钮（■）。Markdown 粗体文字在 streaming 过程中正确渲染。
+
+### Flow 6 — Chat：响应完成
+
+<img src="screenshots/Layer2_Flow6_step4_response_complete.png" width="250">
+
+视觉检查：AI 完整响应已渲染（Markdown 格式：粗体标题、段落文字）。响应下方显示复制和重新生成按钮。显示模型 ID `claude-haiku-4-5-20251001`。发送按钮恢复（灰色，输入框为空）。停止按钮消失。
 
 ## 发现的问题
 
@@ -156,6 +192,14 @@
 | 3 | Robolectric 每个测试方法都触发 `OneclawApplication.startKoin()`，引发 `KoinAppAlreadyStartedException` | 中 | 已通过 `@Config(application = Application::class)` 在 `4dbe9c3` 修复 |
 | 4 | `SetupScreen` 标题和步骤标题没有颜色（渲染为黑色）；应使用 `primary`（gold/amber） | 低 | 已在 RFC-001/002 实现后修复 |
 | 5 | `OneClawShadowTheme` 默认 `dynamicColor = true`，在 Android 12+ 设备上用系统壁纸颜色覆盖 gold/amber 调色板 | 高 | 已修复：默认值改为 `false` |
+| 6 | `BuildConfig.DEBUG` 未生成 — `app/build.gradle.kts` 缺少 `buildFeatures { buildConfig = true }` | 中 | 已修复：添加 `buildConfig = true` |
+| 7 | Tool 定义 JSON 序列化错误：`formatToolDefinitions()` 使用 `v.toString()` 生成 Kotlin Map 语法 `{key=value}` 而非 JSON | 严重 | 已修复：在三个适配器中添加 `anyToJsonElement()` 辅助函数 |
+| 8 | Message 和 Session ID 未生成：`MessageRepositoryImpl.addMessage()` 和 `SessionRepositoryImpl.createSession()` 收到 `id = ""` 时未生成 UUID，导致所有记录互相覆盖 | 严重 | 已修复：在两个 Impl 类中添加 `UUID.randomUUID()` 回退逻辑 |
+| 9 | `SseParser.asSseFlow()` 使用 `callbackFlow` + `source().buffer()`，在非 IO dispatcher 上 `source.exhausted()` 立刻返回 true（读取 0 行） | 严重 | 已修复：改写为 `channelFlow` + `withContext(Dispatchers.IO)` + `byteStream().bufferedReader()` |
+| 10 | `SseParser.asSseFlow()` 在 `withContext` 之后调用 `awaitClose()`，导致流结束后 `channelFlow` 永远不完成 — `isStreaming` 永久卡在 `true` | 严重 | 已修复：移除 `awaitClose()` |
+| 11 | 三个适配器用 `withContext(Dispatchers.IO) { body.asSseFlow() }.collect { emit(...) }` — 在 `flow {}` 内部从 IO dispatcher 调用 `emit`，违反 flow 不变量，`ResponseComplete` 永远不被 emit | 严重 | 已修复：移除 `withContext` 包裹（`asSseFlow()` 内部已处理 IO） |
+| 12 | `AppDatabase` seed 数据使用不存在的模型 ID `claude-haiku-4-20250414`、`claude-sonnet-4-20250514` | 高 | 已修复：更新为 `claude-haiku-4-5-20251001`、`claude-sonnet-4-5-20250929`、`claude-opus-4-5-20251101` |
+| 13 | `GenerateTitleUseCase.LIGHTWEIGHT_MODELS` 使用不存在的模型 ID `claude-haiku-4-20250414` | 中 | 已修复：更新为 `claude-haiku-4-5-20251001` |
 
 ## 变更历史
 
@@ -163,3 +207,4 @@
 |------|----------|
 | 2026-02-27 | 初始版本，覆盖第 1–3 阶段 |
 | 2026-02-27 | 更新 Layer 2：新增 Setup 第 1、2 步的 adb 截图，记录颜色修复（问题 4、5） |
+| 2026-02-27 | 完成 Layer 2：修复 8 个严重 Bug（问题 6–13），验证完整 Chat 流程（Flow 6），新增所有 Flow 6 截图 |

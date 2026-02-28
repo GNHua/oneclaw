@@ -27,7 +27,9 @@ data class ChatUiState(
 
     val errorMessage: String? = null,
 
-    val hasConfiguredProvider: Boolean = false
+    val hasConfiguredProvider: Boolean = false,
+    val isCompacting: Boolean = false,
+    val compactSnackbarMessage: String? = null
 )
 
 data class ChatMessageItem(

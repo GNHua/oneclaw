@@ -227,6 +227,13 @@ class ChatViewModel(
             is ChatEvent.ResponseComplete -> {
                 finishStreaming(sessionId)
             }
+            is ChatEvent.CompactStarted -> {
+                _uiState.update { it.copy(isCompacting = true) }
+            }
+            is ChatEvent.CompactCompleted -> {
+                _uiState.update { it.copy(isCompacting = false) }
+                // No Snackbar needed on success; fallback (didCompact=false) is silent
+            }
             is ChatEvent.Error -> {
                 handleError(sessionId, event)
             }

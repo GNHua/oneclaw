@@ -32,7 +32,7 @@ import java.util.concurrent.Executors
         MessageEntity::class,
         SettingsEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -66,16 +66,16 @@ abstract class AppDatabase : RoomDatabase() {
                            VALUES ('provider-gemini', 'Google Gemini', 'GEMINI', 'https://generativelanguage.googleapis.com/v1beta', 1, 1, $now, $now)"""
                     )
 
-                    // Seed preset models
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gpt-4o', 'GPT-4o', 'provider-openai', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gpt-4o-mini', 'GPT-4o Mini', 'provider-openai', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('o1', 'o1', 'provider-openai', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('o3-mini', 'o3 Mini', 'provider-openai', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('claude-opus-4-5-20251101', 'Claude Opus 4.5', 'provider-anthropic', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('claude-sonnet-4-5-20250929', 'Claude Sonnet 4.5', 'provider-anthropic', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('claude-haiku-4-5-20251001', 'Claude Haiku 4.5', 'provider-anthropic', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gemini-2.0-flash', 'Gemini 2.0 Flash', 'provider-gemini', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gemini-2.5-pro', 'Gemini 2.5 Pro', 'provider-gemini', 0, 'PRESET')")
+                    // Seed preset models (include context_window_size for fresh installs at schema v2)
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('gpt-4o', 'GPT-4o', 'provider-openai', 0, 'PRESET', 128000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('gpt-4o-mini', 'GPT-4o Mini', 'provider-openai', 0, 'PRESET', 128000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('o1', 'o1', 'provider-openai', 0, 'PRESET', 200000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('o3-mini', 'o3 Mini', 'provider-openai', 0, 'PRESET', 200000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('claude-opus-4-5-20251101', 'Claude Opus 4.5', 'provider-anthropic', 0, 'PRESET', 200000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('claude-sonnet-4-5-20250929', 'Claude Sonnet 4.5', 'provider-anthropic', 0, 'PRESET', 200000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('claude-haiku-4-5-20251001', 'Claude Haiku 4.5', 'provider-anthropic', 0, 'PRESET', 200000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('gemini-2.0-flash', 'Gemini 2.0 Flash', 'provider-gemini', 0, 'PRESET', 1048576)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('gemini-2.5-pro', 'Gemini 2.5 Pro', 'provider-gemini', 0, 'PRESET', 1048576)")
 
                     // Seed built-in General Assistant agent
                     val toolIds = json.encodeToString(listOf("get_current_time", "read_file", "write_file", "http_request"))

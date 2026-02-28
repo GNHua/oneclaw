@@ -8,6 +8,7 @@ import com.oneclaw.shadow.feature.agent.usecase.DeleteAgentUseCase
 import com.oneclaw.shadow.feature.agent.usecase.GetAgentToolsUseCase
 import com.oneclaw.shadow.feature.agent.usecase.ResolveModelUseCase
 import com.oneclaw.shadow.feature.chat.ChatViewModel
+import com.oneclaw.shadow.feature.chat.usecase.AutoCompactUseCase
 import com.oneclaw.shadow.feature.chat.usecase.SendMessageUseCase
 import com.oneclaw.shadow.feature.provider.ProviderDetailViewModel
 import com.oneclaw.shadow.feature.provider.ProviderListViewModel
@@ -58,8 +59,11 @@ val featureModule = module {
     viewModelOf(::AgentListViewModel)
     viewModelOf(::AgentDetailViewModel)
 
+    // RFC-011: Auto Compact
+    factory { AutoCompactUseCase(get(), get(), get(), get()) }
+
     // RFC-001: Chat feature use cases
-    factory { SendMessageUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { SendMessageUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // RFC-001: Chat feature view model
     viewModelOf(::ChatViewModel)

@@ -29,5 +29,9 @@ data class SessionEntity(
     @ColumnInfo(name = "created_at")
     val createdAt: Long,
     @ColumnInfo(name = "updated_at")
-    val updatedAt: Long
+    val updatedAt: Long,
+    @ColumnInfo(name = "compacted_summary")
+    val compactedSummary: String? = null,
+    @ColumnInfo(name = "compact_boundary_timestamp")
+    val compactBoundaryTimestamp: Long? = null
 )

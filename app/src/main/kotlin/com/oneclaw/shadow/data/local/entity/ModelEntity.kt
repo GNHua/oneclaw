@@ -28,5 +28,7 @@ data class ModelEntity(
     val providerId: String,
     @ColumnInfo(name = "is_default")
     val isDefault: Boolean,
-    val source: String // "DYNAMIC", "PRESET", "MANUAL"
+    val source: String, // "DYNAMIC", "PRESET", "MANUAL"
+    @ColumnInfo(name = "context_window_size")
+    val contextWindowSize: Int? = null
 )

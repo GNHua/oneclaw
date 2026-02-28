@@ -13,6 +13,7 @@ import com.oneclaw.shadow.core.repository.MessageRepository
 import com.oneclaw.shadow.core.repository.ProviderRepository
 import com.oneclaw.shadow.core.repository.SessionRepository
 import com.oneclaw.shadow.core.util.ErrorCode
+import com.oneclaw.shadow.core.util.ToolResultTruncator
 import com.oneclaw.shadow.data.remote.adapter.ModelApiAdapterFactory
 import com.oneclaw.shadow.data.remote.adapter.StreamEvent
 import com.oneclaw.shadow.data.security.ApiKeyStorage
@@ -36,7 +37,8 @@ class SendMessageUseCase(
     private val apiKeyStorage: ApiKeyStorage,
     private val adapterFactory: ModelApiAdapterFactory,
     private val toolExecutionEngine: ToolExecutionEngine,
-    private val toolRegistry: ToolRegistry
+    private val toolRegistry: ToolRegistry,
+    private val autoCompactUseCase: AutoCompactUseCase
 ) {
     companion object {
         const val MAX_TOOL_ROUNDS = 100
@@ -100,7 +102,12 @@ class SendMessageUseCase(
         try {
             while (round < MAX_TOOL_ROUNDS) {
                 val allMessages = messageRepository.getMessagesSnapshot(sessionId)
-                val apiMessages = allMessages.toApiMessages()
+                val session = sessionRepository.getSessionById(sessionId)!!
+                val (effectiveSystemPrompt, apiMessages) = CompactAwareMessageBuilder.build(
+                    session = session,
+                    allMessages = allMessages,
+                    originalSystemPrompt = agent.systemPrompt
+                )
                 val adapter = adapterFactory.getAdapter(provider.type)
 
                 var accumulatedText = ""
@@ -114,7 +121,7 @@ class SendMessageUseCase(
                     modelId = model.id,
                     messages = apiMessages,
                     tools = agentToolDefs,
-                    systemPrompt = agent.systemPrompt
+                    systemPrompt = effectiveSystemPrompt
                 ).collect { event ->
                     when (event) {
                         is StreamEvent.TextDelta -> {
@@ -164,6 +171,12 @@ class SendMessageUseCase(
                         preview = accumulatedText.take(100)
                     )
                     send(ChatEvent.ResponseComplete(aiMessage, usage))
+
+                    // Trigger auto-compact check
+                    send(ChatEvent.CompactStarted)
+                    val compactResult = autoCompactUseCase.compactIfNeeded(sessionId, model, provider)
+                    send(ChatEvent.CompactCompleted(compactResult.didCompact))
+
                     break
                 }
 
@@ -194,12 +207,14 @@ class SendMessageUseCase(
                         tokenCountInput = null, tokenCountOutput = null,
                         modelId = null, providerId = null, createdAt = 0
                     ))
+                    val rawOutput = tr.result.result ?: tr.result.errorMessage ?: ""
+                    val truncatedOutput = ToolResultTruncator.truncate(rawOutput)
                     messageRepository.addMessage(Message(
                         id = "", sessionId = sessionId, type = MessageType.TOOL_RESULT,
                         content = "", thinkingContent = null,
                         toolCallId = tr.toolCallId, toolName = tr.toolName,
                         toolInput = null,
-                        toolOutput = tr.result.result ?: tr.result.errorMessage ?: "",
+                        toolOutput = truncatedOutput,
                         toolStatus = finalStatus,
                         toolDurationMs = tr.durationMs,
                         tokenCountInput = null, tokenCountOutput = null,

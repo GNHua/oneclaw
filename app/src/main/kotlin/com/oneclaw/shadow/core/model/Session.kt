@@ -9,5 +9,7 @@ data class Session(
     val isActive: Boolean,
     val deletedAt: Long?,
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val compactedSummary: String? = null,
+    val compactBoundaryTimestamp: Long? = null
 )

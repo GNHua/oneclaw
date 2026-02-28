@@ -82,4 +82,8 @@ class SessionRepositoryImpl(
     override suspend fun updateCurrentAgent(id: String, agentId: String) {
         sessionDao.updateCurrentAgent(id, agentId, DateTimeUtils.now())
     }
+
+    override suspend fun updateCompactedSummary(id: String, summary: String?, boundaryTimestamp: Long?) {
+        sessionDao.updateCompactedSummary(id, summary, boundaryTimestamp, DateTimeUtils.now())
+    }
 }

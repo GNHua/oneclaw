@@ -22,6 +22,7 @@ import com.oneclaw.shadow.feature.chat.ChatEvent
 import com.oneclaw.shadow.tool.engine.ToolCallRequest
 import com.oneclaw.shadow.tool.engine.ToolExecutionEngine
 import com.oneclaw.shadow.tool.engine.ToolRegistry
+import com.oneclaw.shadow.tool.skill.SkillRegistry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -41,7 +42,8 @@ class SendMessageUseCase(
     private val toolExecutionEngine: ToolExecutionEngine,
     private val toolRegistry: ToolRegistry,
     private val autoCompactUseCase: AutoCompactUseCase,
-    private val memoryInjector: MemoryInjector? = null
+    private val memoryInjector: MemoryInjector? = null,
+    private val skillRegistry: SkillRegistry? = null
 ) {
     companion object {
         const val MAX_TOOL_ROUNDS = 100
@@ -97,15 +99,20 @@ class SendMessageUseCase(
         )
         sessionRepository.setActive(sessionId, true)
 
-        // 5. Get agent tools
-        val agentToolDefs: List<ToolDefinition>? = if (agent.toolIds.isNotEmpty()) {
-            toolRegistry.getToolDefinitionsByNames(agent.toolIds).takeIf { it.isNotEmpty() }
-        } else null
+        // 5. Get agent tools -- always include load_skill if available
+        val agentToolDefs: List<ToolDefinition>? = buildList {
+            // Always include load_skill (RFC-014)
+            toolRegistry.getTool("load_skill")?.let { add(it.definition) }
+            // Add agent's configured tools
+            if (agent.toolIds.isNotEmpty()) {
+                addAll(toolRegistry.getToolDefinitionsByNames(agent.toolIds))
+            }
+        }.takeIf { it.isNotEmpty() }
 
         var round = 0
         try {
             // Inject memory context into system prompt (only on first round)
-            val baseSystemPrompt = if (memoryInjector != null) {
+            val memorySystemPrompt = if (memoryInjector != null) {
                 try {
                     val memoryInjection = memoryInjector.buildInjection(query = userText)
                     if (memoryInjection.isNotBlank()) {
@@ -121,6 +128,9 @@ class SendMessageUseCase(
             } else {
                 agent.systemPrompt
             }
+
+            // RFC-014: Inject skill registry into system prompt
+            val baseSystemPrompt = buildSystemPromptWithSkills(memorySystemPrompt)
 
             while (round < MAX_TOOL_ROUNDS) {
                 val allMessages = messageRepository.getMessagesSnapshot(sessionId)
@@ -345,6 +355,21 @@ class SendMessageUseCase(
             injected.add(text)
         }
         return injected
+    }
+
+    /**
+     * RFC-014: Append skill registry to system prompt when skills are available.
+     */
+    private fun buildSystemPromptWithSkills(basePrompt: String): String {
+        val registry = skillRegistry ?: return basePrompt
+        val registryPrompt = registry.generateRegistryPrompt()
+        return if (registryPrompt.isBlank()) {
+            basePrompt
+        } else if (basePrompt.isBlank()) {
+            registryPrompt
+        } else {
+            "$basePrompt\n\n---\n\n$registryPrompt"
+        }
     }
 
     private data class PendingToolCall(

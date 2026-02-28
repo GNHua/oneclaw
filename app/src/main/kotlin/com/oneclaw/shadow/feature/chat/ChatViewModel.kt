@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.oneclaw.shadow.core.model.AgentConstants
 import com.oneclaw.shadow.core.model.Message
 import com.oneclaw.shadow.core.model.MessageType
+import com.oneclaw.shadow.core.model.SkillDefinition
 import com.oneclaw.shadow.core.model.ToolCallStatus
 import com.oneclaw.shadow.core.model.ToolResultStatus
 import com.oneclaw.shadow.core.lifecycle.AppLifecycleObserver
@@ -16,6 +17,7 @@ import com.oneclaw.shadow.core.repository.SessionRepository
 import com.oneclaw.shadow.feature.chat.usecase.SendMessageUseCase
 import com.oneclaw.shadow.feature.session.usecase.CreateSessionUseCase
 import com.oneclaw.shadow.feature.session.usecase.GenerateTitleUseCase
+import com.oneclaw.shadow.tool.skill.SkillRegistry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -36,7 +38,8 @@ class ChatViewModel(
     private val createSessionUseCase: CreateSessionUseCase,
     private val generateTitleUseCase: GenerateTitleUseCase,
     private val appLifecycleObserver: AppLifecycleObserver,
-    private val notificationHelper: NotificationHelper
+    private val notificationHelper: NotificationHelper,
+    private val skillRegistry: SkillRegistry? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -51,6 +54,13 @@ class ChatViewModel(
     init {
         initialize(null)
         checkProviderStatus()
+        loadSkillsIntoState()
+    }
+
+    private fun loadSkillsIntoState() {
+        if (skillRegistry == null) return
+        val allSkills = skillRegistry.getAllSkills()
+        _uiState.update { it.copy(allSkills = allSkills) }
     }
 
     fun initialize(sessionId: String?) {
@@ -106,6 +116,121 @@ class ChatViewModel(
 
     fun updateInputText(text: String) {
         _uiState.update { it.copy(inputText = text) }
+        // RFC-014: Detect slash command prefix for skill autocomplete
+        updateSlashCommandState(text)
+    }
+
+    private fun updateSlashCommandState(text: String) {
+        if (skillRegistry == null) return
+        if (text.startsWith("/")) {
+            val query = text.removePrefix("/").lowercase()
+            val allSkills = skillRegistry.getAllSkills()
+            val matches = if (query.isEmpty()) {
+                allSkills
+            } else {
+                allSkills.filter { skill ->
+                    skill.name.contains(query) || skill.displayName.lowercase().contains(query)
+                }
+            }
+            _uiState.update {
+                it.copy(
+                    slashCommandState = SlashCommandState(
+                        isActive = true,
+                        query = query,
+                        matchingSkills = matches
+                    )
+                )
+            }
+        } else {
+            _uiState.update {
+                it.copy(slashCommandState = SlashCommandState(isActive = false))
+            }
+        }
+    }
+
+    /**
+     * Select a skill from the slash command popup.
+     * Constructs a message and sends it.
+     * RFC-014
+     */
+    fun selectSkillFromSlashCommand(skill: SkillDefinition) {
+        val message = buildSkillMessage(skill)
+        _uiState.update {
+            it.copy(
+                inputText = "",
+                slashCommandState = SlashCommandState(isActive = false)
+            )
+        }
+        sendTextMessage(message)
+    }
+
+    /**
+     * Select a skill from the skill selection bottom sheet.
+     * RFC-014
+     */
+    fun selectSkillFromSheet(skill: SkillDefinition) {
+        val message = buildSkillMessage(skill)
+        _uiState.update { it.copy(showSkillSheet = false) }
+        sendTextMessage(message)
+    }
+
+    private fun buildSkillMessage(skill: SkillDefinition): String {
+        return if (skill.parameters.isEmpty()) {
+            "Use the ${skill.displayName} skill"
+        } else {
+            val paramsList = skill.parameters.joinToString(", ") { p ->
+                if (p.required) p.name else "${p.name} (optional)"
+            }
+            "Use the ${skill.displayName} skill. Parameters: $paramsList"
+        }
+    }
+
+    fun dismissSlashCommand() {
+        _uiState.update { it.copy(slashCommandState = SlashCommandState(isActive = false)) }
+    }
+
+    fun toggleSkillSheet() {
+        _uiState.update { it.copy(showSkillSheet = !it.showSkillSheet) }
+    }
+
+    fun dismissSkillSheet() {
+        _uiState.update { it.copy(showSkillSheet = false) }
+    }
+
+    /**
+     * Send a text message directly (used by skill selection flows).
+     */
+    private fun sendTextMessage(text: String) {
+        if (text.isBlank()) return
+
+        if (_uiState.value.isStreaming) {
+            viewModelScope.launch {
+                val sessionId = _uiState.value.sessionId ?: return@launch
+                messageRepository.addMessage(Message(
+                    id = "", sessionId = sessionId, type = MessageType.USER,
+                    content = text, thinkingContent = null,
+                    toolCallId = null, toolName = null, toolInput = null, toolOutput = null,
+                    toolStatus = null, toolDurationMs = null, tokenCountInput = null,
+                    tokenCountOutput = null, modelId = null, providerId = null, createdAt = 0
+                ))
+                val tempId = java.util.UUID.randomUUID().toString()
+                _uiState.update { state ->
+                    state.copy(
+                        messages = state.messages + ChatMessageItem(
+                            id = tempId, type = MessageType.USER,
+                            content = text, timestamp = System.currentTimeMillis()
+                        ),
+                        pendingCount = state.pendingCount + 1
+                    )
+                }
+                pendingMessages.trySend(text)
+            }
+            return
+        }
+
+        // Use the normal sendMessage path by setting input text then calling sendMessage
+        _uiState.update { it.copy(inputText = text) }
+        sendMessage()
     }
 
     fun sendMessage() {

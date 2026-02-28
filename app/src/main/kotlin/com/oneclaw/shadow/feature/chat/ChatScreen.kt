@@ -35,6 +35,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Error
@@ -92,6 +93,8 @@ import com.oneclaw.shadow.core.util.formatWithCommas
 import com.oneclaw.shadow.feature.agent.AgentSelectorSheet
 import com.oneclaw.shadow.feature.session.SessionDrawerContent
 import com.oneclaw.shadow.feature.session.SessionListViewModel
+import com.oneclaw.shadow.feature.skill.ui.SkillSelectionBottomSheet
+import com.oneclaw.shadow.feature.skill.ui.SlashCommandPopup
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -183,14 +186,28 @@ fun ChatScreen(
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
             bottomBar = {
-                ChatInput(
-                    text = uiState.inputText,
-                    onTextChange = { viewModel.updateInputText(it) },
-                    onSend = { viewModel.sendMessage() },
-                    onStop = { viewModel.stopGeneration() },
-                    isStreaming = uiState.isStreaming,
-                    hasConfiguredProvider = uiState.hasConfiguredProvider
-                )
+                Column {
+                    // RFC-014: Slash command autocomplete popup
+                    if (uiState.slashCommandState.isActive &&
+                        uiState.slashCommandState.matchingSkills.isNotEmpty()
+                    ) {
+                        SlashCommandPopup(
+                            skills = uiState.slashCommandState.matchingSkills,
+                            onSkillSelected = { skill ->
+                                viewModel.selectSkillFromSlashCommand(skill)
+                            }
+                        )
+                    }
+                    ChatInput(
+                        text = uiState.inputText,
+                        onTextChange = { viewModel.updateInputText(it) },
+                        onSend = { viewModel.sendMessage() },
+                        onStop = { viewModel.stopGeneration() },
+                        onSkillClick = { viewModel.toggleSkillSheet() },
+                        isStreaming = uiState.isStreaming,
+                        hasConfiguredProvider = uiState.hasConfiguredProvider
+                    )
+                }
             },
             // Bottom bar handles its own insets (navigationBarsPadding + imePadding).
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
@@ -238,6 +255,15 @@ fun ChatScreen(
             currentAgentId = uiState.currentAgentId,
             onAgentSelected = { agentId -> viewModel.switchAgent(agentId) },
             onDismiss = { viewModel.dismissAgentSelector() }
+        )
+    }
+
+    // RFC-014: Skill selection bottom sheet
+    if (uiState.showSkillSheet) {
+        SkillSelectionBottomSheet(
+            skills = uiState.allSkills,
+            onSkillSelected = { skill -> viewModel.selectSkillFromSheet(skill) },
+            onDismiss = { viewModel.dismissSkillSheet() }
         )
     }
 }
@@ -290,6 +316,7 @@ fun ChatInput(
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
+    onSkillClick: () -> Unit = {},
     isStreaming: Boolean,
     hasConfiguredProvider: Boolean
 ) {
@@ -305,11 +332,23 @@ fun ChatInput(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.Bottom
         ) {
+            // RFC-014: Skill button (shows skill selection bottom sheet)
+            IconButton(
+                onClick = onSkillClick,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    Icons.Default.AutoAwesome,
+                    contentDescription = "Skills",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             OutlinedTextField(
                 value = text,
                 onValueChange = onTextChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Message") },
+                placeholder = { Text("Message or /skill") },
                 shape = MaterialTheme.shapes.extraLarge,
                 maxLines = 6,
                 enabled = true

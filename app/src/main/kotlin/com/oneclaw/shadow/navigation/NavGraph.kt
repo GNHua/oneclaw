@@ -16,6 +16,8 @@ import com.oneclaw.shadow.feature.provider.SetupScreen
 import com.oneclaw.shadow.feature.provider.SettingsScreen
 import com.oneclaw.shadow.feature.memory.ui.MemoryScreen
 import com.oneclaw.shadow.feature.settings.DataBackupScreen
+import com.oneclaw.shadow.feature.skill.ui.SkillEditorScreen
+import com.oneclaw.shadow.feature.skill.ui.SkillManagementScreen
 import com.oneclaw.shadow.feature.usage.UsageStatisticsScreen
 import android.content.Intent
 import org.koin.compose.koinInject
@@ -116,7 +118,8 @@ fun AppNavGraph(
                 onManageAgents = { navController.navigate(Route.AgentList.path) },
                 onUsageStatistics = { navController.navigate(Route.UsageStatistics.path) },
                 onDataBackup = { navController.navigate(Route.DataBackup.path) },
-                onMemory = { navController.navigate(Route.Memory.path) }
+                onMemory = { navController.navigate(Route.Memory.path) },
+                onSkills = { navController.navigate(Route.SkillManagement.path) }
             )
         }
 
@@ -141,6 +144,31 @@ fun AppNavGraph(
 
         composable(Route.Memory.path) {
             MemoryScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Route.SkillManagement.path) {
+            SkillManagementScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onCreateSkill = { navController.navigate(Route.SkillCreate.path) },
+                onEditSkill = { skillName ->
+                    navController.navigate(Route.SkillEdit.create(skillName))
+                }
+            )
+        }
+
+        composable(Route.SkillCreate.path) {
+            SkillEditorScreen(
+                skillName = null,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Route.SkillEdit.PATH) { backStackEntry ->
+            val skillName = backStackEntry.arguments?.getString("skillName")
+            SkillEditorScreen(
+                skillName = skillName,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

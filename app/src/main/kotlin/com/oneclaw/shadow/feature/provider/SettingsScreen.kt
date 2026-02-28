@@ -49,6 +49,7 @@ fun SettingsScreen(
     onUsageStatistics: () -> Unit = {},
     onDataBackup: () -> Unit = {},
     onMemory: () -> Unit = {},
+    onSkills: () -> Unit = {},
     themeManager: ThemeManager = koinInject()
 ) {
     val currentTheme by themeManager.themeMode.collectAsState()
@@ -119,6 +120,15 @@ fun SettingsScreen(
                 title = "Agent Memory",
                 subtitle = "View and edit long-term memory, daily logs",
                 onClick = onMemory
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            // -- Skills --
+            SectionHeader("Skills")
+            SettingsItem(
+                title = "Manage Skills",
+                subtitle = "Create, edit, and delete skills; import and export SKILL.md files",
+                onClick = onSkills
             )
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 

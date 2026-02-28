@@ -2,6 +2,7 @@ package com.oneclaw.shadow.feature.chat
 
 import com.oneclaw.shadow.core.model.AgentConstants
 import com.oneclaw.shadow.core.model.MessageType
+import com.oneclaw.shadow.core.model.SkillDefinition
 import com.oneclaw.shadow.core.model.ToolCallStatus
 
 data class ChatUiState(
@@ -29,7 +30,27 @@ data class ChatUiState(
 
     val hasConfiguredProvider: Boolean = false,
     val isCompacting: Boolean = false,
-    val compactSnackbarMessage: String? = null
+    val compactSnackbarMessage: String? = null,
+
+    // RFC-014: Slash command autocomplete state
+    val slashCommandState: SlashCommandState = SlashCommandState(),
+
+    // RFC-014: Skill selection bottom sheet
+    val showSkillSheet: Boolean = false,
+
+    // RFC-014: All available skills (for skill sheet)
+    val allSkills: List<SkillDefinition> = emptyList()
+)
+
+/**
+ * State for the slash command autocomplete popup.
+ * Active when user types "/" as first character in chat input.
+ * RFC-014
+ */
+data class SlashCommandState(
+    val isActive: Boolean = false,
+    val query: String = "",
+    val matchingSkills: List<SkillDefinition> = emptyList()
 )
 
 data class ChatMessageItem(

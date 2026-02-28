@@ -14,7 +14,8 @@ fun SessionEntity.toDomain(): Session = Session(
     createdAt = createdAt,
     updatedAt = updatedAt,
     compactedSummary = compactedSummary,
-    compactBoundaryTimestamp = compactBoundaryTimestamp
+    compactBoundaryTimestamp = compactBoundaryTimestamp,
+    lastLoggedMessageId = lastLoggedMessageId
 )
 
 fun Session.toEntity(): SessionEntity = SessionEntity(
@@ -28,5 +29,6 @@ fun Session.toEntity(): SessionEntity = SessionEntity(
     createdAt = createdAt,
     updatedAt = updatedAt,
     compactedSummary = compactedSummary,
-    compactBoundaryTimestamp = compactBoundaryTimestamp
+    compactBoundaryTimestamp = compactBoundaryTimestamp,
+    lastLoggedMessageId = lastLoggedMessageId
 )

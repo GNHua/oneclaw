@@ -33,5 +33,7 @@ data class SessionEntity(
     @ColumnInfo(name = "compacted_summary")
     val compactedSummary: String? = null,
     @ColumnInfo(name = "compact_boundary_timestamp")
-    val compactBoundaryTimestamp: Long? = null
+    val compactBoundaryTimestamp: Long? = null,
+    @ColumnInfo(name = "last_logged_message_id")
+    val lastLoggedMessageId: String? = null  // RFC-013: tracks last message processed for daily log
 )

@@ -15,6 +15,7 @@ import com.oneclaw.shadow.core.repository.SessionRepository
 import com.oneclaw.shadow.core.util.ErrorCode
 import com.oneclaw.shadow.core.util.ToolResultTruncator
 import com.oneclaw.shadow.data.remote.adapter.ModelApiAdapterFactory
+import com.oneclaw.shadow.feature.memory.injection.MemoryInjector
 import com.oneclaw.shadow.data.remote.adapter.StreamEvent
 import com.oneclaw.shadow.data.security.ApiKeyStorage
 import com.oneclaw.shadow.feature.chat.ChatEvent
@@ -39,7 +40,8 @@ class SendMessageUseCase(
     private val adapterFactory: ModelApiAdapterFactory,
     private val toolExecutionEngine: ToolExecutionEngine,
     private val toolRegistry: ToolRegistry,
-    private val autoCompactUseCase: AutoCompactUseCase
+    private val autoCompactUseCase: AutoCompactUseCase,
+    private val memoryInjector: MemoryInjector? = null
 ) {
     companion object {
         const val MAX_TOOL_ROUNDS = 100
@@ -102,13 +104,31 @@ class SendMessageUseCase(
 
         var round = 0
         try {
+            // Inject memory context into system prompt (only on first round)
+            val baseSystemPrompt = if (memoryInjector != null) {
+                try {
+                    val memoryInjection = memoryInjector.buildInjection(query = userText)
+                    if (memoryInjection.isNotBlank()) {
+                        if (agent.systemPrompt.isBlank()) memoryInjection
+                        else "${agent.systemPrompt}\n\n$memoryInjection"
+                    } else {
+                        agent.systemPrompt
+                    }
+                } catch (e: Exception) {
+                    // Memory injection failure is non-fatal -- proceed without it
+                    agent.systemPrompt
+                }
+            } else {
+                agent.systemPrompt
+            }
+
             while (round < MAX_TOOL_ROUNDS) {
                 val allMessages = messageRepository.getMessagesSnapshot(sessionId)
                 val session = sessionRepository.getSessionById(sessionId)!!
                 val (effectiveSystemPrompt, apiMessages) = CompactAwareMessageBuilder.build(
                     session = session,
                     allMessages = allMessages,
-                    originalSystemPrompt = agent.systemPrompt
+                    originalSystemPrompt = baseSystemPrompt
                 )
                 val adapter = adapterFactory.getAdapter(provider.type)
 

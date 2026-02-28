@@ -48,6 +48,7 @@ fun SettingsScreen(
     onManageAgents: () -> Unit = {},
     onUsageStatistics: () -> Unit = {},
     onDataBackup: () -> Unit = {},
+    onMemory: () -> Unit = {},
     themeManager: ThemeManager = koinInject()
 ) {
     val currentTheme by themeManager.themeMode.collectAsState()
@@ -109,6 +110,15 @@ fun SettingsScreen(
                 title = "Usage Statistics",
                 subtitle = "View token usage by model",
                 onClick = onUsageStatistics
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            // -- Memory --
+            SectionHeader("Memory")
+            SettingsItem(
+                title = "Agent Memory",
+                subtitle = "View and edit long-term memory, daily logs",
+                onClick = onMemory
             )
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 

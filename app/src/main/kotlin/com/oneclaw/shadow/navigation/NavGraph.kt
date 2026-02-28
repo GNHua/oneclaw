@@ -14,11 +14,13 @@ import com.oneclaw.shadow.feature.provider.ProviderDetailScreen
 import com.oneclaw.shadow.feature.provider.ProviderListScreen
 import com.oneclaw.shadow.feature.provider.SetupScreen
 import com.oneclaw.shadow.feature.provider.SettingsScreen
+import com.oneclaw.shadow.feature.memory.ui.MemoryScreen
 import com.oneclaw.shadow.feature.settings.DataBackupScreen
 import com.oneclaw.shadow.feature.usage.UsageStatisticsScreen
 import android.content.Intent
 import org.koin.compose.koinInject
 
+@Suppress("LongParameterList")
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
@@ -113,7 +115,8 @@ fun AppNavGraph(
                 onManageProviders = { navController.navigate(Route.ProviderList.path) },
                 onManageAgents = { navController.navigate(Route.AgentList.path) },
                 onUsageStatistics = { navController.navigate(Route.UsageStatistics.path) },
-                onDataBackup = { navController.navigate(Route.DataBackup.path) }
+                onDataBackup = { navController.navigate(Route.DataBackup.path) },
+                onMemory = { navController.navigate(Route.Memory.path) }
             )
         }
 
@@ -133,6 +136,12 @@ fun AppNavGraph(
                     context.startActivity(intent)
                     Runtime.getRuntime().exit(0)
                 }
+            )
+        }
+
+        composable(Route.Memory.path) {
+            MemoryScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

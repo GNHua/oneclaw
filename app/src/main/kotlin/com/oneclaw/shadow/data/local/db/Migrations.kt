@@ -3,6 +3,28 @@ package com.oneclaw.shadow.data.local.db
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // RFC-013: Add memory_index table
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS memory_index (
+                id TEXT NOT NULL PRIMARY KEY,
+                source_type TEXT NOT NULL,
+                source_date TEXT,
+                chunk_text TEXT NOT NULL,
+                embedding BLOB,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+
+        // RFC-013: Add last_logged_message_id to sessions
+        db.execSQL("ALTER TABLE sessions ADD COLUMN last_logged_message_id TEXT DEFAULT NULL")
+    }
+}
+
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
         // Add context_window_size to models

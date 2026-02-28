@@ -27,4 +27,5 @@ sealed class Route(val path: String) {
     data object Settings : Route("settings")
     data object UsageStatistics : Route("usage")
     data object DataBackup : Route("data-backup")
+    data object Memory : Route("memory")
 }

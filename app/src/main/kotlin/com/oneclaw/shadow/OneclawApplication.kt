@@ -1,6 +1,9 @@
 package com.oneclaw.shadow
 
 import android.app.Application
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -11,9 +14,11 @@ import com.oneclaw.shadow.data.sync.SyncWorker
 import com.oneclaw.shadow.di.appModule
 import com.oneclaw.shadow.di.databaseModule
 import com.oneclaw.shadow.di.featureModule
+import com.oneclaw.shadow.di.memoryModule
 import com.oneclaw.shadow.di.networkModule
 import com.oneclaw.shadow.di.repositoryModule
 import com.oneclaw.shadow.di.toolModule
+import com.oneclaw.shadow.feature.memory.trigger.MemoryTriggerManager
 import com.oneclaw.shadow.feature.session.usecase.CleanupSoftDeletedUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,7 +43,8 @@ class OneclawApplication : Application() {
                 networkModule,
                 repositoryModule,
                 toolModule,
-                featureModule
+                featureModule,
+                memoryModule
             )
         }
 
@@ -56,6 +62,16 @@ class OneclawApplication : Application() {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             get<ThemeManager>(ThemeManager::class.java).initialize()
         }
+
+        // RFC-013: Register memory trigger for app background event
+        val memoryTriggerManager = get<MemoryTriggerManager>(MemoryTriggerManager::class.java)
+        ProcessLifecycleOwner.get().lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onStop(owner: LifecycleOwner) {
+                    memoryTriggerManager.onAppBackground()
+                }
+            }
+        )
 
         // RFC-007: Schedule periodic Google Drive sync every 1 hour
         val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(1, TimeUnit.HOURS)

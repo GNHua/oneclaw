@@ -26,6 +26,7 @@ import com.oneclaw.shadow.feature.session.usecase.CreateSessionUseCase
 import com.oneclaw.shadow.feature.session.usecase.DeleteSessionUseCase
 import com.oneclaw.shadow.feature.session.usecase.GenerateTitleUseCase
 import com.oneclaw.shadow.feature.session.usecase.RenameSessionUseCase
+import com.oneclaw.shadow.feature.memory.ui.MemoryViewModel
 import com.oneclaw.shadow.feature.settings.JsToolsViewModel
 import com.oneclaw.shadow.feature.settings.SyncSettingsViewModel
 import org.koin.android.ext.koin.androidContext
@@ -72,8 +73,11 @@ val featureModule = module {
     // RFC-011: Auto Compact
     factory { AutoCompactUseCase(get(), get(), get(), get()) }
 
-    // RFC-001: Chat feature use cases
-    factory { SendMessageUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    // RFC-001 + RFC-013: Chat feature use cases (with optional memory injection)
+    factory { SendMessageUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+
+    // RFC-013: Memory ViewModel
+    viewModelOf(::MemoryViewModel)
 
     // RFC-001: Chat feature view model
     viewModelOf(::ChatViewModel)

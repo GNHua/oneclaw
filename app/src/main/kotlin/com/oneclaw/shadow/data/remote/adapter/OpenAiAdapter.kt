@@ -18,6 +18,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
@@ -142,9 +143,7 @@ class OpenAiAdapter(
         // Track tool calls by index (OpenAI streams tool calls with index)
         val toolCallBuilders = mutableMapOf<Int, ToolCallBuilder>()
 
-        withContext(Dispatchers.IO) {
-            body.asSseFlow()
-        }.collect { sseEvent ->
+        body.asSseFlow().collect { sseEvent ->
             val data = sseEvent.data
             if (data == "[DONE]") {
                 // Finalize any pending tool calls
@@ -323,15 +322,30 @@ class OpenAiAdapter(
                         put("function", buildJsonObject {
                             put("name", tool.name)
                             put("description", tool.description)
-                            put("parameters", JsonObject(ToolSchemaSerializer.toJsonSchemaMap(tool.parametersSchema).mapValues { (_, v) ->
-                                json.parseToJsonElement(v.toString())
-                            }))
+                            put("parameters", anyToJsonElement(
+                                ToolSchemaSerializer.toJsonSchemaMap(tool.parametersSchema)
+                            ))
                         })
                     })
                 }
             })
             put("tool_choice", "auto")
         }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun anyToJsonElement(value: Any?): kotlinx.serialization.json.JsonElement = when (value) {
+        null -> kotlinx.serialization.json.JsonNull
+        is Boolean -> JsonPrimitive(value)
+        is Number -> JsonPrimitive(value)
+        is String -> JsonPrimitive(value)
+        is Map<*, *> -> buildJsonObject {
+            (value as Map<String, Any?>).forEach { (k, v) -> put(k, anyToJsonElement(v)) }
+        }
+        is List<*> -> buildJsonArray {
+            value.forEach { add(anyToJsonElement(it)) }
+        }
+        else -> JsonPrimitive(value.toString())
     }
 
     private fun isRelevantOpenAiModel(modelId: String): Boolean {

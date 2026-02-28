@@ -7,6 +7,7 @@ import com.oneclaw.shadow.data.local.mapper.toDomain
 import com.oneclaw.shadow.data.local.mapper.toEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.util.UUID
 
 class MessageRepositoryImpl(
     private val messageDao: MessageDao
@@ -16,8 +17,15 @@ class MessageRepositoryImpl(
         messageDao.getMessagesForSession(sessionId).map { entities -> entities.map { it.toDomain() } }
 
     override suspend fun addMessage(message: Message): Message {
-        messageDao.insert(message.toEntity())
-        return message
+        val withId = if (message.id.isBlank()) {
+            message.copy(id = UUID.randomUUID().toString())
+        } else {
+            message
+        }
+        val now = System.currentTimeMillis()
+        val withTimestamp = if (withId.createdAt == 0L) withId.copy(createdAt = now) else withId
+        messageDao.insert(withTimestamp.toEntity())
+        return withTimestamp
     }
 
     override suspend fun updateMessage(message: Message) {

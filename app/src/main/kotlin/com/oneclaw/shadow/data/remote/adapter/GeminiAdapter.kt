@@ -125,9 +125,7 @@ class GeminiAdapter(
         var outputTokens = 0
         var doneEmitted = false
 
-        withContext(Dispatchers.IO) {
-            body.asSseFlow()
-        }.collect { sseEvent ->
+        body.asSseFlow().collect { sseEvent ->
             try {
                 val jsonObj = json.parseToJsonElement(sseEvent.data).jsonObject
 
@@ -301,17 +299,29 @@ class GeminiAdapter(
                             add(buildJsonObject {
                                 put("name", tool.name)
                                 put("description", tool.description)
-                                put("parameters", buildJsonObject {
-                                    val schema = ToolSchemaSerializer.toGeminiSchemaMap(tool.parametersSchema)
-                                    schema.forEach { (k, v) ->
-                                        put(k, json.parseToJsonElement(v.toString()))
-                                    }
-                                })
+                                put("parameters", anyToJsonElement(
+                                    ToolSchemaSerializer.toGeminiSchemaMap(tool.parametersSchema)
+                                ))
                             })
                         }
                     })
                 })
             })
         }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun anyToJsonElement(value: Any?): kotlinx.serialization.json.JsonElement = when (value) {
+        null -> kotlinx.serialization.json.JsonNull
+        is Boolean -> kotlinx.serialization.json.JsonPrimitive(value)
+        is Number -> kotlinx.serialization.json.JsonPrimitive(value)
+        is String -> kotlinx.serialization.json.JsonPrimitive(value)
+        is Map<*, *> -> buildJsonObject {
+            (value as Map<String, Any?>).forEach { (k, v) -> put(k, anyToJsonElement(v)) }
+        }
+        is List<*> -> buildJsonArray {
+            value.forEach { add(anyToJsonElement(it)) }
+        }
+        else -> kotlinx.serialization.json.JsonPrimitive(value.toString())
     }
 }

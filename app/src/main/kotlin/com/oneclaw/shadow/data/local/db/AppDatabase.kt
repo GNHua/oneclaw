@@ -59,7 +59,7 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                     db.execSQL(
                         """INSERT INTO providers (id, name, type, api_base_url, is_pre_configured, is_active, created_at, updated_at)
-                           VALUES ('provider-anthropic', 'Anthropic', 'ANTHROPIC', 'https://api.anthropic.com', 1, 1, $now, $now)"""
+                           VALUES ('provider-anthropic', 'Anthropic', 'ANTHROPIC', 'https://api.anthropic.com/v1', 1, 1, $now, $now)"""
                     )
                     db.execSQL(
                         """INSERT INTO providers (id, name, type, api_base_url, is_pre_configured, is_active, created_at, updated_at)
@@ -71,8 +71,9 @@ abstract class AppDatabase : RoomDatabase() {
                     db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gpt-4o-mini', 'GPT-4o Mini', 'provider-openai', 0, 'PRESET')")
                     db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('o1', 'o1', 'provider-openai', 0, 'PRESET')")
                     db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('o3-mini', 'o3 Mini', 'provider-openai', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('claude-sonnet-4-20250514', 'Claude Sonnet 4', 'provider-anthropic', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('claude-haiku-4-20250414', 'Claude Haiku 4', 'provider-anthropic', 0, 'PRESET')")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('claude-opus-4-5-20251101', 'Claude Opus 4.5', 'provider-anthropic', 0, 'PRESET')")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('claude-sonnet-4-5-20250929', 'Claude Sonnet 4.5', 'provider-anthropic', 0, 'PRESET')")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('claude-haiku-4-5-20251001', 'Claude Haiku 4.5', 'provider-anthropic', 0, 'PRESET')")
                     db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gemini-2.0-flash', 'Gemini 2.0 Flash', 'provider-gemini', 0, 'PRESET')")
                     db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gemini-2.5-pro', 'Gemini 2.5 Pro', 'provider-gemini', 0, 'PRESET')")
 

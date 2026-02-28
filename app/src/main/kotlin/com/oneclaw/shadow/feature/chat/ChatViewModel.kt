@@ -16,11 +16,13 @@ import com.oneclaw.shadow.feature.session.usecase.CreateSessionUseCase
 import com.oneclaw.shadow.feature.session.usecase.GenerateTitleUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ChatViewModel(
     private val sendMessageUseCase: SendMessageUseCase,
@@ -157,10 +159,12 @@ class ChatViewModel(
                         }
                     }
                 } catch (e: CancellationException) {
-                    if (accumulatedText.isNotBlank()) {
-                        savePartialResponse(finalSessionId, accumulatedText, accumulatedThinking)
+                    withContext(NonCancellable) {
+                        if (accumulatedText.isNotBlank()) {
+                            savePartialResponse(finalSessionId, accumulatedText, accumulatedThinking)
+                        }
+                        finishStreaming(finalSessionId)
                     }
-                    finishStreaming(finalSessionId)
                 }
             }
         }
@@ -269,10 +273,12 @@ class ChatViewModel(
                     }
                 }
             } catch (e: CancellationException) {
-                if (accumulatedText.isNotBlank()) {
-                    savePartialResponse(sessionId, accumulatedText, accumulatedThinking)
+                withContext(NonCancellable) {
+                    if (accumulatedText.isNotBlank()) {
+                        savePartialResponse(sessionId, accumulatedText, accumulatedThinking)
+                    }
+                    finishStreaming(sessionId)
                 }
-                finishStreaming(sessionId)
             }
         }
     }

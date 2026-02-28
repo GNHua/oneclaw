@@ -8,6 +8,7 @@ import com.oneclaw.shadow.data.local.mapper.toDomain
 import com.oneclaw.shadow.data.local.mapper.toEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.util.UUID
 
 class SessionRepositoryImpl(
     private val sessionDao: SessionDao
@@ -20,8 +21,14 @@ class SessionRepositoryImpl(
         sessionDao.getSessionById(id)?.toDomain()
 
     override suspend fun createSession(session: Session): Session {
-        sessionDao.insert(session.toEntity())
-        return session
+        val now = DateTimeUtils.now()
+        val withId = if (session.id.isBlank()) session.copy(
+            id = UUID.randomUUID().toString(),
+            createdAt = if (session.createdAt == 0L) now else session.createdAt,
+            updatedAt = if (session.updatedAt == 0L) now else session.updatedAt
+        ) else session
+        sessionDao.insert(withId.toEntity())
+        return withId
     }
 
     override suspend fun updateSession(session: Session) {

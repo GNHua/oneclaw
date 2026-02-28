@@ -26,7 +26,7 @@ class GenerateTitleUseCase(
 
         private val LIGHTWEIGHT_MODELS = mapOf(
             ProviderType.OPENAI to "gpt-4o-mini",
-            ProviderType.ANTHROPIC to "claude-haiku-4-20250414",
+            ProviderType.ANTHROPIC to "claude-haiku-4-5-20251001",
             ProviderType.GEMINI to "gemini-2.0-flash"
         )
     }

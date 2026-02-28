@@ -49,6 +49,18 @@ android {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
 
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/INDEX.LIST",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE.txt",
+                "META-INF/*.kotlin_module"
+            )
+        }
+    }
+
     @Suppress("UnstableApiUsage")
     testOptions {
         unitTests.all {

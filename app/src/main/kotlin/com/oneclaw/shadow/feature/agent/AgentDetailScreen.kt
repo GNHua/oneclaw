@@ -131,7 +131,7 @@ fun AgentDetailScreen(
                         OutlinedTextField(
                             value = uiState.systemPrompt,
                             onValueChange = { viewModel.updateSystemPrompt(it) },
-                            label = { Text("System Prompt") },
+                            label = { Text("System Prompt *") },
                             readOnly = uiState.isBuiltIn,
                             minLines = 5,
                             maxLines = 15,
@@ -195,7 +195,7 @@ fun AgentDetailScreen(
                 item {
                     HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
                     Column(modifier = Modifier.padding(16.dp)) {
-                        if (!uiState.isNewAgent) {
+                        if (uiState.isBuiltIn) {
                             TextButton(
                                 onClick = { viewModel.cloneAgent() },
                                 modifier = Modifier.fillMaxWidth()

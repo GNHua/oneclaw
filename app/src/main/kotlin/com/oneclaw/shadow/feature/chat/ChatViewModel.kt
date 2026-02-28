@@ -284,19 +284,21 @@ class ChatViewModel(
     }
 
     fun switchAgent(newAgentId: String) {
-        val sessionId = _uiState.value.sessionId ?: return
         if (_uiState.value.isStreaming) return
+        val sessionId = _uiState.value.sessionId
         viewModelScope.launch {
             val agent = agentRepository.getAgentById(newAgentId) ?: return@launch
-            sessionRepository.updateCurrentAgent(sessionId, newAgentId)
-            messageRepository.addMessage(Message(
-                id = "", sessionId = sessionId, type = MessageType.SYSTEM,
-                content = "Switched to ${agent.name}",
-                thinkingContent = null, toolCallId = null, toolName = null,
-                toolInput = null, toolOutput = null, toolStatus = null, toolDurationMs = null,
-                tokenCountInput = null, tokenCountOutput = null,
-                modelId = null, providerId = null, createdAt = 0
-            ))
+            if (sessionId != null) {
+                sessionRepository.updateCurrentAgent(sessionId, newAgentId)
+                messageRepository.addMessage(Message(
+                    id = "", sessionId = sessionId, type = MessageType.SYSTEM,
+                    content = "Switched to ${agent.name}",
+                    thinkingContent = null, toolCallId = null, toolName = null,
+                    toolInput = null, toolOutput = null, toolStatus = null, toolDurationMs = null,
+                    tokenCountInput = null, tokenCountOutput = null,
+                    modelId = null, providerId = null, createdAt = 0
+                ))
+            }
             _uiState.update {
                 it.copy(
                     currentAgentId = newAgentId,

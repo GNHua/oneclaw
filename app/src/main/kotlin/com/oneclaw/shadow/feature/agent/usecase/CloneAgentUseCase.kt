@@ -16,7 +16,7 @@ class CloneAgentUseCase(
             )
         val clone = Agent(
             id = "",
-            name = "${original.name} (Copy)",
+            name = "Copy of ${original.name}",
             description = original.description,
             systemPrompt = original.systemPrompt,
             toolIds = original.toolIds,

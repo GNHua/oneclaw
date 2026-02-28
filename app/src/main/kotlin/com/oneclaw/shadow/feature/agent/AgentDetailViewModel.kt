@@ -63,6 +63,12 @@ class AgentDetailViewModel(
                     selectedToolIds = agent.toolIds,
                     preferredProviderId = agent.preferredProviderId,
                     preferredModelId = agent.preferredModelId,
+                    savedName = agent.name,
+                    savedDescription = agent.description ?: "",
+                    savedSystemPrompt = agent.systemPrompt,
+                    savedToolIds = agent.toolIds,
+                    savedPreferredProviderId = agent.preferredProviderId,
+                    savedPreferredModelId = agent.preferredModelId,
                     availableTools = toolRegistry.getAllToolDefinitions().map { toolDef ->
                         ToolOptionItem(
                             name = toolDef.name,
@@ -106,15 +112,15 @@ class AgentDetailViewModel(
     }
 
     fun updateName(name: String) {
-        _uiState.update { it.copy(name = name, hasUnsavedChanges = true) }
+        _uiState.update { it.copy(name = name) }
     }
 
     fun updateDescription(description: String) {
-        _uiState.update { it.copy(description = description, hasUnsavedChanges = true) }
+        _uiState.update { it.copy(description = description) }
     }
 
     fun updateSystemPrompt(prompt: String) {
-        _uiState.update { it.copy(systemPrompt = prompt, hasUnsavedChanges = true) }
+        _uiState.update { it.copy(systemPrompt = prompt) }
     }
 
     fun toggleTool(toolName: String) {
@@ -127,13 +133,13 @@ class AgentDetailViewModel(
             val updatedTools = state.availableTools.map { tool ->
                 tool.copy(isSelected = tool.name in newToolIds)
             }
-            state.copy(selectedToolIds = newToolIds, availableTools = updatedTools, hasUnsavedChanges = true)
+            state.copy(selectedToolIds = newToolIds, availableTools = updatedTools)
         }
     }
 
     fun setPreferredModel(providerId: String?, modelId: String?) {
         _uiState.update {
-            it.copy(preferredProviderId = providerId, preferredModelId = modelId, hasUnsavedChanges = true)
+            it.copy(preferredProviderId = providerId, preferredModelId = modelId)
         }
     }
 
@@ -154,7 +160,7 @@ class AgentDetailViewModel(
                 )
                 when (result) {
                     is AppResult.Success -> _uiState.update {
-                        it.copy(isSaving = false, hasUnsavedChanges = false, successMessage = "Agent created.", navigateBack = true)
+                        it.copy(isSaving = false, successMessage = "Agent created.", navigateBack = true)
                     }
                     is AppResult.Error -> _uiState.update {
                         it.copy(isSaving = false, errorMessage = result.message)
@@ -177,7 +183,16 @@ class AgentDetailViewModel(
                     is AppResult.Success -> {
                         originalAgent = updated
                         _uiState.update {
-                            it.copy(isSaving = false, hasUnsavedChanges = false, successMessage = "Agent saved.")
+                            it.copy(
+                                isSaving = false,
+                                savedName = updated.name,
+                                savedDescription = updated.description ?: "",
+                                savedSystemPrompt = updated.systemPrompt,
+                                savedToolIds = updated.toolIds,
+                                savedPreferredProviderId = updated.preferredProviderId,
+                                savedPreferredModelId = updated.preferredModelId,
+                                successMessage = "Agent saved."
+                            )
                         }
                     }
                     is AppResult.Error -> _uiState.update {

@@ -27,17 +27,36 @@ data class AgentDetailUiState(
     val preferredProviderId: String? = null,
     val preferredModelId: String? = null,
 
+    // Snapshot of persisted values used to derive hasUnsavedChanges
+    val savedName: String = "",
+    val savedDescription: String = "",
+    val savedSystemPrompt: String = "",
+    val savedToolIds: List<String> = emptyList(),
+    val savedPreferredProviderId: String? = null,
+    val savedPreferredModelId: String? = null,
+
     val availableTools: List<ToolOptionItem> = emptyList(),
     val availableModels: List<ModelOptionItem> = emptyList(),
 
-    val hasUnsavedChanges: Boolean = false,
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val showDeleteDialog: Boolean = false,
     val navigateBack: Boolean = false
-)
+) {
+    val hasUnsavedChanges: Boolean
+        get() = if (isNewAgent) {
+            name.isNotBlank()
+        } else {
+            name != savedName ||
+            description != savedDescription ||
+            systemPrompt != savedSystemPrompt ||
+            selectedToolIds.toSet() != savedToolIds.toSet() ||
+            preferredProviderId != savedPreferredProviderId ||
+            preferredModelId != savedPreferredModelId
+        }
+}
 
 data class ToolOptionItem(
     val name: String,

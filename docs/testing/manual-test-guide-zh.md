@@ -289,10 +289,48 @@ adb shell am start -n com.oneclaw.shadow/.MainActivity
 
 **验证：**
 - 用户消息气泡出现在右侧（金/琥珀色背景）
-- 流式传输期间发送按钮变为停止按钮
+- 流式传输期间发送按钮变为停止按钮（红色方块图标）
 - AI 回复出现在左侧，文字逐步流入
-- 流式传输完成后，AI 消息下方显示模型 ID 标签
+- 流式传输过程中 Markdown 渲染正确：标题、**加粗**、*斜体*以格式化形式显示，不出现原始符号
+- 流式文字末尾可见闪烁光标 `|`
+- 流式传输完成后：闪烁光标消失，停止按钮恢复为发送按钮
+- AI 消息下方显示模型 ID 标签（如 `claude-sonnet-4-6`）
 - AI 消息下方显示复制和重新生成图标
+
+**adb 测试步骤（Layer 2）：**
+
+```bash
+# 1. 获取输入框坐标（首次执行时校准）
+adb shell uiautomator dump /sdcard/ui.xml && adb pull /sdcard/ui.xml /tmp/ui.xml
+# 查找：class="android.widget.EditText" — 记录其 bounds，如 [42,2232][891,2379]
+# 点击 EditText 中心
+adb shell input tap 466 2305   # 根据实际 bounds 调整 x/y
+sleep 1
+
+# 2. 输入一条较长的消息（给流式截图留出时间窗口）
+adb shell input text "Please\ explain\ in\ detail\ how\ neural\ networks\ learn."
+sleep 0.3
+
+# 3. 键盘弹出后重新获取发送按钮坐标（键盘弹出时布局会偏移）
+adb shell uiautomator dump /sdcard/ui2.xml && adb pull /sdcard/ui2.xml /tmp/ui2.xml
+# 查找：content-desc="Send" — 找到其父级可点击视图的 bounds
+# 点击发送按钮（键盘弹出后的实际位置）
+adb shell input tap 976 1439   # 根据实际 bounds 调整
+
+# 4. 1-2 秒内截图以捕获流式状态
+sleep 1.2
+adb shell screencap -p /sdcard/streaming.png && adb pull /sdcard/streaming.png /tmp/streaming.png
+
+# 5. 轮询直到流式传输完成（发送按钮重新出现）
+until adb shell uiautomator dump /sdcard/p.xml 2>/dev/null && \
+      adb pull /sdcard/p.xml /tmp/p.xml 2>/dev/null && \
+      grep -q 'content-desc="Send"' /tmp/p.xml; do sleep 2; done
+
+# 6. 截取最终状态（操作行可见）
+adb shell screencap -p /sdcard/final.png && adb pull /sdcard/final.png /tmp/final.png
+```
+
+**注意：** 软键盘弹出时，发送按钮的屏幕 Y 坐标会发生偏移。键盘出现后务必重新获取 UI 层次结构以确认准确坐标。不要使用 `KEYCODE_BACK` 关闭键盘——这会将 App 切换到后台。
 
 ### 步骤 6.4：中途停止生成
 
@@ -450,3 +488,4 @@ AI 流式传输期间，点击停止按钮。
 | 2026-02-27 | RFC-003、RFC-004 | 初始版本，涵盖 Setup、Settings、Provider 管理流程 |
 | 2026-02-27 | RFC-005 | 更新当前状态，补充步骤 6.2 Session 抽屉细节，更新已知限制表 |
 | 2026-02-27 | RFC-001、RFC-002 | 完整重写流程 6（含流式 Chat），新增流程 7（Agent 管理），更新 App 状态和设置步骤 2.3，移除所有"未实现"限制说明 |
+| 2026-02-27 | RFC-001 Layer 2 | 步骤 6.3：新增 adb 测试步骤，含精确命令、流式验证说明和 Markdown 渲染检查（来自 Pixel 6a 上的 Flow 1-1 测试） |

@@ -289,10 +289,48 @@ Type a message in the input field (e.g., "Hello, what can you do?"). Tap the Sen
 
 **Verify:**
 - User message bubble appears on the right (gold/amber background)
-- Send button changes to Stop button while streaming
+- Send button changes to Stop button (red square icon) while streaming
 - AI response appears on the left, text streams in progressively
-- After streaming completes, model ID label appears below the AI message
+- Markdown is rendered correctly during streaming: headings, **bold**, and *italic* appear formatted, not as raw symbols
+- A blinking cursor `|` is visible at the end of the streaming text
+- After streaming completes: blinking cursor disappears, Stop button reverts to Send button
+- Model ID label (e.g., `claude-sonnet-4-6`) appears below the AI message
 - Copy and Regenerate icons appear below the AI message
+
+**adb testing procedure (Layer 2):**
+
+```bash
+# 1. Find input field bounds (run once to calibrate)
+adb shell uiautomator dump /sdcard/ui.xml && adb pull /sdcard/ui.xml /tmp/ui.xml
+# Look for: class="android.widget.EditText" — note its bounds e.g. [42,2232][891,2379]
+# Tap center of the EditText
+adb shell input tap 466 2305   # adjust x/y to center of EditText bounds
+sleep 1
+
+# 2. Type a long message (to give time to capture streaming state)
+adb shell input text "Please\ explain\ in\ detail\ how\ neural\ networks\ learn."
+sleep 0.3
+
+# 3. Find Send button bounds with keyboard open (bounds shift when keyboard is up)
+adb shell uiautomator dump /sdcard/ui2.xml && adb pull /sdcard/ui2.xml /tmp/ui2.xml
+# Look for: content-desc="Send" — find its parent clickable view bounds
+# Tap center of Send button (keyboard-adjusted position)
+adb shell input tap 976 1439   # adjust to center of send button bounds
+
+# 4. Screenshot within 1-2 seconds to catch streaming state
+sleep 1.2
+adb shell screencap -p /sdcard/streaming.png && adb pull /sdcard/streaming.png /tmp/streaming.png
+
+# 5. Poll until streaming completes (Send button reappears)
+until adb shell uiautomator dump /sdcard/p.xml 2>/dev/null && \
+      adb pull /sdcard/p.xml /tmp/p.xml 2>/dev/null && \
+      grep -q 'content-desc="Send"' /tmp/p.xml; do sleep 2; done
+
+# 6. Screenshot of final state (action row visible)
+adb shell screencap -p /sdcard/final.png && adb pull /sdcard/final.png /tmp/final.png
+```
+
+**Note:** The Send button's on-screen Y coordinate shifts when the software keyboard is open. Always re-dump the UI hierarchy after the keyboard appears to get accurate bounds. Do not use `KEYCODE_BACK` to dismiss the keyboard — it sends the app to the background.
 
 ### Step 6.4: Stop generation mid-stream
 
@@ -450,3 +488,4 @@ All planned RFCs are implemented. No known functional limitations.
 | 2026-02-27 | RFC-003, RFC-004 | Initial guide — covers Setup, Settings, Provider management flows |
 | 2026-02-27 | RFC-005 | Updated current state, Flow 6.2 session drawer detail, known limitations |
 | 2026-02-27 | RFC-001, RFC-002 | Complete rewrite of Flow 6 (full Chat with streaming), added Flow 7 (Agent Management), updated app state and Settings step 2.3, removed all "not yet implemented" limitations |
+| 2026-02-27 | RFC-001 Layer 2 | Step 6.3: added adb testing procedure with exact commands, streaming verification notes, and Markdown rendering checks (from Flow 1-1 on Pixel 6a) |

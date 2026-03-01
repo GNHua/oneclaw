@@ -81,6 +81,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -124,46 +128,47 @@ fun ChatScreen(
     val clipboardManager = LocalClipboardManager.current
     val inputFocusRequester = remember { FocusRequester() }
 
-    // Auto-scroll: local state avoids ViewModel round-trip delay
-    var shouldAutoScroll by remember(uiState.sessionId) { mutableStateOf(true) }
+    // Auto-scroll state: stable MutableState so nestedScrollConnection closure never goes stale.
+    // Reset to true on each new session via LaunchedEffect.
+    val shouldAutoScrollState = remember { mutableStateOf(true) }
+    LaunchedEffect(uiState.sessionId) { shouldAutoScrollState.value = true }
+    var shouldAutoScroll by shouldAutoScrollState
 
     LaunchedEffect(shouldAutoScroll) {
         viewModel.setAutoScroll(shouldAutoScroll)
     }
 
+    // Auto-scroll to the bottom of the last item (scrollOffset = MAX so the item's bottom
+    // is flush with the viewport bottom, not its top).
     LaunchedEffect(uiState.messages.size, uiState.streamingText) {
         if (shouldAutoScroll) {
             val count = listState.layoutInfo.totalItemsCount
-            if (count > 0) listState.scrollToItem(count - 1)
+            if (count > 0) listState.scrollToItem(count - 1, Int.MAX_VALUE / 2)
         }
     }
 
-    // Detect user scroll direction to control auto-scroll
+    // Re-enable auto-scroll when the user scrolls back to the bottom.
     LaunchedEffect(Unit) {
-        var prevIndex = listState.firstVisibleItemIndex
-        var prevOffset = listState.firstVisibleItemScrollOffset
         snapshotFlow {
-            Triple(
-                listState.firstVisibleItemIndex,
-                listState.firstVisibleItemScrollOffset,
-                listState.isScrollInProgress
-            )
-        }.collect { (index, offset, scrolling) ->
-            if (scrolling) {
-                val scrolledUp = index < prevIndex ||
-                    (index == prevIndex && offset < prevOffset)
-                if (scrolledUp) {
-                    shouldAutoScroll = false
-                }
-                val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()
-                val atBottom = lastVisible != null &&
-                    lastVisible.index >= listState.layoutInfo.totalItemsCount - 1
-                if (atBottom && !shouldAutoScroll) {
-                    shouldAutoScroll = true
-                }
+            val info = listState.layoutInfo
+            val lastItem = info.visibleItemsInfo.lastOrNull()
+            lastItem != null &&
+                lastItem.index >= info.totalItemsCount - 1 &&
+                lastItem.offset + lastItem.size <= info.viewportEndOffset + 1
+        }.collect { atBottom ->
+            if (atBottom) shouldAutoScrollState.value = true
+        }
+    }
+
+    // Disable auto-scroll the moment the user drags upward to view history.
+    // Using nestedScroll (pre-scroll) is race-free: it fires before the list state changes,
+    // so the programmatic scrollToItem can never beat the user gesture detection.
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y > 0f) shouldAutoScrollState.value = false
+                return Offset.Zero
             }
-            prevIndex = index
-            prevOffset = offset
         }
     }
 
@@ -252,7 +257,7 @@ fun ChatScreen(
             // Bottom bar handles its own insets (navigationBarsPadding + imePadding).
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { padding ->
-            Box(modifier = Modifier.padding(padding)) {
+            Box(modifier = Modifier.padding(padding).nestedScroll(nestedScrollConnection)) {
                 if (uiState.messages.isEmpty() && !uiState.isStreaming) {
                     EmptyChatState()
                 } else {

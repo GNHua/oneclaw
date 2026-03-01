@@ -10,7 +10,11 @@ import com.oneclaw.shadow.tool.builtin.BrowserTool
 import com.oneclaw.shadow.tool.builtin.CreateAgentTool
 import com.oneclaw.shadow.tool.builtin.CreateScheduledTaskTool
 import com.oneclaw.shadow.tool.builtin.LoadSkillTool
+import com.oneclaw.shadow.tool.builtin.PdfExtractTextTool
+import com.oneclaw.shadow.tool.builtin.PdfInfoTool
+import com.oneclaw.shadow.tool.builtin.PdfRenderPageTool
 import com.oneclaw.shadow.tool.builtin.WebfetchTool
+import com.oneclaw.shadow.tool.util.PdfToolUtils
 import com.oneclaw.shadow.tool.engine.PermissionChecker
 import com.oneclaw.shadow.tool.engine.ToolEnabledStateStore
 import com.oneclaw.shadow.tool.engine.ToolExecutionEngine
@@ -58,6 +62,14 @@ val toolModule = module {
     single { WebViewManager(androidContext(), get(), get()) }
     single { BrowserTool(androidContext(), get()) }
 
+    // RFC-033: PDF tools
+    single {
+        PdfToolUtils.initPdfBox(androidContext())
+        PdfInfoTool(androidContext())
+    }
+    single { PdfExtractTextTool(androidContext()) }
+    single { PdfRenderPageTool(androidContext()) }
+
     // RFC-017: Tool enabled state store
     single { ToolEnabledStateStore(androidContext()) }
 
@@ -92,6 +104,23 @@ val toolModule = module {
                 register(get<BrowserTool>(), ToolSourceInfo.BUILTIN)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register browser: ${e.message}")
+            }
+
+            // RFC-033: PDF tools
+            try {
+                register(get<PdfInfoTool>(), ToolSourceInfo.BUILTIN)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register pdf_info: ${e.message}")
+            }
+            try {
+                register(get<PdfExtractTextTool>(), ToolSourceInfo.BUILTIN)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register pdf_extract_text: ${e.message}")
+            }
+            try {
+                register(get<PdfRenderPageTool>(), ToolSourceInfo.BUILTIN)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register pdf_render_page: ${e.message}")
             }
 
             // Built-in JS tools from assets (replaces Kotlin tool registration)

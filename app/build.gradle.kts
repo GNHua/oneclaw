@@ -142,6 +142,9 @@ dependencies {
     // Jsoup HTML parser (RFC-021: Kotlin webfetch tool)
     implementation("org.jsoup:jsoup:1.18.3")
 
+    // PDF tools: PDFBox for text extraction and metadata (RFC-033)
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+
     // Testing
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation(libs.roborazzi)

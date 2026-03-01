@@ -61,7 +61,8 @@ data class AgentDetailUiState(
 data class ToolOptionItem(
     val name: String,
     val description: String,
-    val isSelected: Boolean
+    val isSelected: Boolean,
+    val isGloballyDisabled: Boolean = false
 )
 
 data class ModelOptionItem(

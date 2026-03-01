@@ -10,12 +10,13 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
 /**
- * Orchestrates tool execution: lookup, availability check, parameter validation,
- * permission check, timeout, and error handling.
+ * Orchestrates tool execution: lookup, availability check, global enable check,
+ * parameter validation, permission check, timeout, and error handling.
  */
 class ToolExecutionEngine(
     private val registry: ToolRegistry,
-    private val permissionChecker: PermissionChecker
+    private val permissionChecker: PermissionChecker,
+    private val enabledStateStore: ToolEnabledStateStore
 ) {
 
     /**
@@ -43,13 +44,23 @@ class ToolExecutionEngine(
             )
         }
 
-        // 3. Validate parameters
+        // 3. Check global enabled state
+        val sourceInfo = registry.getToolSourceInfo(toolName)
+        val groupName = sourceInfo.groupName
+        if (!enabledStateStore.isToolEffectivelyEnabled(toolName, groupName)) {
+            return ToolResult.error(
+                "tool_globally_disabled",
+                "Tool '$toolName' is globally disabled and not available."
+            )
+        }
+
+        // 4. Validate parameters
         val validationError = validateParameters(parameters, tool.definition.parametersSchema)
         if (validationError != null) {
             return ToolResult.error("validation_error", validationError)
         }
 
-        // 4. Check Android permissions
+        // 5. Check Android permissions
         val missing = permissionChecker.getMissingPermissions(tool.definition.requiredPermissions)
         if (missing.isNotEmpty()) {
             // Special handling for MANAGE_EXTERNAL_STORAGE
@@ -70,7 +81,7 @@ class ToolExecutionEngine(
             }
         }
 
-        // 5. Execute with timeout on IO dispatcher
+        // 6. Execute with timeout on IO dispatcher
         return try {
             withContext(Dispatchers.IO) {
                 withTimeout(tool.definition.timeoutSeconds * 1000L) {

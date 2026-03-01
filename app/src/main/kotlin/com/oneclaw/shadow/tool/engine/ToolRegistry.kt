@@ -1,6 +1,8 @@
 package com.oneclaw.shadow.tool.engine
 
 import com.oneclaw.shadow.core.model.ToolDefinition
+import com.oneclaw.shadow.core.model.ToolSourceInfo
+import com.oneclaw.shadow.core.model.ToolSourceType
 
 /**
  * Registry of all available tools. Singleton, created at app startup.
@@ -10,16 +12,23 @@ class ToolRegistry {
     @PublishedApi
     internal val tools = mutableMapOf<String, Tool>()
 
+    @PublishedApi
+    internal val sourceInfoMap = mutableMapOf<String, ToolSourceInfo>()
+
     /**
-     * Register a tool. Throws IllegalArgumentException if a tool with the same name
-     * is already registered.
+     * Register a tool with optional source info.
+     * Throws IllegalArgumentException if a tool with the same name is already registered.
+     *
+     * @param tool The tool to register
+     * @param sourceInfo Metadata about where this tool came from. Defaults to BUILTIN.
      */
-    fun register(tool: Tool) {
+    fun register(tool: Tool, sourceInfo: ToolSourceInfo = ToolSourceInfo.BUILTIN) {
         val name = tool.definition.name
         require(!tools.containsKey(name)) {
             "Tool '$name' is already registered"
         }
         tools[name] = tool
+        sourceInfoMap[name] = sourceInfo
     }
 
     /** Get a tool by name. Returns null if not found. */
@@ -42,10 +51,37 @@ class ToolRegistry {
     fun getAllToolNames(): List<String> = tools.keys.toList()
 
     /**
+     * Get the source info for a specific tool.
+     * Returns BUILTIN if the tool is registered but has no explicit source info.
+     */
+    fun getToolSourceInfo(name: String): ToolSourceInfo =
+        sourceInfoMap[name] ?: ToolSourceInfo.BUILTIN
+
+    /**
+     * Get a map of all tool names to their source info.
+     */
+    fun getAllToolSourceInfo(): Map<String, ToolSourceInfo> = sourceInfoMap.toMap()
+
+    /**
+     * Get all distinct tool group names (tools with TOOL_GROUP source type).
+     * Returns group name -> list of tool names in that group.
+     */
+    fun getToolGroups(): Map<String, List<String>> {
+        val groups = mutableMapOf<String, MutableList<String>>()
+        for ((toolName, info) in sourceInfoMap) {
+            if (info.type == ToolSourceType.TOOL_GROUP && info.groupName != null) {
+                groups.getOrPut(info.groupName) { mutableListOf() }.add(toolName)
+            }
+        }
+        return groups
+    }
+
+    /**
      * Remove a tool by name. Used when a user tool overrides a built-in tool.
      */
     fun unregister(name: String) {
         tools.remove(name)
+        sourceInfoMap.remove(name)
     }
 
     /**
@@ -56,6 +92,9 @@ class ToolRegistry {
         val keysToRemove = tools.entries
             .filter { it.value is T }
             .map { it.key }
-        keysToRemove.forEach { tools.remove(it) }
+        keysToRemove.forEach { key ->
+            tools.remove(key)
+            sourceInfoMap.remove(key)
+        }
     }
 }

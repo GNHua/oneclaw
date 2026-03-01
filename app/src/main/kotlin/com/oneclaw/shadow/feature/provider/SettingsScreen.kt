@@ -46,6 +46,7 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onManageProviders: () -> Unit,
     onManageAgents: () -> Unit = {},
+    onManageTools: () -> Unit = {},
     onUsageStatistics: () -> Unit = {},
     onDataBackup: () -> Unit = {},
     onMemory: () -> Unit = {},
@@ -102,6 +103,15 @@ fun SettingsScreen(
                 title = "Manage Agents",
                 subtitle = "Create and configure agents",
                 onClick = onManageAgents
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            // -- Tools --
+            SectionHeader("Tools")
+            SettingsItem(
+                title = "Manage Tools",
+                subtitle = "View and enable/disable tools",
+                onClick = onManageTools
             )
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 

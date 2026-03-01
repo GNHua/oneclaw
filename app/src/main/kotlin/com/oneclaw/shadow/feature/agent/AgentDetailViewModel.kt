@@ -10,6 +10,7 @@ import com.oneclaw.shadow.core.util.AppResult
 import com.oneclaw.shadow.feature.agent.usecase.CloneAgentUseCase
 import com.oneclaw.shadow.feature.agent.usecase.CreateAgentUseCase
 import com.oneclaw.shadow.feature.agent.usecase.DeleteAgentUseCase
+import com.oneclaw.shadow.tool.engine.ToolEnabledStateStore
 import com.oneclaw.shadow.tool.engine.ToolRegistry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +22,7 @@ class AgentDetailViewModel(
     private val agentRepository: AgentRepository,
     private val providerRepository: ProviderRepository,
     private val toolRegistry: ToolRegistry,
+    private val enabledStateStore: ToolEnabledStateStore,
     private val createAgentUseCase: CreateAgentUseCase,
     private val cloneAgentUseCase: CloneAgentUseCase,
     private val deleteAgentUseCase: DeleteAgentUseCase,
@@ -70,10 +72,15 @@ class AgentDetailViewModel(
                     savedPreferredProviderId = agent.preferredProviderId,
                     savedPreferredModelId = agent.preferredModelId,
                     availableTools = toolRegistry.getAllToolDefinitions().map { toolDef ->
+                        val sourceInfo = toolRegistry.getToolSourceInfo(toolDef.name)
+                        val isGloballyDisabled = !enabledStateStore.isToolEffectivelyEnabled(
+                            toolDef.name, sourceInfo.groupName
+                        )
                         ToolOptionItem(
                             name = toolDef.name,
                             description = toolDef.description,
-                            isSelected = toolDef.name in agent.toolIds
+                            isSelected = toolDef.name in agent.toolIds,
+                            isGloballyDisabled = isGloballyDisabled
                         )
                     },
                     isLoading = false
@@ -83,8 +90,18 @@ class AgentDetailViewModel(
     }
 
     private fun loadAvailableTools() {
+        val selectedIds = _uiState.value.selectedToolIds
         val tools = toolRegistry.getAllToolDefinitions().map { toolDef ->
-            ToolOptionItem(name = toolDef.name, description = toolDef.description, isSelected = false)
+            val sourceInfo = toolRegistry.getToolSourceInfo(toolDef.name)
+            val isGloballyDisabled = !enabledStateStore.isToolEffectivelyEnabled(
+                toolDef.name, sourceInfo.groupName
+            )
+            ToolOptionItem(
+                name = toolDef.name,
+                description = toolDef.description,
+                isSelected = toolDef.name in selectedIds,
+                isGloballyDisabled = isGloballyDisabled
+            )
         }
         _uiState.update { it.copy(availableTools = tools) }
     }

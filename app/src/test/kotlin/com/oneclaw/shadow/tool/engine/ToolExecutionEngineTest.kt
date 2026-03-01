@@ -21,6 +21,7 @@ class ToolExecutionEngineTest {
 
     private lateinit var registry: ToolRegistry
     private lateinit var permissionChecker: PermissionChecker
+    private lateinit var enabledStateStore: ToolEnabledStateStore
     private lateinit var engine: ToolExecutionEngine
 
     private val allTools = listOf("test_tool", "no_permission_tool")
@@ -57,7 +58,10 @@ class ToolExecutionEngineTest {
     fun setup() {
         registry = ToolRegistry()
         permissionChecker = mockk()
-        engine = ToolExecutionEngine(registry, permissionChecker)
+        enabledStateStore = mockk {
+            every { isToolEffectivelyEnabled(any(), any()) } returns true
+        }
+        engine = ToolExecutionEngine(registry, permissionChecker, enabledStateStore)
     }
 
     @Test

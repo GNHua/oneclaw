@@ -18,6 +18,7 @@ import com.oneclaw.shadow.feature.memory.ui.MemoryScreen
 import com.oneclaw.shadow.feature.settings.DataBackupScreen
 import com.oneclaw.shadow.feature.skill.ui.SkillEditorScreen
 import com.oneclaw.shadow.feature.skill.ui.SkillManagementScreen
+import com.oneclaw.shadow.feature.tool.ToolManagementScreen
 import com.oneclaw.shadow.feature.usage.UsageStatisticsScreen
 import android.content.Intent
 import org.koin.compose.koinInject
@@ -116,10 +117,17 @@ fun AppNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onManageProviders = { navController.navigate(Route.ProviderList.path) },
                 onManageAgents = { navController.navigate(Route.AgentList.path) },
+                onManageTools = { navController.navigate(Route.ManageTools.path) },
                 onUsageStatistics = { navController.navigate(Route.UsageStatistics.path) },
                 onDataBackup = { navController.navigate(Route.DataBackup.path) },
                 onMemory = { navController.navigate(Route.Memory.path) },
                 onSkills = { navController.navigate(Route.SkillManagement.path) }
+            )
+        }
+
+        composable(Route.ManageTools.path) {
+            ToolManagementScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

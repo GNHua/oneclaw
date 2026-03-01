@@ -38,6 +38,7 @@ import com.oneclaw.shadow.feature.skill.usecase.GetAllSkillsUseCase
 import com.oneclaw.shadow.feature.skill.usecase.ImportSkillUseCase
 import com.oneclaw.shadow.feature.skill.usecase.LoadSkillContentUseCase
 import com.oneclaw.shadow.feature.skill.usecase.UpdateSkillUseCase
+import com.oneclaw.shadow.feature.tool.ToolManagementViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.androidx.viewmodel.dsl.viewModelOf
@@ -140,4 +141,7 @@ val featureModule = module {
     // RFC-014: Skill feature view models
     viewModelOf(::SkillListViewModel)
     viewModelOf(::SkillEditorViewModel)
+
+    // RFC-017: Tool Management view model
+    viewModelOf(::ToolManagementViewModel)
 }

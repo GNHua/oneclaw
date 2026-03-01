@@ -9,6 +9,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,7 +59,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -88,6 +88,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -334,68 +335,96 @@ fun ChatInput(
     focusRequester: FocusRequester = remember { FocusRequester() }
 ) {
     Surface(
-        tonalElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(28.dp),
         modifier = Modifier
             .fillMaxWidth()
             .imePadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.Bottom
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            // RFC-014: Skill button (shows skill selection bottom sheet)
-            IconButton(
-                onClick = onSkillClick,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    Icons.Default.AutoAwesome,
-                    contentDescription = "Skills",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            OutlinedTextField(
+            // Layer 1: Text Field
+            BasicTextField(
                 value = text,
                 onValueChange = onTextChange,
                 modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(focusRequester),
-                placeholder = { Text("Message or /skill") },
-                shape = MaterialTheme.shapes.extraLarge,
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .padding(top = 12.dp, bottom = 4.dp),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                minLines = 1,
                 maxLines = 6,
-                enabled = true
+                decorationBox = { innerTextField ->
+                    Box {
+                        if (text.isEmpty()) {
+                            Text(
+                                text = "Message or /skill",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
             )
-            Spacer(modifier = Modifier.width(8.dp))
 
-            // Stop button: only visible during streaming
-            if (isStreaming) {
+            // Layer 2: Action Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .padding(top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Skill button (left)
                 IconButton(
-                    onClick = onStop,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                    onClick = onSkillClick,
+                    modifier = Modifier.size(40.dp)
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.error
+                    Icon(
+                        Icons.Default.AutoAwesome,
+                        contentDescription = "Skills",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Spacer(modifier = Modifier.width(4.dp))
-            }
 
-            // Send button: always visible, enabled when text is not blank and provider configured
-            IconButton(
-                onClick = onSend,
-                enabled = text.isNotBlank() && hasConfiguredProvider,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Icon(Icons.Default.Send, contentDescription = "Send")
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Stop button (right, conditional)
+                if (isStreaming) {
+                    IconButton(
+                        onClick = onStop,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        ),
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+
+                // Send button (right)
+                IconButton(
+                    onClick = onSend,
+                    enabled = text.isNotBlank() && hasConfiguredProvider,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(Icons.Default.Send, contentDescription = "Send")
+                }
             }
         }
     }

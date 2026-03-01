@@ -1,8 +1,11 @@
 package com.oneclaw.shadow.di
 
 import android.util.Log
+import com.oneclaw.shadow.core.model.ToolSourceInfo
+import com.oneclaw.shadow.core.model.ToolSourceType
 import com.oneclaw.shadow.tool.builtin.LoadSkillTool
 import com.oneclaw.shadow.tool.engine.PermissionChecker
+import com.oneclaw.shadow.tool.engine.ToolEnabledStateStore
 import com.oneclaw.shadow.tool.engine.ToolExecutionEngine
 import com.oneclaw.shadow.tool.engine.ToolRegistry
 import com.oneclaw.shadow.tool.js.EnvironmentVariableStore
@@ -33,11 +36,14 @@ val toolModule = module {
     single { SkillRegistry(androidContext(), get()).apply { initialize() } }
     single { LoadSkillTool(get()) }
 
+    // RFC-017: Tool enabled state store
+    single { ToolEnabledStateStore(androidContext()) }
+
     single {
         ToolRegistry().apply {
             // Only Kotlin built-in: LoadSkillTool
             try {
-                register(get<LoadSkillTool>())
+                register(get<LoadSkillTool>(), ToolSourceInfo.BUILTIN)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register load_skill: ${e.message}")
             }
@@ -46,9 +52,14 @@ val toolModule = module {
             val loader: JsToolLoader = get()
             try {
                 val builtinResult = loader.loadBuiltinTools()
-                loader.registerTools(this, builtinResult.loadedTools, allowOverride = false)
-                if (builtinResult.loadedTools.isNotEmpty()) {
-                    Log.i("ToolModule", "Loaded ${builtinResult.loadedTools.size} built-in JS tool(s)")
+                // Register built-in JS tools with BUILTIN source type
+                for (tool in builtinResult.loadedTools) {
+                    if (hasTool(tool.definition.name)) {
+                        Log.w("ToolModule", "Built-in JS tool '${tool.definition.name}' conflicts with existing tool")
+                        continue
+                    }
+                    register(tool, ToolSourceInfo(type = ToolSourceType.BUILTIN))
+                    Log.i("ToolModule", "Registered built-in JS tool: ${tool.definition.name}")
                 }
                 builtinResult.errors.forEach { error ->
                     Log.e("ToolModule", "Built-in JS tool error [${error.fileName}]: ${error.error}")
@@ -60,13 +71,33 @@ val toolModule = module {
             // User JS tools from file system (can override built-in)
             try {
                 val userResult = loader.loadTools()
-                val conflicts = loader.registerTools(this, userResult.loadedTools, allowOverride = true)
 
-                val totalErrors = userResult.errors + conflicts
-                if (userResult.loadedTools.isNotEmpty()) {
-                    Log.i("ToolModule", "Loaded ${userResult.loadedTools.size} user JS tool(s)")
+                for (tool in userResult.loadedTools) {
+                    // Determine source info: single-file tools = JS_EXTENSION
+                    // Group tools (from array manifests) have their filePath set and
+                    // the baseName from the loader can be used as groupName.
+                    // For now we detect groups by checking if the tool has a non-null jsFilePath
+                    // and if the JSON was an array (group) or object (single).
+                    // The JsToolLoader does not currently expose groupName per tool,
+                    // so we register all user tools as JS_EXTENSION for now.
+                    // RFC-018 will refine this when JsToolLoader exposes group metadata.
+                    val sourceInfo = ToolSourceInfo(
+                        type = ToolSourceType.JS_EXTENSION,
+                        filePath = tool.jsFilePath.ifEmpty { null }
+                    )
+
+                    if (hasTool(tool.definition.name)) {
+                        // Override: unregister old, register new
+                        unregister(tool.definition.name)
+                        register(tool, sourceInfo)
+                        Log.i("ToolModule", "User JS tool '${tool.definition.name}' overrides built-in")
+                    } else {
+                        register(tool, sourceInfo)
+                        Log.i("ToolModule", "Registered user JS tool: ${tool.definition.name}")
+                    }
                 }
-                totalErrors.forEach { error ->
+
+                userResult.errors.forEach { error ->
                     Log.w("ToolModule", "User JS tool load error [${error.fileName}]: ${error.error}")
                 }
             } catch (e: Exception) {
@@ -77,5 +108,5 @@ val toolModule = module {
 
     single { PermissionChecker(androidContext()) }
 
-    single { ToolExecutionEngine(get(), get()) }
+    single { ToolExecutionEngine(get(), get(), get()) }
 }

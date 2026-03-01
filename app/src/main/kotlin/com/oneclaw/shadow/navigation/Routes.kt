@@ -36,4 +36,5 @@ sealed class Route(val path: String) {
             fun create(skillName: String) = "skills/edit/$skillName"
         }
     }
+    data object ManageTools : Route("tools")
 }

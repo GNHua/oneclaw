@@ -31,6 +31,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
@@ -154,21 +156,35 @@ fun AgentDetailScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                            .alpha(if (tool.isGloballyDisabled) 0.38f else 1f)
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
                             checked = tool.name in uiState.selectedToolIds,
-                            onCheckedChange = { viewModel.toggleTool(tool.name) },
-                            enabled = !uiState.isBuiltIn
+                            onCheckedChange = {
+                                if (!tool.isGloballyDisabled) viewModel.toggleTool(tool.name)
+                            },
+                            enabled = !uiState.isBuiltIn && !tool.isGloballyDisabled
                         )
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(text = tool.name, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                text = tool.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontFamily = FontFamily.Monospace
+                            )
                             Text(
                                 text = tool.description,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            if (tool.isGloballyDisabled) {
+                                Text(
+                                    text = "Globally disabled",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
                     }
                 }

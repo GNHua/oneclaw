@@ -142,17 +142,15 @@ class JsExecutionEngine(
 
                 $jsCode
 
-                (async function __run__() {
-                    const __params__ = JSON.parse(${quoteJsString(paramsJson)});
-                    const __result__ = await $entryFunction(__params__);
-                    if (__result__ === null || __result__ === undefined) {
-                        return "";
-                    }
-                    if (typeof __result__ === "string") {
-                        return __result__;
-                    }
-                    return JSON.stringify(__result__);
-                })()
+                const __params__ = JSON.parse(${quoteJsString(paramsJson)});
+                const __result__ = await $entryFunction(__params__);
+                if (__result__ === null || __result__ === undefined) {
+                    "";
+                } else if (typeof __result__ === "string") {
+                    __result__;
+                } else {
+                    JSON.stringify(__result__);
+                }
             """.trimIndent()
 
             evaluate<String>(wrapperCode)

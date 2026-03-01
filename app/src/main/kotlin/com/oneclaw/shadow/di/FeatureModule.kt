@@ -52,6 +52,11 @@ import com.oneclaw.shadow.feature.schedule.usecase.RunScheduledTaskNowUseCase
 import com.oneclaw.shadow.feature.schedule.usecase.RunScheduledTaskUseCase
 import com.oneclaw.shadow.feature.schedule.usecase.ToggleScheduledTaskUseCase
 import com.oneclaw.shadow.feature.schedule.usecase.UpdateScheduledTaskUseCase
+import com.oneclaw.shadow.feature.file.FileBrowserViewModel
+import com.oneclaw.shadow.feature.file.FilePreviewViewModel
+import com.oneclaw.shadow.feature.file.usecase.DeleteFileUseCase
+import com.oneclaw.shadow.feature.file.usecase.ListFilesUseCase
+import com.oneclaw.shadow.feature.file.usecase.ReadFileContentUseCase
 import com.oneclaw.shadow.feature.tool.ToolManagementViewModel
 import androidx.work.WorkManager
 import org.koin.android.ext.koin.androidContext
@@ -182,4 +187,11 @@ val featureModule = module {
     factory { RunScheduledTaskNowUseCase(get(), get(), get(), get(), get()) }
     factory { CleanupExecutionHistoryUseCase(get()) }
     viewModelOf(::ScheduledTaskDetailViewModel)
+
+    // RFC-025: File browsing
+    factory { ListFilesUseCase(get()) }
+    factory { ReadFileContentUseCase(get()) }
+    factory { DeleteFileUseCase(get()) }
+    viewModelOf(::FileBrowserViewModel)
+    viewModelOf(::FilePreviewViewModel)
 }

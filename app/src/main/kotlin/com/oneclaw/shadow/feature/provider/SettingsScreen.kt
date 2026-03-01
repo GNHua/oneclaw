@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.outlined.Settings
@@ -62,6 +63,7 @@ fun SettingsScreen(
     onMemory: () -> Unit = {},
     onSkills: () -> Unit = {},
     onScheduledTasks: () -> Unit = {},
+    onFiles: () -> Unit = {},
     themeManager: ThemeManager = koinInject()
 ) {
     val currentTheme by themeManager.themeMode.collectAsState()
@@ -126,6 +128,13 @@ fun SettingsScreen(
                 title = "Scheduled Tasks",
                 subtitle = "Automated agent tasks",
                 onClick = onScheduledTasks
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            SettingsItem(
+                icon = Icons.Filled.Folder,
+                title = "Files",
+                subtitle = "Browse files saved by AI",
+                onClick = onFiles
             )
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             SettingsItem(

@@ -23,9 +23,13 @@ import com.oneclaw.shadow.feature.schedule.ScheduledTaskEditScreen
 import com.oneclaw.shadow.feature.schedule.ScheduledTaskListScreen
 import com.oneclaw.shadow.feature.tool.ToolManagementScreen
 import com.oneclaw.shadow.feature.usage.UsageStatisticsScreen
+import com.oneclaw.shadow.feature.file.FileBrowserScreen
+import com.oneclaw.shadow.feature.file.FilePreviewScreen
 import android.content.Intent
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import org.koin.compose.koinInject
 
 /**
@@ -143,7 +147,8 @@ fun AppNavGraph(
                 onDataBackup = { navController.safeNavigate(Route.DataBackup.path) },
                 onMemory = { navController.safeNavigate(Route.Memory.path) },
                 onSkills = { navController.safeNavigate(Route.SkillManagement.path) },
-                onScheduledTasks = { navController.safeNavigate(Route.ScheduleList.path) }
+                onScheduledTasks = { navController.safeNavigate(Route.ScheduleList.path) },
+                onFiles = { navController.safeNavigate(Route.FileBrowser.path) }
             )
         }
 
@@ -233,6 +238,24 @@ fun AppNavGraph(
                 onNavigateToSession = { sessionId ->
                     navController.safeNavigate(Route.ChatSession.create(sessionId))
                 }
+            )
+        }
+
+        composable(Route.FileBrowser.path) {
+            FileBrowserScreen(
+                onNavigateBack = { navController.safePopBackStack() },
+                onPreviewFile = { relativePath ->
+                    navController.safeNavigate(Route.FilePreview.create(relativePath))
+                }
+            )
+        }
+
+        composable(
+            route = Route.FilePreview.ROUTE_PATH,
+            arguments = listOf(navArgument("path") { type = NavType.StringType })
+        ) {
+            FilePreviewScreen(
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
     }

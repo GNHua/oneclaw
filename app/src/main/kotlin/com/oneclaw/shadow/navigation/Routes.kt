@@ -51,4 +51,11 @@ sealed class Route(val path: String) {
             fun create(taskId: String) = "schedules/$taskId/detail"
         }
     }
+    data object FileBrowser : Route("files")
+    data class FilePreview(val filePath: String) : Route("files/preview/{path}") {
+        companion object {
+            const val ROUTE_PATH = "files/preview/{path}"
+            fun create(relativePath: String) = "files/preview/${android.net.Uri.encode(relativePath)}"
+        }
+    }
 }

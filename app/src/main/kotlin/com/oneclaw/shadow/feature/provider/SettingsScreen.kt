@@ -15,6 +15,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Folder
@@ -64,6 +65,7 @@ fun SettingsScreen(
     onSkills: () -> Unit = {},
     onScheduledTasks: () -> Unit = {},
     onFiles: () -> Unit = {},
+    onGoogleAccount: () -> Unit = {},
     themeManager: ThemeManager = koinInject()
 ) {
     val currentTheme by themeManager.themeMode.collectAsState()
@@ -153,6 +155,13 @@ fun SettingsScreen(
                 title = "Usage Statistics",
                 subtitle = "Token usage by model",
                 onClick = onUsageStatistics
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            SettingsItem(
+                icon = Icons.Filled.AccountCircle,
+                title = "Google Account",
+                subtitle = "Connect Google account for Workspace tools",
+                onClick = onGoogleAccount
             )
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             SettingsItem(

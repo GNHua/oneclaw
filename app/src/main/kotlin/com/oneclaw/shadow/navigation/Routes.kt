@@ -58,4 +58,5 @@ sealed class Route(val path: String) {
             fun create(relativePath: String) = "files/preview/${android.net.Uri.encode(relativePath)}"
         }
     }
+    data object GoogleAuth : Route("google-auth")
 }

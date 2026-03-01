@@ -44,8 +44,8 @@ import org.koin.dsl.module
 
 val toolModule = module {
 
-    // JS Execution Engine (OkHttpClient, LibraryBridge)
-    single { JsExecutionEngine(get(), get()) }
+    // JS Execution Engine (OkHttpClient, LibraryBridge, GoogleAuthManager)
+    single { JsExecutionEngine(get(), get(), get()) }
 
     // Environment Variable Store
     single { EnvironmentVariableStore(androidContext()) }

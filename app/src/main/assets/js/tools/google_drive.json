@@ -1,0 +1,256 @@
+[
+  {
+    "name": "drive_list_files",
+    "description": "List files in Google Drive. Supports filtering by folder, type, and search query.",
+    "function": "driveListFiles",
+    "parameters": {
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Drive search query (e.g., \"name contains 'report'\" or \"mimeType='application/pdf'\")"
+        },
+        "parent_id": {
+          "type": "string",
+          "description": "Folder ID to list contents of (optional, uses 'root' if not specified)"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of files to return (default: 20)"
+        },
+        "page_token": {
+          "type": "string",
+          "description": "Page token for pagination (optional)"
+        }
+      },
+      "required": []
+    },
+    "timeoutSeconds": 30
+  },
+  {
+    "name": "drive_get_file",
+    "description": "Get metadata for a specific Google Drive file.",
+    "function": "driveGetFile",
+    "parameters": {
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "description": "Google Drive file ID"
+        }
+      },
+      "required": ["file_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "drive_download",
+    "description": "Download a Google Drive file to a local path.",
+    "function": "driveDownload",
+    "parameters": {
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "description": "Google Drive file ID to download"
+        },
+        "save_path": {
+          "type": "string",
+          "description": "Local file path to save the downloaded file"
+        }
+      },
+      "required": ["file_id", "save_path"]
+    },
+    "timeoutSeconds": 120
+  },
+  {
+    "name": "drive_upload",
+    "description": "Upload a local file to Google Drive.",
+    "function": "driveUpload",
+    "parameters": {
+      "properties": {
+        "file_path": {
+          "type": "string",
+          "description": "Local path of the file to upload"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name for the file in Drive"
+        },
+        "mime_type": {
+          "type": "string",
+          "description": "MIME type of the file (e.g., 'application/pdf')"
+        },
+        "parent_id": {
+          "type": "string",
+          "description": "Parent folder ID (optional, defaults to root)"
+        }
+      },
+      "required": ["file_path", "name"]
+    },
+    "timeoutSeconds": 120
+  },
+  {
+    "name": "drive_create_folder",
+    "description": "Create a new folder in Google Drive.",
+    "function": "driveCreateFolder",
+    "parameters": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Folder name"
+        },
+        "parent_id": {
+          "type": "string",
+          "description": "Parent folder ID (optional, defaults to root)"
+        }
+      },
+      "required": ["name"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "drive_delete_file",
+    "description": "Delete a file or folder from Google Drive (moves to Trash).",
+    "function": "driveDeleteFile",
+    "parameters": {
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "description": "File or folder ID to delete"
+        }
+      },
+      "required": ["file_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "drive_rename_file",
+    "description": "Rename a file or folder in Google Drive.",
+    "function": "driveRenameFile",
+    "parameters": {
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "description": "File or folder ID to rename"
+        },
+        "new_name": {
+          "type": "string",
+          "description": "New name for the file or folder"
+        }
+      },
+      "required": ["file_id", "new_name"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "drive_move_file",
+    "description": "Move a file to a different folder in Google Drive.",
+    "function": "driveMoveFile",
+    "parameters": {
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "description": "File ID to move"
+        },
+        "new_parent_id": {
+          "type": "string",
+          "description": "Destination folder ID"
+        }
+      },
+      "required": ["file_id", "new_parent_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "drive_share_file",
+    "description": "Share a Google Drive file with a specific user.",
+    "function": "driveShareFile",
+    "parameters": {
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "description": "File ID to share"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address to share with"
+        },
+        "role": {
+          "type": "string",
+          "description": "Permission role: 'reader', 'commenter', or 'writer'"
+        },
+        "send_notification": {
+          "type": "boolean",
+          "description": "Send notification email to the user (default: true)"
+        }
+      },
+      "required": ["file_id", "email", "role"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "drive_export",
+    "description": "Export a Google Docs/Sheets/Slides file to a specific format and download it.",
+    "function": "driveExport",
+    "parameters": {
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "description": "Google file ID to export"
+        },
+        "mime_type": {
+          "type": "string",
+          "description": "Export MIME type (e.g., 'application/pdf', 'text/plain', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')"
+        },
+        "save_path": {
+          "type": "string",
+          "description": "Local path to save the exported file"
+        }
+      },
+      "required": ["file_id", "mime_type", "save_path"]
+    },
+    "timeoutSeconds": 120
+  },
+  {
+    "name": "drive_get_storage_quota",
+    "description": "Get the Google Drive storage quota information.",
+    "function": "driveGetStorageQuota",
+    "parameters": {
+      "properties": {},
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "drive_list_shared",
+    "description": "List files shared with the user in Google Drive.",
+    "function": "driveListShared",
+    "parameters": {
+      "properties": {
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of files to return (default: 20)"
+        }
+      },
+      "required": []
+    },
+    "timeoutSeconds": 30
+  },
+  {
+    "name": "drive_search",
+    "description": "Search for files in Google Drive by name or content.",
+    "function": "driveSearch",
+    "parameters": {
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Search query text"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of results (default: 20)"
+        }
+      },
+      "required": ["query"]
+    },
+    "timeoutSeconds": 30
+  }
+]

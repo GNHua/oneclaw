@@ -16,6 +16,7 @@ import com.oneclaw.shadow.feature.provider.SetupScreen
 import com.oneclaw.shadow.feature.provider.SettingsScreen
 import com.oneclaw.shadow.feature.memory.ui.MemoryScreen
 import com.oneclaw.shadow.feature.settings.DataBackupScreen
+import com.oneclaw.shadow.feature.settings.GoogleAuthScreen
 import com.oneclaw.shadow.feature.skill.ui.SkillEditorScreen
 import com.oneclaw.shadow.feature.skill.ui.SkillManagementScreen
 import com.oneclaw.shadow.feature.schedule.ScheduledTaskDetailScreen
@@ -148,7 +149,8 @@ fun AppNavGraph(
                 onMemory = { navController.safeNavigate(Route.Memory.path) },
                 onSkills = { navController.safeNavigate(Route.SkillManagement.path) },
                 onScheduledTasks = { navController.safeNavigate(Route.ScheduleList.path) },
-                onFiles = { navController.safeNavigate(Route.FileBrowser.path) }
+                onFiles = { navController.safeNavigate(Route.FileBrowser.path) },
+                onGoogleAccount = { navController.safeNavigate(Route.GoogleAuth.path) }
             )
         }
 
@@ -255,6 +257,12 @@ fun AppNavGraph(
             arguments = listOf(navArgument("path") { type = NavType.StringType })
         ) {
             FilePreviewScreen(
+                onNavigateBack = { navController.safePopBackStack() }
+            )
+        }
+
+        composable(Route.GoogleAuth.path) {
+            GoogleAuthScreen(
                 onNavigateBack = { navController.safePopBackStack() }
             )
         }

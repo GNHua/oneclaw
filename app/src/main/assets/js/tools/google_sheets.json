@@ -1,0 +1,145 @@
+[
+  {
+    "name": "sheets_get",
+    "description": "Get metadata and sheet names for a Google Sheets spreadsheet.",
+    "function": "sheetsGet",
+    "parameters": {
+      "properties": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Google Sheets spreadsheet ID"
+        }
+      },
+      "required": ["spreadsheet_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "sheets_read_values",
+    "description": "Read values from a range in a Google Sheets spreadsheet.",
+    "function": "sheetsReadValues",
+    "parameters": {
+      "properties": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Google Sheets spreadsheet ID"
+        },
+        "range": {
+          "type": "string",
+          "description": "Range in A1 notation (e.g., 'Sheet1!A1:D10' or 'A1:C5')"
+        }
+      },
+      "required": ["spreadsheet_id", "range"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "sheets_write_values",
+    "description": "Write values to a range in a Google Sheets spreadsheet.",
+    "function": "sheetsWriteValues",
+    "parameters": {
+      "properties": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Google Sheets spreadsheet ID"
+        },
+        "range": {
+          "type": "string",
+          "description": "Range in A1 notation (e.g., 'Sheet1!A1')"
+        },
+        "values": {
+          "type": "array",
+          "items": { "type": "array" },
+          "description": "2D array of values to write"
+        },
+        "value_input_option": {
+          "type": "string",
+          "description": "How to interpret values: 'RAW' or 'USER_ENTERED' (default: 'USER_ENTERED')"
+        }
+      },
+      "required": ["spreadsheet_id", "range", "values"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "sheets_append_values",
+    "description": "Append rows to a Google Sheets spreadsheet after the last row of data.",
+    "function": "sheetsAppendValues",
+    "parameters": {
+      "properties": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Google Sheets spreadsheet ID"
+        },
+        "range": {
+          "type": "string",
+          "description": "Range to search for the table (e.g., 'Sheet1!A1')"
+        },
+        "values": {
+          "type": "array",
+          "items": { "type": "array" },
+          "description": "2D array of values to append"
+        }
+      },
+      "required": ["spreadsheet_id", "range", "values"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "sheets_clear_values",
+    "description": "Clear values from a range in a Google Sheets spreadsheet.",
+    "function": "sheetsClearValues",
+    "parameters": {
+      "properties": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Google Sheets spreadsheet ID"
+        },
+        "range": {
+          "type": "string",
+          "description": "Range in A1 notation to clear"
+        }
+      },
+      "required": ["spreadsheet_id", "range"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "sheets_add_sheet",
+    "description": "Add a new sheet (tab) to a Google Sheets spreadsheet.",
+    "function": "sheetsAddSheet",
+    "parameters": {
+      "properties": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Google Sheets spreadsheet ID"
+        },
+        "title": {
+          "type": "string",
+          "description": "Name for the new sheet"
+        }
+      },
+      "required": ["spreadsheet_id", "title"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "sheets_batch_update",
+    "description": "Apply a series of updates to a Google Sheets spreadsheet (advanced).",
+    "function": "sheetsBatchUpdate",
+    "parameters": {
+      "properties": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Google Sheets spreadsheet ID"
+        },
+        "requests": {
+          "type": "array",
+          "description": "Array of update request objects (Google Sheets API format)"
+        }
+      },
+      "required": ["spreadsheet_id", "requests"]
+    },
+    "timeoutSeconds": 30
+  }
+]

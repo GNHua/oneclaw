@@ -24,6 +24,7 @@ data class AgentDetailUiState(
     val systemPrompt: String = "",
     val preferredProviderId: String? = null,
     val preferredModelId: String? = null,
+    val webSearchEnabled: Boolean = false,
 
     // Snapshot of persisted values used to derive hasUnsavedChanges
     val savedName: String = "",
@@ -31,6 +32,7 @@ data class AgentDetailUiState(
     val savedSystemPrompt: String = "",
     val savedPreferredProviderId: String? = null,
     val savedPreferredModelId: String? = null,
+    val savedWebSearchEnabled: Boolean = false,
 
     val availableModels: List<ModelOptionItem> = emptyList(),
 
@@ -52,7 +54,8 @@ data class AgentDetailUiState(
             description != savedDescription ||
             systemPrompt != savedSystemPrompt ||
             preferredProviderId != savedPreferredProviderId ||
-            preferredModelId != savedPreferredModelId
+            preferredModelId != savedPreferredModelId ||
+            webSearchEnabled != savedWebSearchEnabled
         }
 }
 

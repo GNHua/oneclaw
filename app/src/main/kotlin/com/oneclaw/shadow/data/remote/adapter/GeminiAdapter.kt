@@ -1,12 +1,14 @@
 package com.oneclaw.shadow.data.remote.adapter
 
 import com.oneclaw.shadow.core.model.AiModel
+import com.oneclaw.shadow.core.model.Citation
 import com.oneclaw.shadow.core.model.ConnectionErrorType
 import com.oneclaw.shadow.core.model.ConnectionTestResult
 import com.oneclaw.shadow.core.model.ModelSource
 import com.oneclaw.shadow.core.model.ToolDefinition
 import com.oneclaw.shadow.core.util.AppResult
 import com.oneclaw.shadow.core.util.ErrorCode
+import com.oneclaw.shadow.core.util.extractDomain
 import com.oneclaw.shadow.data.remote.dto.gemini.GeminiModelListResponse
 import com.oneclaw.shadow.data.remote.sse.asSseFlow
 import com.oneclaw.shadow.tool.engine.ToolSchemaSerializer
@@ -23,6 +25,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -96,9 +99,10 @@ class GeminiAdapter(
         modelId: String,
         messages: List<ApiMessage>,
         tools: List<ToolDefinition>?,
-        systemPrompt: String?
+        systemPrompt: String?,
+        webSearchEnabled: Boolean
     ): Flow<StreamEvent> = flow {
-        val requestBody = buildGeminiRequest(messages, tools, systemPrompt)
+        val requestBody = buildGeminiRequest(messages, tools, systemPrompt, webSearchEnabled)
         val url = "${apiBaseUrl.trimEnd('/')}/models/${modelId}:streamGenerateContent?key=$apiKey&alt=sse"
         val request = Request.Builder()
             .url(url)
@@ -154,6 +158,12 @@ class GeminiAdapter(
                         emit(StreamEvent.ToolCallDelta(toolCallId = callId, argumentsDelta = argsJson))
                         emit(StreamEvent.ToolCallEnd(toolCallId = callId))
                     }
+                }
+
+                // Parse grounding metadata for citations (Gemini web search)
+                val groundingCitations = parseGroundingMetadata(candidate)
+                if (groundingCitations.isNotEmpty()) {
+                    emit(StreamEvent.Citations(groundingCitations))
                 }
 
                 if (finishReason != null && finishReason != "null") {
@@ -234,10 +244,25 @@ class GeminiAdapter(
         }
     }
 
+    private fun parseGroundingMetadata(candidate: JsonObject): List<Citation> {
+        val metadata = candidate["groundingMetadata"]?.jsonObject ?: return emptyList()
+        val chunks = metadata["groundingChunks"]?.jsonArray ?: return emptyList()
+        return chunks.mapNotNull { chunk ->
+            val web = chunk.jsonObject["web"]?.jsonObject ?: return@mapNotNull null
+            val url = web["uri"]?.jsonPrimitive?.content ?: return@mapNotNull null
+            Citation(
+                url = url,
+                title = web["title"]?.jsonPrimitive?.content ?: url,
+                domain = web["domain"]?.jsonPrimitive?.content ?: extractDomain(url)
+            )
+        }.distinctBy { it.url }
+    }
+
     private fun buildGeminiRequest(
         messages: List<ApiMessage>,
         tools: List<ToolDefinition>?,
-        systemPrompt: String?
+        systemPrompt: String?,
+        webSearchEnabled: Boolean = false
     ): JsonObject = buildJsonObject {
         if (!systemPrompt.isNullOrBlank()) {
             put("system_instruction", buildJsonObject {
@@ -291,21 +316,29 @@ class GeminiAdapter(
             }
         })
 
-        if (!tools.isNullOrEmpty()) {
+        val hasTools = !tools.isNullOrEmpty()
+        if (hasTools || webSearchEnabled) {
             put("tools", buildJsonArray {
-                add(buildJsonObject {
-                    put("function_declarations", buildJsonArray {
-                        tools.forEach { tool ->
-                            add(buildJsonObject {
-                                put("name", tool.name)
-                                put("description", tool.description)
-                                put("parameters", anyToJsonElement(
-                                    ToolSchemaSerializer.toGeminiSchemaMap(tool.parametersSchema)
-                                ))
-                            })
-                        }
+                if (hasTools) {
+                    add(buildJsonObject {
+                        put("function_declarations", buildJsonArray {
+                            tools!!.forEach { tool ->
+                                add(buildJsonObject {
+                                    put("name", tool.name)
+                                    put("description", tool.description)
+                                    put("parameters", anyToJsonElement(
+                                        ToolSchemaSerializer.toGeminiSchemaMap(tool.parametersSchema)
+                                    ))
+                                })
+                            }
+                        })
                     })
-                })
+                }
+                if (webSearchEnabled) {
+                    add(buildJsonObject {
+                        putJsonObject("google_search") {}
+                    })
+                }
             })
         }
     }

@@ -1,12 +1,14 @@
 package com.oneclaw.shadow.data.remote.adapter
 
 import com.oneclaw.shadow.core.model.AiModel
+import com.oneclaw.shadow.core.model.Citation
 import com.oneclaw.shadow.core.model.ConnectionErrorType
 import com.oneclaw.shadow.core.model.ConnectionTestResult
 import com.oneclaw.shadow.core.model.ModelSource
 import com.oneclaw.shadow.core.model.ToolDefinition
 import com.oneclaw.shadow.core.util.AppResult
 import com.oneclaw.shadow.core.util.ErrorCode
+import com.oneclaw.shadow.core.util.extractDomain
 import com.oneclaw.shadow.data.remote.dto.anthropic.AnthropicModelListResponse
 import com.oneclaw.shadow.data.remote.sse.asSseFlow
 import com.oneclaw.shadow.tool.engine.ToolSchemaSerializer
@@ -104,14 +106,20 @@ class AnthropicAdapter(
         modelId: String,
         messages: List<ApiMessage>,
         tools: List<ToolDefinition>?,
-        systemPrompt: String?
+        systemPrompt: String?,
+        webSearchEnabled: Boolean
     ): Flow<StreamEvent> = flow {
-        val requestBody = buildAnthropicRequest(modelId, messages, tools, systemPrompt)
+        val requestBody = buildAnthropicRequest(modelId, messages, tools, systemPrompt, webSearchEnabled)
+        val betaHeader = if (webSearchEnabled) {
+            "interleaved-thinking-2025-05-14,web-search-2025-03-05"
+        } else {
+            "interleaved-thinking-2025-05-14"
+        }
         val request = Request.Builder()
             .url("${apiBaseUrl.trimEnd('/')}/messages")
             .addHeader("x-api-key", apiKey)
             .addHeader("anthropic-version", ANTHROPIC_VERSION)
-            .addHeader("anthropic-beta", "interleaved-thinking-2025-05-14")
+            .addHeader("anthropic-beta", betaHeader)
             .addHeader("Content-Type", "application/json")
             .post(requestBody.toString().toRequestBody("application/json".toMediaType()))
             .build()
@@ -134,6 +142,8 @@ class AnthropicAdapter(
         // Track content block types by index
         data class ContentBlock(val type: String, val id: String? = null, val name: String? = null)
         val contentBlocks = mutableMapOf<Int, ContentBlock>()
+        // Track server_tool_use block indices (for web search -- do NOT execute client-side)
+        val serverToolUseIndices = mutableSetOf<Int>()
 
         body.asSseFlow().collect { sseEvent ->
             try {
@@ -148,8 +158,55 @@ class AnthropicAdapter(
                         val blockId = block["id"]?.jsonPrimitive?.content
                         val blockName = block["name"]?.jsonPrimitive?.content
                         contentBlocks[index] = ContentBlock(type = blockType, id = blockId, name = blockName)
-                        if (blockType == "tool_use" && blockId != null && blockName != null) {
-                            emit(StreamEvent.ToolCallStart(toolCallId = blockId, toolName = blockName))
+
+                        when (blockType) {
+                            "tool_use" -> {
+                                if (blockId != null && blockName != null) {
+                                    emit(StreamEvent.ToolCallStart(toolCallId = blockId, toolName = blockName))
+                                }
+                            }
+                            "server_tool_use" -> {
+                                // Server-side tool (web search) -- track index, do NOT emit ToolCallStart
+                                serverToolUseIndices.add(index)
+                                if (blockName == "web_search") {
+                                    emit(StreamEvent.WebSearchStart(null))
+                                }
+                            }
+                            "web_search_tool_result" -> {
+                                // Extract citations from search results
+                                val content = block["content"]?.jsonArray
+                                val citations = content?.mapNotNull { result ->
+                                    val obj = result.jsonObject
+                                    if (obj["type"]?.jsonPrimitive?.content == "web_search_result") {
+                                        val url = obj["url"]?.jsonPrimitive?.content ?: return@mapNotNull null
+                                        Citation(
+                                            url = url,
+                                            title = obj["title"]?.jsonPrimitive?.content ?: url,
+                                            domain = extractDomain(url)
+                                        )
+                                    } else null
+                                } ?: emptyList()
+                                if (citations.isNotEmpty()) {
+                                    emit(StreamEvent.Citations(citations))
+                                }
+                            }
+                            "text" -> {
+                                // Parse inline citations from text block start
+                                val textCitations = block["citations"]?.jsonArray?.mapNotNull { c ->
+                                    val obj = c.jsonObject
+                                    if (obj["type"]?.jsonPrimitive?.content == "web_search_result_location") {
+                                        val url = obj["url"]?.jsonPrimitive?.content ?: return@mapNotNull null
+                                        Citation(
+                                            url = url,
+                                            title = obj["title"]?.jsonPrimitive?.content ?: url,
+                                            domain = extractDomain(url)
+                                        )
+                                    } else null
+                                }
+                                if (!textCitations.isNullOrEmpty()) {
+                                    emit(StreamEvent.Citations(textCitations))
+                                }
+                            }
                         }
                     }
 
@@ -170,9 +227,12 @@ class AnthropicAdapter(
                             }
                             "input_json_delta" -> {
                                 val partialJson = delta["partial_json"]?.jsonPrimitive?.content ?: ""
-                                val blockId = block?.id
-                                if (partialJson.isNotEmpty() && blockId != null) {
-                                    emit(StreamEvent.ToolCallDelta(toolCallId = blockId, argumentsDelta = partialJson))
+                                // Only emit ToolCallDelta for regular tool_use blocks, not server_tool_use
+                                if (index !in serverToolUseIndices) {
+                                    val blockId = block?.id
+                                    if (partialJson.isNotEmpty() && blockId != null) {
+                                        emit(StreamEvent.ToolCallDelta(toolCallId = blockId, argumentsDelta = partialJson))
+                                    }
                                 }
                             }
                         }
@@ -181,6 +241,7 @@ class AnthropicAdapter(
                     "content_block_stop" -> {
                         val index = jsonObj["index"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0
                         val block = contentBlocks[index]
+                        // Only emit ToolCallEnd for regular tool_use blocks
                         if (block?.type == "tool_use" && block.id != null) {
                             emit(StreamEvent.ToolCallEnd(toolCallId = block.id))
                         }
@@ -276,7 +337,8 @@ class AnthropicAdapter(
         modelId: String,
         messages: List<ApiMessage>,
         tools: List<ToolDefinition>?,
-        systemPrompt: String?
+        systemPrompt: String?,
+        webSearchEnabled: Boolean = false
     ): JsonObject = buildJsonObject {
         put("model", modelId)
         put("max_tokens", 16000)
@@ -361,15 +423,23 @@ class AnthropicAdapter(
             }
         })
 
-        if (!tools.isNullOrEmpty()) {
+        val hasTools = !tools.isNullOrEmpty()
+        if (hasTools || webSearchEnabled) {
             put("tools", buildJsonArray {
-                tools.forEach { tool ->
+                tools?.forEach { tool ->
                     add(buildJsonObject {
                         put("name", tool.name)
                         put("description", tool.description)
                         put("input_schema", anyToJsonElement(
                             ToolSchemaSerializer.toJsonSchemaMap(tool.parametersSchema)
                         ))
+                    })
+                }
+                if (webSearchEnabled) {
+                    add(buildJsonObject {
+                        put("type", "web_search_20250305")
+                        put("name", "web_search")
+                        put("max_uses", 5)
                     })
                 }
             })

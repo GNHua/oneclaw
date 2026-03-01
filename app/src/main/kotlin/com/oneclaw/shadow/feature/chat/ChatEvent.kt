@@ -16,4 +16,7 @@ sealed class ChatEvent {
     data object CompactStarted : ChatEvent()
     data class CompactCompleted(val didCompact: Boolean) : ChatEvent()
     data class UserMessageInjected(val text: String) : ChatEvent()
+
+    /** Provider is performing a server-side web search. */
+    data class WebSearchStarted(val query: String?) : ChatEvent()
 }

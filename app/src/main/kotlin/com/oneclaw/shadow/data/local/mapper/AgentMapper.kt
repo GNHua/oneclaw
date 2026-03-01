@@ -12,7 +12,8 @@ fun AgentEntity.toDomain(): Agent = Agent(
     preferredModelId = preferredModelId,
     isBuiltIn = isBuiltIn,
     createdAt = createdAt,
-    updatedAt = updatedAt
+    updatedAt = updatedAt,
+    webSearchEnabled = webSearchEnabled
 )
 
 fun Agent.toEntity(): AgentEntity = AgentEntity(
@@ -25,5 +26,6 @@ fun Agent.toEntity(): AgentEntity = AgentEntity(
     preferredModelId = preferredModelId,
     isBuiltIn = isBuiltIn,
     createdAt = createdAt,
-    updatedAt = updatedAt
+    updatedAt = updatedAt,
+    webSearchEnabled = webSearchEnabled
 )

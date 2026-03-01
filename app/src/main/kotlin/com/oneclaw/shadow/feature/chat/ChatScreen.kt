@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
@@ -89,10 +90,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
+import android.content.Intent
+import android.net.Uri
+import com.oneclaw.shadow.core.model.Citation
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.SolidColor
@@ -267,6 +273,8 @@ fun ChatScreen(
                         streamingThinkingText = uiState.streamingThinkingText,
                         activeToolCalls = uiState.activeToolCalls,
                         isStreaming = uiState.isStreaming,
+                        isWebSearching = uiState.isWebSearching,
+                        webSearchQuery = uiState.webSearchQuery,
                         listState = listState,
                         onCopy = { content -> clipboardManager.setText(AnnotatedString(content)) },
                         onRetry = { viewModel.retryLastMessage() },
@@ -536,6 +544,8 @@ fun MessageList(
     streamingThinkingText: String,
     activeToolCalls: List<ActiveToolCall>,
     isStreaming: Boolean,
+    isWebSearching: Boolean = false,
+    webSearchQuery: String? = null,
     listState: LazyListState,
     onCopy: (String) -> Unit,
     onRetry: () -> Unit,
@@ -556,6 +566,7 @@ fun MessageList(
                 MessageType.AI_RESPONSE -> AiMessageBubble(
                     content = message.content,
                     thinkingContent = message.thinkingContent,
+                    citations = message.citations,
                     modelId = message.modelId,
                     tokenCountInput = message.tokenCountInput,
                     tokenCountOutput = message.tokenCountOutput,
@@ -580,6 +591,12 @@ fun MessageList(
                     onRetry = onRetry
                 )
                 MessageType.SYSTEM -> SystemMessageCard(content = message.content)
+            }
+        }
+
+        if (isWebSearching) {
+            item(key = "web_search_indicator") {
+                WebSearchIndicator(query = webSearchQuery)
             }
         }
 
@@ -648,6 +665,7 @@ fun UserMessageBubble(content: String, onCopy: () -> Unit) {
 fun AiMessageBubble(
     content: String,
     thinkingContent: String?,
+    citations: List<Citation>? = null,
     modelId: String?,
     tokenCountInput: Int? = null,
     tokenCountOutput: Int? = null,
@@ -700,6 +718,13 @@ fun AiMessageBubble(
                     }
                 }
             }
+        }
+
+        if (!isStreaming && !citations.isNullOrEmpty()) {
+            CitationSection(
+                citations = citations,
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
 
         if (!isStreaming && isLastAiMessage && content.isNotEmpty()) {
@@ -925,6 +950,95 @@ fun EmptyChatState() {
             text = "How can I help you today?",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+fun CitationSection(
+    citations: List<Citation>,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+
+    Column(modifier = modifier.padding(top = 8.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(vertical = 4.dp)
+        ) {
+            androidx.compose.material3.HorizontalDivider(modifier = Modifier.weight(1f))
+            Text(
+                text = "Sources (${citations.size})",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+            androidx.compose.material3.HorizontalDivider(modifier = Modifier.weight(1f))
+        }
+        citations.forEach { citation ->
+            CitationItem(
+                citation = citation,
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(citation.url))
+                    context.startActivity(intent)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun CitationItem(
+    citation: Citation,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            Icons.Default.Link,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(
+                text = citation.title,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = citation.domain,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+fun WebSearchIndicator(query: String?) {
+    Row(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(14.dp),
+            strokeWidth = 2.dp
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = if (query != null) "Searching: $query" else "Searching the web...",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontStyle = FontStyle.Italic
         )
     }
 }

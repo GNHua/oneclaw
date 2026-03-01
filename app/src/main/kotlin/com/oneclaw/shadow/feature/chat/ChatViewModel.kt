@@ -379,6 +379,7 @@ class ChatViewModel(
                 _uiState.update { it.copy(messages = messages.map { m -> m.toChatMessageItem() }) }
             }
             is ChatEvent.ResponseComplete -> {
+                _uiState.update { it.copy(isWebSearching = false, webSearchQuery = null) }
                 finishStreaming(sessionId)
                 // RFC-008: Notify if app is in background
                 if (!appLifecycleObserver.isInForeground) {
@@ -396,7 +397,11 @@ class ChatViewModel(
             is ChatEvent.UserMessageInjected -> {
                 _uiState.update { it.copy(pendingCount = maxOf(0, it.pendingCount - 1)) }
             }
+            is ChatEvent.WebSearchStarted -> {
+                _uiState.update { it.copy(isWebSearching = true, webSearchQuery = event.query) }
+            }
             is ChatEvent.Error -> {
+                _uiState.update { it.copy(isWebSearching = false, webSearchQuery = null) }
                 handleError(sessionId, event)
                 // RFC-008: Notify if app is in background
                 if (!appLifecycleObserver.isInForeground) {
@@ -536,7 +541,8 @@ class ChatViewModel(
         _uiState.update {
             it.copy(
                 isStreaming = false, streamingText = "", streamingThinkingText = "",
-                activeToolCalls = emptyList(), pendingCount = 0
+                activeToolCalls = emptyList(), pendingCount = 0,
+                isWebSearching = false, webSearchQuery = null
             )
         }
         // Reload messages from DB
@@ -600,5 +606,6 @@ fun Message.toChatMessageItem(): ChatMessageItem = ChatMessageItem(
     toolStatus = toolStatus, toolDurationMs = toolDurationMs, modelId = modelId,
     tokenCountInput = tokenCountInput,
     tokenCountOutput = tokenCountOutput,
-    isRetryable = type == MessageType.ERROR, timestamp = createdAt
+    isRetryable = type == MessageType.ERROR, timestamp = createdAt,
+    citations = citations
 )

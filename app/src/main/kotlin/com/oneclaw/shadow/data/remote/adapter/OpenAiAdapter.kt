@@ -1,12 +1,14 @@
 package com.oneclaw.shadow.data.remote.adapter
 
 import com.oneclaw.shadow.core.model.AiModel
+import com.oneclaw.shadow.core.model.Citation
 import com.oneclaw.shadow.core.model.ConnectionErrorType
 import com.oneclaw.shadow.core.model.ConnectionTestResult
 import com.oneclaw.shadow.core.model.ModelSource
 import com.oneclaw.shadow.core.model.ToolDefinition
 import com.oneclaw.shadow.core.util.AppResult
 import com.oneclaw.shadow.core.util.ErrorCode
+import com.oneclaw.shadow.core.util.extractDomain
 import com.oneclaw.shadow.data.remote.dto.openai.OpenAiModelListResponse
 import com.oneclaw.shadow.data.remote.sse.asSseFlow
 import com.oneclaw.shadow.tool.engine.ToolSchemaSerializer
@@ -114,9 +116,10 @@ class OpenAiAdapter(
         modelId: String,
         messages: List<ApiMessage>,
         tools: List<ToolDefinition>?,
-        systemPrompt: String?
+        systemPrompt: String?,
+        webSearchEnabled: Boolean
     ): Flow<StreamEvent> = flow {
-        val requestBody = buildOpenAiRequest(modelId, messages, tools, systemPrompt)
+        val requestBody = buildOpenAiRequest(modelId, messages, tools, systemPrompt, webSearchEnabled)
         val request = Request.Builder()
             .url("${apiBaseUrl.trimEnd('/')}/chat/completions")
             .addHeader("Authorization", "Bearer $apiKey")
@@ -142,6 +145,8 @@ class OpenAiAdapter(
 
         // Track tool calls by index (OpenAI streams tool calls with index)
         val toolCallBuilders = mutableMapOf<Int, ToolCallBuilder>()
+        // Accumulate annotations across chunks
+        val accumulatedAnnotations = mutableListOf<kotlinx.serialization.json.JsonElement>()
 
         body.asSseFlow().collect { sseEvent ->
             val data = sseEvent.data
@@ -149,6 +154,13 @@ class OpenAiAdapter(
                 // Finalize any pending tool calls
                 for ((_, tc) in toolCallBuilders) {
                     emit(StreamEvent.ToolCallEnd(tc.id))
+                }
+                // Emit citations from accumulated annotations
+                if (accumulatedAnnotations.isNotEmpty()) {
+                    val citations = parseAnnotations(accumulatedAnnotations)
+                    if (citations.isNotEmpty()) {
+                        emit(StreamEvent.Citations(citations))
+                    }
                 }
                 emit(StreamEvent.Done)
                 return@collect
@@ -170,6 +182,11 @@ class OpenAiAdapter(
                 // Text delta
                 delta["content"]?.jsonPrimitive?.content?.let { text ->
                     if (text.isNotEmpty()) emit(StreamEvent.TextDelta(text))
+                }
+
+                // Accumulate annotations from delta
+                delta["annotations"]?.jsonArray?.let { annotations ->
+                    accumulatedAnnotations.addAll(annotations)
                 }
 
                 // Tool calls
@@ -257,15 +274,36 @@ class OpenAiAdapter(
         }
     }
 
+    private fun parseAnnotations(annotations: List<kotlinx.serialization.json.JsonElement>): List<Citation> {
+        return annotations.mapNotNull { ann ->
+            val obj = ann.jsonObject
+            if (obj["type"]?.jsonPrimitive?.content == "url_citation") {
+                val url = obj["url"]?.jsonPrimitive?.content ?: return@mapNotNull null
+                Citation(
+                    url = url,
+                    title = obj["title"]?.jsonPrimitive?.content ?: url,
+                    domain = extractDomain(url)
+                )
+            } else null
+        }.distinctBy { it.url }
+    }
+
     private fun buildOpenAiRequest(
         modelId: String,
         messages: List<ApiMessage>,
         tools: List<ToolDefinition>?,
-        systemPrompt: String?
+        systemPrompt: String?,
+        webSearchEnabled: Boolean = false
     ): JsonObject = buildJsonObject {
         put("model", modelId)
         put("stream", true)
         put("stream_options", buildJsonObject { put("include_usage", true) })
+
+        if (webSearchEnabled) {
+            put("web_search_options", buildJsonObject {
+                put("search_context_size", "medium")
+            })
+        }
 
         put("messages", buildJsonArray {
             if (!systemPrompt.isNullOrBlank()) {

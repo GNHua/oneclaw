@@ -23,5 +23,7 @@ data class AgentEntity(
     @ColumnInfo(name = "created_at")
     val createdAt: Long,
     @ColumnInfo(name = "updated_at")
-    val updatedAt: Long
+    val updatedAt: Long,
+    @ColumnInfo(name = "web_search_enabled", defaultValue = "0")
+    val webSearchEnabled: Boolean = false
 )

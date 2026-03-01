@@ -51,5 +51,7 @@ data class MessageEntity(
     @ColumnInfo(name = "provider_id")
     val providerId: String?,
     @ColumnInfo(name = "created_at")
-    val createdAt: Long
+    val createdAt: Long,
+    @ColumnInfo(name = "citations")
+    val citations: String? = null
 )

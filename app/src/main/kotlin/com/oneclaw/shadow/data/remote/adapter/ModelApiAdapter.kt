@@ -13,7 +13,8 @@ interface ModelApiAdapter {
         modelId: String,
         messages: List<ApiMessage>,
         tools: List<ToolDefinition>?,
-        systemPrompt: String?
+        systemPrompt: String?,
+        webSearchEnabled: Boolean = false
     ): Flow<StreamEvent>
 
     suspend fun listModels(

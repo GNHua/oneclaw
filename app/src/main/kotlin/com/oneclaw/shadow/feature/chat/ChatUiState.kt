@@ -1,6 +1,7 @@
 package com.oneclaw.shadow.feature.chat
 
 import com.oneclaw.shadow.core.model.AgentConstants
+import com.oneclaw.shadow.core.model.Citation
 import com.oneclaw.shadow.core.model.MessageType
 import com.oneclaw.shadow.core.model.SkillDefinition
 import com.oneclaw.shadow.core.model.ToolCallStatus
@@ -18,6 +19,8 @@ data class ChatUiState(
     val streamingText: String = "",
     val streamingThinkingText: String = "",
     val activeToolCalls: List<ActiveToolCall> = emptyList(),
+    val isWebSearching: Boolean = false,
+    val webSearchQuery: String? = null,
 
     val inputText: String = "",
     val pendingCount: Int = 0,
@@ -68,7 +71,8 @@ data class ChatMessageItem(
     val tokenCountInput: Int? = null,
     val tokenCountOutput: Int? = null,
     val isRetryable: Boolean = false,
-    val timestamp: Long = 0
+    val timestamp: Long = 0,
+    val citations: List<Citation>? = null
 )
 
 data class ActiveToolCall(

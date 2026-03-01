@@ -2,6 +2,7 @@ package com.oneclaw.shadow.feature.chat.usecase
 
 import com.oneclaw.shadow.core.model.AiModel
 import com.oneclaw.shadow.core.model.Agent
+import com.oneclaw.shadow.core.model.Citation
 import com.oneclaw.shadow.core.model.Message
 import com.oneclaw.shadow.core.model.MessageType
 import com.oneclaw.shadow.core.model.Provider
@@ -141,6 +142,7 @@ class SendMessageUseCase(
                 var accumulatedThinking = ""
                 val pendingToolCalls = mutableListOf<PendingToolCall>()
                 var usage: ChatEvent.TokenUsage? = null
+                val accumulatedCitations = mutableListOf<Citation>()
 
                 adapter.sendMessageStream(
                     apiBaseUrl = provider.apiBaseUrl,
@@ -148,7 +150,8 @@ class SendMessageUseCase(
                     modelId = model.id,
                     messages = apiMessages,
                     tools = agentToolDefs,
-                    systemPrompt = effectiveSystemPrompt
+                    systemPrompt = effectiveSystemPrompt,
+                    webSearchEnabled = agent.webSearchEnabled
                 ).collect { event ->
                     when (event) {
                         is StreamEvent.TextDelta -> {
@@ -176,8 +179,16 @@ class SendMessageUseCase(
                         }
                         is StreamEvent.Error -> throw ApiException(event.message, event.code)
                         is StreamEvent.Done -> { /* stream complete */ }
+                        is StreamEvent.WebSearchStart -> {
+                            send(ChatEvent.WebSearchStarted(event.query))
+                        }
+                        is StreamEvent.Citations -> {
+                            accumulatedCitations.addAll(event.citations)
+                        }
                     }
                 }
+
+                val finalCitations = accumulatedCitations.distinctBy { it.url }.ifEmpty { null }
 
                 // Save AI response
                 val aiMessage = messageRepository.addMessage(Message(
@@ -187,7 +198,8 @@ class SendMessageUseCase(
                     toolCallId = null, toolName = null, toolInput = null, toolOutput = null,
                     toolStatus = null, toolDurationMs = null,
                     tokenCountInput = usage?.inputTokens, tokenCountOutput = usage?.outputTokens,
-                    modelId = model.id, providerId = provider.id, createdAt = 0
+                    modelId = model.id, providerId = provider.id, createdAt = 0,
+                    citations = finalCitations
                 ))
 
                 if (pendingToolCalls.isEmpty()) {

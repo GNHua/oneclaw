@@ -36,7 +36,7 @@ import java.util.concurrent.Executors
         MemoryIndexEntity::class,
         ScheduledTaskEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

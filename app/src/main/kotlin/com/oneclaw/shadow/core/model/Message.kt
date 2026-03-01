@@ -16,7 +16,8 @@ data class Message(
     val tokenCountOutput: Int?,
     val modelId: String?,
     val providerId: String?,
-    val createdAt: Long
+    val createdAt: Long,
+    val citations: List<Citation>? = null
 )
 
 enum class MessageType {

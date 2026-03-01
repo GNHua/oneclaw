@@ -61,11 +61,13 @@ class AgentDetailViewModel(
                     systemPrompt = agent.systemPrompt,
                     preferredProviderId = agent.preferredProviderId,
                     preferredModelId = agent.preferredModelId,
+                    webSearchEnabled = agent.webSearchEnabled,
                     savedName = agent.name,
                     savedDescription = agent.description ?: "",
                     savedSystemPrompt = agent.systemPrompt,
                     savedPreferredProviderId = agent.preferredProviderId,
                     savedPreferredModelId = agent.preferredModelId,
+                    savedWebSearchEnabled = agent.webSearchEnabled,
                     isLoading = false
                 )
             }
@@ -114,6 +116,10 @@ class AgentDetailViewModel(
 
     fun clearPreferredModel() = setPreferredModel(null, null)
 
+    fun updateWebSearchEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(webSearchEnabled = enabled) }
+    }
+
     fun saveAgent() {
         val state = _uiState.value
         viewModelScope.launch {
@@ -144,7 +150,8 @@ class AgentDetailViewModel(
                     preferredModelId = state.preferredModelId,
                     isBuiltIn = false,
                     createdAt = originalAgent?.createdAt ?: 0,
-                    updatedAt = 0
+                    updatedAt = 0,
+                    webSearchEnabled = state.webSearchEnabled
                 )
                 when (val result = agentRepository.updateAgent(updated)) {
                     is AppResult.Success -> {
@@ -157,6 +164,7 @@ class AgentDetailViewModel(
                                 savedSystemPrompt = updated.systemPrompt,
                                 savedPreferredProviderId = updated.preferredProviderId,
                                 savedPreferredModelId = updated.preferredModelId,
+                                savedWebSearchEnabled = updated.webSearchEnabled,
                                 successMessage = "Agent saved."
                             )
                         }

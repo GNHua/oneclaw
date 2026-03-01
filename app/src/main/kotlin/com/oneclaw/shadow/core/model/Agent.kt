@@ -9,5 +9,6 @@ data class Agent(
     val preferredModelId: String?,
     val isBuiltIn: Boolean,
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val webSearchEnabled: Boolean = false
 )

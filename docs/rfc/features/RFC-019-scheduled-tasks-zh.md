@@ -169,6 +169,25 @@ CREATE INDEX IF NOT EXISTS index_scheduled_tasks_next_trigger_at ON scheduled_ta
 8. 对于重复任务：计算下一次触发时间并重新注册闹钟
 9. 对于 ONE_TIME 任务：禁用该任务
 
+## 内置工具：schedule_task
+
+一个 Kotlin 内置工具（遵循 `LoadSkillTool` 模式），使 AI 代理能够通过对话创建定时任务。
+
+### 参数
+| 参数 | 类型 | 必填 | 描述 |
+|------|------|------|------|
+| name | string | 是 | 任务名称 |
+| prompt | string | 是 | 任务触发时发送的提示 |
+| schedule_type | string | 是 | "one_time"、"daily" 或 "weekly" |
+| hour | integer | 是 | 小时（0-23） |
+| minute | integer | 是 | 分钟（0-59） |
+| day_of_week | string | 否 | 每周任务的星期名称（例如 "monday"） |
+| date | string | 否 | 一次性任务的日期，格式为 YYYY-MM-DD |
+
+### 注册
+- 在 `ToolModule` 中以 `ToolSourceInfo.BUILTIN` 注册
+- 通过 `MIGRATION_5_6` 添加到通用助手的默认工具列表中
+
 ## 通知
 
 ### 通知渠道

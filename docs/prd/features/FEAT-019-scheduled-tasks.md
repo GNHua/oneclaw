@@ -51,6 +51,14 @@ Scheduled Tasks allows users to create, manage, and automate AI agent tasks on a
 - **Delete**: Cancels the alarm and removes the task from the database.
 - **Toggle**: Enable/disable switch that registers or cancels the alarm.
 
+### Prompt-Based Creation
+
+Users can also create scheduled tasks by asking the AI agent in conversation. For example:
+- "Schedule a daily task at 7am to give me a morning news briefing"
+- "Create a weekly task every Monday at 9am to summarize my week"
+
+The agent uses the `schedule_task` tool to create the task, which is then managed through the Scheduled Tasks UI.
+
 ## Acceptance Criteria
 
 ### TEST-019-01: Create a One-Time Task

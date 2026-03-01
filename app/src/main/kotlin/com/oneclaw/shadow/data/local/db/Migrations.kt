@@ -67,6 +67,18 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // RFC-019: Add schedule_task to General Assistant's tool_ids
+        db.execSQL(
+            """UPDATE agents
+               SET tool_ids = '["get_current_time","read_file","write_file","http_request","load_skill","schedule_task"]'
+               WHERE id = 'agent-general-assistant'
+               AND tool_ids NOT LIKE '%schedule_task%'"""
+        )
+    }
+}
+
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
         // Add context_window_size to models

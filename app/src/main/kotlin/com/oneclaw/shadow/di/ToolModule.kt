@@ -3,6 +3,7 @@ package com.oneclaw.shadow.di
 import android.util.Log
 import com.oneclaw.shadow.core.model.ToolSourceInfo
 import com.oneclaw.shadow.core.model.ToolSourceType
+import com.oneclaw.shadow.tool.builtin.CreateScheduledTaskTool
 import com.oneclaw.shadow.tool.builtin.LoadSkillTool
 import com.oneclaw.shadow.tool.engine.PermissionChecker
 import com.oneclaw.shadow.tool.engine.ToolEnabledStateStore
@@ -36,6 +37,9 @@ val toolModule = module {
     single { SkillRegistry(androidContext(), get()).apply { initialize() } }
     single { LoadSkillTool(get()) }
 
+    // RFC-019: schedule_task built-in tool
+    single { CreateScheduledTaskTool(get()) }
+
     // RFC-017: Tool enabled state store
     single { ToolEnabledStateStore(androidContext()) }
 
@@ -46,6 +50,12 @@ val toolModule = module {
                 register(get<LoadSkillTool>(), ToolSourceInfo.BUILTIN)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register load_skill: ${e.message}")
+            }
+
+            try {
+                register(get<CreateScheduledTaskTool>(), ToolSourceInfo.BUILTIN)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register schedule_task: ${e.message}")
             }
 
             // Built-in JS tools from assets (replaces Kotlin tool registration)

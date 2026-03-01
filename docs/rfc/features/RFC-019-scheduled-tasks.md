@@ -169,6 +169,25 @@ Executes the scheduled task:
 8. For recurring tasks: calculates next trigger time and re-registers alarm
 9. For ONE_TIME tasks: disables the task
 
+## Built-in Tool: schedule_task
+
+A Kotlin built-in tool (following the `LoadSkillTool` pattern) that enables AI agents to create scheduled tasks from conversation.
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| name | string | yes | Task name |
+| prompt | string | yes | Prompt to send when task fires |
+| schedule_type | string | yes | "one_time", "daily", or "weekly" |
+| hour | integer | yes | Hour (0-23) |
+| minute | integer | yes | Minute (0-59) |
+| day_of_week | string | no | Day name for weekly (e.g., "monday") |
+| date | string | no | Date for one-time in YYYY-MM-DD format |
+
+### Registration
+- Registered in `ToolModule` with `ToolSourceInfo.BUILTIN`
+- Added to General Assistant's default tool list via `MIGRATION_5_6`
+
 ## Notifications
 
 ### Channels

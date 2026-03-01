@@ -9,8 +9,10 @@ import androidx.work.WorkerParameters
 import com.oneclaw.shadow.R
 import com.oneclaw.shadow.core.model.ExecutionStatus
 import com.oneclaw.shadow.core.model.ScheduleType
+import com.oneclaw.shadow.core.model.TaskExecutionRecord
 import com.oneclaw.shadow.core.notification.NotificationHelper
 import com.oneclaw.shadow.core.repository.ScheduledTaskRepository
+import com.oneclaw.shadow.core.repository.TaskExecutionRecordRepository
 import com.oneclaw.shadow.feature.chat.ChatEvent
 import com.oneclaw.shadow.feature.schedule.alarm.AlarmScheduler
 import com.oneclaw.shadow.feature.schedule.alarm.NextTriggerCalculator
@@ -18,6 +20,7 @@ import com.oneclaw.shadow.feature.session.usecase.CreateSessionUseCase
 import com.oneclaw.shadow.feature.chat.usecase.SendMessageUseCase
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.util.UUID
 
 class ScheduledTaskWorker(
     appContext: Context,
@@ -25,6 +28,7 @@ class ScheduledTaskWorker(
 ) : CoroutineWorker(appContext, params), KoinComponent {
 
     private val scheduledTaskRepository: ScheduledTaskRepository by inject()
+    private val executionRecordRepository: TaskExecutionRecordRepository by inject()
     private val createSessionUseCase: CreateSessionUseCase by inject()
     private val sendMessageUseCase: SendMessageUseCase by inject()
     private val notificationHelper: NotificationHelper by inject()
@@ -51,6 +55,20 @@ class ScheduledTaskWorker(
             sessionId = null,
             nextTriggerAt = task.nextTriggerAt,
             isEnabled = task.isEnabled
+        )
+
+        // RFC-028: Create execution record
+        val recordId = UUID.randomUUID().toString()
+        executionRecordRepository.createRecord(
+            TaskExecutionRecord(
+                id = recordId,
+                taskId = taskId,
+                status = ExecutionStatus.RUNNING,
+                sessionId = null,
+                startedAt = System.currentTimeMillis(),
+                completedAt = null,
+                errorMessage = null
+            )
         )
 
         var sessionId: String? = null
@@ -98,6 +116,15 @@ class ScheduledTaskWorker(
             sessionId = sessionId,
             nextTriggerAt = nextTriggerAt,
             isEnabled = nextEnabled
+        )
+
+        // RFC-028: Update execution record
+        executionRecordRepository.updateResult(
+            id = recordId,
+            status = if (isSuccess) ExecutionStatus.SUCCESS else ExecutionStatus.FAILED,
+            completedAt = System.currentTimeMillis(),
+            sessionId = sessionId,
+            errorMessage = if (!isSuccess) responseText else null
         )
 
         // Send notification

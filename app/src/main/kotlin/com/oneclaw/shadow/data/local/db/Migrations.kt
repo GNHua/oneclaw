@@ -86,6 +86,28 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // RFC-028: Add task_execution_records table
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS task_execution_records (
+                id TEXT NOT NULL PRIMARY KEY,
+                task_id TEXT NOT NULL,
+                status TEXT NOT NULL,
+                session_id TEXT,
+                started_at INTEGER NOT NULL,
+                completed_at INTEGER,
+                error_message TEXT,
+                FOREIGN KEY (task_id) REFERENCES scheduled_tasks(id) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_task_execution_records_task_id ON task_execution_records(task_id)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_task_execution_records_started_at ON task_execution_records(started_at)")
+    }
+}
+
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
         // Add context_window_size to models

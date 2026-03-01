@@ -45,4 +45,10 @@ sealed class Route(val path: String) {
             fun create(taskId: String) = "schedules/$taskId"
         }
     }
+    data class ScheduleDetail(val taskId: String) : Route("schedules/{taskId}/detail") {
+        companion object {
+            const val PATH = "schedules/{taskId}/detail"
+            fun create(taskId: String) = "schedules/$taskId/detail"
+        }
+    }
 }

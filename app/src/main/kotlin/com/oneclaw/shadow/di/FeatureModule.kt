@@ -39,11 +39,14 @@ import com.oneclaw.shadow.feature.skill.usecase.GetAllSkillsUseCase
 import com.oneclaw.shadow.feature.skill.usecase.ImportSkillUseCase
 import com.oneclaw.shadow.feature.skill.usecase.LoadSkillContentUseCase
 import com.oneclaw.shadow.feature.skill.usecase.UpdateSkillUseCase
+import com.oneclaw.shadow.feature.schedule.ScheduledTaskDetailViewModel
 import com.oneclaw.shadow.feature.schedule.ScheduledTaskEditViewModel
 import com.oneclaw.shadow.feature.schedule.ScheduledTaskListViewModel
 import com.oneclaw.shadow.feature.schedule.alarm.AlarmScheduler
+import com.oneclaw.shadow.feature.schedule.usecase.CleanupExecutionHistoryUseCase
 import com.oneclaw.shadow.feature.schedule.usecase.CreateScheduledTaskUseCase
 import com.oneclaw.shadow.feature.schedule.usecase.DeleteScheduledTaskUseCase
+import com.oneclaw.shadow.feature.schedule.usecase.RunScheduledTaskNowUseCase
 import com.oneclaw.shadow.feature.schedule.usecase.ToggleScheduledTaskUseCase
 import com.oneclaw.shadow.feature.schedule.usecase.UpdateScheduledTaskUseCase
 import com.oneclaw.shadow.feature.tool.ToolManagementViewModel
@@ -164,4 +167,9 @@ val featureModule = module {
     factory { ToggleScheduledTaskUseCase(get(), get()) }
     viewModelOf(::ScheduledTaskListViewModel)
     viewModelOf(::ScheduledTaskEditViewModel)
+
+    // RFC-028: Scheduled Task Detail
+    factory { RunScheduledTaskNowUseCase(get(), get(), get(), get(), get()) }
+    factory { CleanupExecutionHistoryUseCase(get()) }
+    viewModelOf(::ScheduledTaskDetailViewModel)
 }

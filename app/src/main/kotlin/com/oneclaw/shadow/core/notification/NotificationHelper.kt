@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.oneclaw.shadow.MainActivity
 import com.oneclaw.shadow.R
+import java.util.concurrent.atomic.AtomicInteger
 
 class NotificationHelper(
     private val context: Context
@@ -20,7 +21,7 @@ class NotificationHelper(
         const val SCHEDULED_TASKS_CHANNEL_ID = "scheduled_task_results"
         const val EXECUTION_CHANNEL_ID = "scheduled_task_execution"
         const val EXTRA_SESSION_ID = "notification_session_id"
-        private var notificationIdCounter = 1000
+        private val notificationIdCounter = AtomicInteger(1000)
     }
 
     fun createNotificationChannel() {
@@ -95,7 +96,7 @@ class NotificationHelper(
             .build()
 
         try {
-            NotificationManagerCompat.from(context).notify(notificationIdCounter++, notification)
+            NotificationManagerCompat.from(context).notify(notificationIdCounter.getAndIncrement(), notification)
         } catch (_: SecurityException) {
             // POST_NOTIFICATIONS permission not granted on Android 13+; silently ignore
         }
@@ -150,7 +151,7 @@ class NotificationHelper(
             .build()
 
         try {
-            NotificationManagerCompat.from(context).notify(notificationIdCounter++, notification)
+            NotificationManagerCompat.from(context).notify(notificationIdCounter.getAndIncrement(), notification)
         } catch (_: SecurityException) {
             // POST_NOTIFICATIONS permission not granted on Android 13+; silently ignore
         }

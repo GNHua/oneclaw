@@ -23,7 +23,25 @@ import com.oneclaw.shadow.feature.schedule.ScheduledTaskListScreen
 import com.oneclaw.shadow.feature.tool.ToolManagementScreen
 import com.oneclaw.shadow.feature.usage.UsageStatisticsScreen
 import android.content.Intent
+import androidx.lifecycle.Lifecycle
+import androidx.navigation.NavController
 import org.koin.compose.koinInject
+
+/**
+ * Safely navigate only when the current back stack entry is RESUMED,
+ * preventing duplicate navigation on rapid clicks.
+ */
+private fun NavController.safeNavigate(route: String, builder: (androidx.navigation.NavOptionsBuilder.() -> Unit)? = null) {
+    if (currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.RESUMED) == true) {
+        if (builder != null) navigate(route, builder) else navigate(route)
+    }
+}
+
+private fun NavController.safePopBackStack() {
+    if (currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.RESUMED) == true) {
+        popBackStack()
+    }
+}
 
 @Suppress("LongParameterList")
 @Composable
@@ -56,58 +74,58 @@ fun AppNavGraph(
     ) {
         composable(Route.Chat.path) {
             ChatScreen(
-                onNavigateToSettings = { navController.navigate(Route.Settings.path) }
+                onNavigateToSettings = { navController.safeNavigate(Route.Settings.path) }
             )
         }
 
         composable(Route.ChatSession.PATH) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
             ChatScreen(
-                onNavigateToSettings = { navController.navigate(Route.Settings.path) }
+                onNavigateToSettings = { navController.safeNavigate(Route.Settings.path) }
             )
         }
 
         composable(Route.AgentList.path) {
             AgentListScreen(
                 onAgentClick = { agentId ->
-                    navController.navigate(Route.AgentDetail.create(agentId))
+                    navController.safeNavigate(Route.AgentDetail.create(agentId))
                 },
-                onCreateAgent = { navController.navigate(Route.AgentCreate.path) },
-                onNavigateBack = { navController.popBackStack() }
+                onCreateAgent = { navController.safeNavigate(Route.AgentCreate.path) },
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 
         composable(Route.AgentDetail.PATH) { backStackEntry ->
             AgentDetailScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 
         composable(Route.AgentCreate.path) {
             AgentDetailScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 
         composable(Route.ProviderList.path) {
             ProviderListScreen(
                 onProviderClick = { providerId ->
-                    navController.navigate(Route.ProviderDetail.create(providerId))
+                    navController.safeNavigate(Route.ProviderDetail.create(providerId))
                 },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 
         composable(Route.ProviderDetail.PATH) {
             ProviderDetailScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 
         composable(Route.Setup.path) {
             SetupScreen(
                 onComplete = {
-                    navController.navigate(Route.Chat.path) {
+                    navController.safeNavigate(Route.Chat.path) {
                         popUpTo(Route.Setup.path) { inclusive = true }
                     }
                 }
@@ -116,34 +134,34 @@ fun AppNavGraph(
 
         composable(Route.Settings.path) {
             SettingsScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onManageProviders = { navController.navigate(Route.ProviderList.path) },
-                onManageAgents = { navController.navigate(Route.AgentList.path) },
-                onManageTools = { navController.navigate(Route.ManageTools.path) },
-                onUsageStatistics = { navController.navigate(Route.UsageStatistics.path) },
-                onDataBackup = { navController.navigate(Route.DataBackup.path) },
-                onMemory = { navController.navigate(Route.Memory.path) },
-                onSkills = { navController.navigate(Route.SkillManagement.path) },
-                onScheduledTasks = { navController.navigate(Route.ScheduleList.path) }
+                onNavigateBack = { navController.safePopBackStack() },
+                onManageProviders = { navController.safeNavigate(Route.ProviderList.path) },
+                onManageAgents = { navController.safeNavigate(Route.AgentList.path) },
+                onManageTools = { navController.safeNavigate(Route.ManageTools.path) },
+                onUsageStatistics = { navController.safeNavigate(Route.UsageStatistics.path) },
+                onDataBackup = { navController.safeNavigate(Route.DataBackup.path) },
+                onMemory = { navController.safeNavigate(Route.Memory.path) },
+                onSkills = { navController.safeNavigate(Route.SkillManagement.path) },
+                onScheduledTasks = { navController.safeNavigate(Route.ScheduleList.path) }
             )
         }
 
         composable(Route.ManageTools.path) {
             ToolManagementScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 
         composable(Route.UsageStatistics.path) {
             UsageStatisticsScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 
         composable(Route.DataBackup.path) {
             val context = androidx.compose.ui.platform.LocalContext.current
             DataBackupScreen(
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navController.safePopBackStack() },
                 onRestartApp = {
                     val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
                     intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -155,16 +173,16 @@ fun AppNavGraph(
 
         composable(Route.Memory.path) {
             MemoryScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 
         composable(Route.SkillManagement.path) {
             SkillManagementScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onCreateSkill = { navController.navigate(Route.SkillCreate.path) },
+                onNavigateBack = { navController.safePopBackStack() },
+                onCreateSkill = { navController.safeNavigate(Route.SkillCreate.path) },
                 onEditSkill = { skillName ->
-                    navController.navigate(Route.SkillEdit.create(skillName))
+                    navController.safeNavigate(Route.SkillEdit.create(skillName))
                 }
             )
         }
@@ -172,7 +190,7 @@ fun AppNavGraph(
         composable(Route.SkillCreate.path) {
             SkillEditorScreen(
                 skillName = null,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 
@@ -180,29 +198,29 @@ fun AppNavGraph(
             val skillName = backStackEntry.arguments?.getString("skillName")
             SkillEditorScreen(
                 skillName = skillName,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 
         composable(Route.ScheduleList.path) {
             ScheduledTaskListScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onCreateTask = { navController.navigate(Route.ScheduleCreate.path) },
+                onNavigateBack = { navController.safePopBackStack() },
+                onCreateTask = { navController.safeNavigate(Route.ScheduleCreate.path) },
                 onEditTask = { taskId ->
-                    navController.navigate(Route.ScheduleEdit.create(taskId))
+                    navController.safeNavigate(Route.ScheduleEdit.create(taskId))
                 }
             )
         }
 
         composable(Route.ScheduleCreate.path) {
             ScheduledTaskEditScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 
         composable(Route.ScheduleEdit.PATH) {
             ScheduledTaskEditScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
     }

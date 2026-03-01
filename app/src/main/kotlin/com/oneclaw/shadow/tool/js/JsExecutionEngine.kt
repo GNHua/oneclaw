@@ -3,9 +3,12 @@ package com.oneclaw.shadow.tool.js
 import android.util.Log
 import com.dokar.quickjs.quickJs
 import com.oneclaw.shadow.core.model.ToolResult
+import com.oneclaw.shadow.data.security.GoogleAuthManager
 import com.oneclaw.shadow.tool.js.bridge.ConsoleBridge
 import com.oneclaw.shadow.tool.js.bridge.FetchBridge
+import com.oneclaw.shadow.tool.js.bridge.FileTransferBridge
 import com.oneclaw.shadow.tool.js.bridge.FsBridge
+import com.oneclaw.shadow.tool.js.bridge.GoogleAuthBridge
 import com.oneclaw.shadow.tool.js.bridge.LibraryBridge
 import com.oneclaw.shadow.tool.js.bridge.TimeBridge
 import kotlinx.coroutines.CancellationException
@@ -26,7 +29,8 @@ import java.io.File
  */
 class JsExecutionEngine(
     private val okHttpClient: OkHttpClient,
-    private val libraryBridge: LibraryBridge
+    private val libraryBridge: LibraryBridge,
+    private val googleAuthManager: GoogleAuthManager? = null
 ) {
     companion object {
         private const val TAG = "JsExecutionEngine"
@@ -125,6 +129,12 @@ class JsExecutionEngine(
             // Inject bridge: lib()
             libraryBridge.inject(this)
 
+            // Inject bridge: google auth
+            GoogleAuthBridge.inject(this, googleAuthManager)
+
+            // Inject bridge: file transfer
+            FileTransferBridge.inject(this, okHttpClient)
+
             // Load JS source -- from file or from pre-loaded string (assets)
             val jsCode = jsSource ?: File(jsFilePath).readText()
 
@@ -139,6 +149,8 @@ class JsExecutionEngine(
             val wrapperCode = """
                 ${FetchBridge.FETCH_WRAPPER_JS}
                 ${libraryBridge.LIB_WRAPPER_JS}
+                ${GoogleAuthBridge.GOOGLE_AUTH_WRAPPER_JS}
+                ${FileTransferBridge.FILE_TRANSFER_WRAPPER_JS}
 
                 $jsCode
 

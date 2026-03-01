@@ -1,0 +1,190 @@
+[
+  {
+    "name": "gmail_settings_get_vacation",
+    "description": "Get the Gmail vacation auto-reply settings.",
+    "function": "gmailSettingsGetVacation",
+    "parameters": {
+      "properties": {},
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_settings_update_vacation",
+    "description": "Update Gmail vacation auto-reply settings.",
+    "function": "gmailSettingsUpdateVacation",
+    "parameters": {
+      "properties": {
+        "enable_auto_reply": {
+          "type": "boolean",
+          "description": "Whether to enable the vacation auto-reply"
+        },
+        "start_time": {
+          "type": "string",
+          "description": "Start time in milliseconds since epoch (optional)"
+        },
+        "end_time": {
+          "type": "string",
+          "description": "End time in milliseconds since epoch (optional)"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Subject line of the auto-reply"
+        },
+        "body_html": {
+          "type": "string",
+          "description": "HTML body of the auto-reply"
+        },
+        "restrict_to_domain": {
+          "type": "boolean",
+          "description": "Only send auto-reply to contacts in the same domain"
+        },
+        "restrict_to_contacts": {
+          "type": "boolean",
+          "description": "Only send auto-reply to people in your contacts"
+        }
+      },
+      "required": ["enable_auto_reply"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_settings_get_imap",
+    "description": "Get the Gmail IMAP settings.",
+    "function": "gmailSettingsGetImap",
+    "parameters": {
+      "properties": {},
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_settings_update_imap",
+    "description": "Update Gmail IMAP settings.",
+    "function": "gmailSettingsUpdateImap",
+    "parameters": {
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether to enable IMAP access"
+        },
+        "auto_expunge": {
+          "type": "boolean",
+          "description": "Whether to auto-expunge messages"
+        },
+        "expunge_behavior": {
+          "type": "string",
+          "description": "Expunge behavior: archive, trash, or deleteForever"
+        },
+        "max_folder_size": {
+          "type": "integer",
+          "description": "Max folder size in bytes (0 for unlimited)"
+        }
+      },
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_settings_list_filters",
+    "description": "List Gmail filters (email routing rules).",
+    "function": "gmailSettingsListFilters",
+    "parameters": {
+      "properties": {},
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_settings_create_filter",
+    "description": "Create a new Gmail filter rule.",
+    "function": "gmailSettingsCreateFilter",
+    "parameters": {
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "Filter messages from this address"
+        },
+        "to": {
+          "type": "string",
+          "description": "Filter messages to this address"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Filter messages with this subject"
+        },
+        "query": {
+          "type": "string",
+          "description": "Gmail query string for matching"
+        },
+        "add_label_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Label IDs to add to matching messages"
+        },
+        "remove_label_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Label IDs to remove from matching messages"
+        }
+      },
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_settings_delete_filter",
+    "description": "Delete a Gmail filter rule.",
+    "function": "gmailSettingsDeleteFilter",
+    "parameters": {
+      "properties": {
+        "filter_id": {
+          "type": "string",
+          "description": "The filter ID to delete"
+        }
+      },
+      "required": ["filter_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_settings_list_forwarding_addresses",
+    "description": "List Gmail forwarding email addresses.",
+    "function": "gmailSettingsListForwardingAddresses",
+    "parameters": {
+      "properties": {},
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_settings_get_auto_forwarding",
+    "description": "Get Gmail auto-forwarding settings.",
+    "function": "gmailSettingsGetAutoForwarding",
+    "parameters": {
+      "properties": {},
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_settings_list_send_as",
+    "description": "List Gmail send-as aliases configured for the account.",
+    "function": "gmailSettingsListSendAs",
+    "parameters": {
+      "properties": {},
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_settings_get_language",
+    "description": "Get the Gmail display language setting.",
+    "function": "gmailSettingsGetLanguage",
+    "parameters": {
+      "properties": {},
+      "required": []
+    },
+    "timeoutSeconds": 15
+  }
+]

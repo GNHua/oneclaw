@@ -16,6 +16,7 @@ import com.oneclaw.shadow.feature.provider.SetupScreen
 import com.oneclaw.shadow.feature.provider.SettingsScreen
 import com.oneclaw.shadow.feature.memory.ui.MemoryScreen
 import com.oneclaw.shadow.feature.settings.DataBackupScreen
+import com.oneclaw.shadow.feature.settings.GoogleAuthScreen
 import com.oneclaw.shadow.feature.skill.ui.SkillEditorScreen
 import com.oneclaw.shadow.feature.skill.ui.SkillManagementScreen
 import com.oneclaw.shadow.feature.schedule.ScheduledTaskEditScreen
@@ -142,7 +143,8 @@ fun AppNavGraph(
                 onDataBackup = { navController.safeNavigate(Route.DataBackup.path) },
                 onMemory = { navController.safeNavigate(Route.Memory.path) },
                 onSkills = { navController.safeNavigate(Route.SkillManagement.path) },
-                onScheduledTasks = { navController.safeNavigate(Route.ScheduleList.path) }
+                onScheduledTasks = { navController.safeNavigate(Route.ScheduleList.path) },
+                onGoogleAccount = { navController.safeNavigate(Route.GoogleAuth.path) }
             )
         }
 
@@ -220,6 +222,12 @@ fun AppNavGraph(
 
         composable(Route.ScheduleEdit.PATH) {
             ScheduledTaskEditScreen(
+                onNavigateBack = { navController.safePopBackStack() }
+            )
+        }
+
+        composable(Route.GoogleAuth.path) {
+            GoogleAuthScreen(
                 onNavigateBack = { navController.safePopBackStack() }
             )
         }

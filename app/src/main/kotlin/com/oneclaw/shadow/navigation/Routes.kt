@@ -45,4 +45,5 @@ sealed class Route(val path: String) {
             fun create(taskId: String) = "schedules/$taskId"
         }
     }
+    data object GoogleAuth : Route("google-auth")
 }

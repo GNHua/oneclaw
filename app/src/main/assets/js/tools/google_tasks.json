@@ -1,0 +1,154 @@
+[
+  {
+    "name": "tasks_list_tasklists",
+    "description": "List all Google Tasks task lists.",
+    "function": "tasksListTasklists",
+    "parameters": {
+      "properties": {},
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "tasks_list_tasks",
+    "description": "List tasks in a Google Tasks task list.",
+    "function": "tasksListTasks",
+    "parameters": {
+      "properties": {
+        "tasklist_id": {
+          "type": "string",
+          "description": "Task list ID (use '@default' for the default list)"
+        },
+        "show_completed": {
+          "type": "boolean",
+          "description": "Include completed tasks (default: false)"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of tasks to return (default: 20)"
+        }
+      },
+      "required": ["tasklist_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "tasks_create_task",
+    "description": "Create a new Google Task.",
+    "function": "tasksCreateTask",
+    "parameters": {
+      "properties": {
+        "tasklist_id": {
+          "type": "string",
+          "description": "Task list ID (use '@default' for the default list)"
+        },
+        "title": {
+          "type": "string",
+          "description": "Task title"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Task notes (optional)"
+        },
+        "due": {
+          "type": "string",
+          "description": "Due date in RFC 3339 format (optional, e.g., '2024-01-15T00:00:00.000Z')"
+        },
+        "parent": {
+          "type": "string",
+          "description": "Parent task ID for subtask (optional)"
+        }
+      },
+      "required": ["tasklist_id", "title"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "tasks_update_task",
+    "description": "Update an existing Google Task.",
+    "function": "tasksUpdateTask",
+    "parameters": {
+      "properties": {
+        "tasklist_id": {
+          "type": "string",
+          "description": "Task list ID"
+        },
+        "task_id": {
+          "type": "string",
+          "description": "Task ID to update"
+        },
+        "title": {
+          "type": "string",
+          "description": "New task title (optional)"
+        },
+        "notes": {
+          "type": "string",
+          "description": "New task notes (optional)"
+        },
+        "status": {
+          "type": "string",
+          "description": "Task status: 'needsAction' or 'completed'"
+        },
+        "due": {
+          "type": "string",
+          "description": "New due date in RFC 3339 format (optional)"
+        }
+      },
+      "required": ["tasklist_id", "task_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "tasks_complete_task",
+    "description": "Mark a Google Task as completed.",
+    "function": "tasksCompleteTask",
+    "parameters": {
+      "properties": {
+        "tasklist_id": {
+          "type": "string",
+          "description": "Task list ID"
+        },
+        "task_id": {
+          "type": "string",
+          "description": "Task ID to mark as completed"
+        }
+      },
+      "required": ["tasklist_id", "task_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "tasks_delete_task",
+    "description": "Delete a Google Task.",
+    "function": "tasksDeleteTask",
+    "parameters": {
+      "properties": {
+        "tasklist_id": {
+          "type": "string",
+          "description": "Task list ID"
+        },
+        "task_id": {
+          "type": "string",
+          "description": "Task ID to delete"
+        }
+      },
+      "required": ["tasklist_id", "task_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "tasks_create_tasklist",
+    "description": "Create a new Google Tasks task list.",
+    "function": "tasksCreateTasklist",
+    "parameters": {
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Task list title"
+        }
+      },
+      "required": ["title"]
+    },
+    "timeoutSeconds": 15
+  }
+]

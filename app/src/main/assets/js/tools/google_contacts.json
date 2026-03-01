@@ -1,0 +1,155 @@
+[
+  {
+    "name": "contacts_list",
+    "description": "List Google Contacts from the user's personal contacts.",
+    "function": "contactsList",
+    "parameters": {
+      "properties": {
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of contacts to return (default: 20)"
+        },
+        "page_token": {
+          "type": "string",
+          "description": "Page token for pagination (optional)"
+        }
+      },
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "contacts_search",
+    "description": "Search Google Contacts by name, email, or phone number.",
+    "function": "contactsSearch",
+    "parameters": {
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Search query (name, email, or phone)"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of results (default: 10)"
+        }
+      },
+      "required": ["query"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "contacts_get",
+    "description": "Get details of a specific Google Contact.",
+    "function": "contactsGet",
+    "parameters": {
+      "properties": {
+        "resource_name": {
+          "type": "string",
+          "description": "Contact resource name (e.g., 'people/c1234567890')"
+        }
+      },
+      "required": ["resource_name"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "contacts_create",
+    "description": "Create a new Google Contact.",
+    "function": "contactsCreate",
+    "parameters": {
+      "properties": {
+        "given_name": {
+          "type": "string",
+          "description": "First name"
+        },
+        "family_name": {
+          "type": "string",
+          "description": "Last name"
+        },
+        "email": {
+          "type": "string",
+          "description": "Primary email address"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Primary phone number"
+        },
+        "organization": {
+          "type": "string",
+          "description": "Company or organization (optional)"
+        },
+        "job_title": {
+          "type": "string",
+          "description": "Job title (optional)"
+        }
+      },
+      "required": ["given_name"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "contacts_update",
+    "description": "Update an existing Google Contact.",
+    "function": "contactsUpdate",
+    "parameters": {
+      "properties": {
+        "resource_name": {
+          "type": "string",
+          "description": "Contact resource name (e.g., 'people/c1234567890')"
+        },
+        "given_name": {
+          "type": "string",
+          "description": "Updated first name (optional)"
+        },
+        "family_name": {
+          "type": "string",
+          "description": "Updated last name (optional)"
+        },
+        "email": {
+          "type": "string",
+          "description": "Updated primary email (optional)"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Updated primary phone (optional)"
+        }
+      },
+      "required": ["resource_name"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "contacts_delete",
+    "description": "Delete a Google Contact.",
+    "function": "contactsDelete",
+    "parameters": {
+      "properties": {
+        "resource_name": {
+          "type": "string",
+          "description": "Contact resource name to delete"
+        }
+      },
+      "required": ["resource_name"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "contacts_list_directory",
+    "description": "Search the Google Workspace directory (for Google Workspace accounts only).",
+    "function": "contactsListDirectory",
+    "parameters": {
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Search query for directory search"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of results (default: 10)"
+        }
+      },
+      "required": ["query"]
+    },
+    "timeoutSeconds": 15
+  }
+]

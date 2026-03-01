@@ -1,0 +1,108 @@
+[
+  {
+    "name": "slides_get",
+    "description": "Get the content and structure of a Google Slides presentation.",
+    "function": "slidesGet",
+    "parameters": {
+      "properties": {
+        "presentation_id": {
+          "type": "string",
+          "description": "Google Slides presentation ID"
+        }
+      },
+      "required": ["presentation_id"]
+    },
+    "timeoutSeconds": 30
+  },
+  {
+    "name": "slides_create",
+    "description": "Create a new Google Slides presentation.",
+    "function": "slidesCreate",
+    "parameters": {
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Presentation title"
+        }
+      },
+      "required": ["title"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "slides_add_slide",
+    "description": "Add a new slide to a Google Slides presentation.",
+    "function": "slidesAddSlide",
+    "parameters": {
+      "properties": {
+        "presentation_id": {
+          "type": "string",
+          "description": "Google Slides presentation ID"
+        },
+        "layout": {
+          "type": "string",
+          "description": "Slide layout: BLANK, CAPTION_ONLY, TITLE, TITLE_AND_BODY, TITLE_AND_TWO_COLUMNS, TITLE_ONLY, SECTION_HEADER, SECTION_TITLE_AND_DESCRIPTION, ONE_COLUMN_TEXT, MAIN_POINT, BIG_NUMBER (default: BLANK)"
+        },
+        "insertion_index": {
+          "type": "integer",
+          "description": "Position to insert the slide (0 = beginning, default: end)"
+        }
+      },
+      "required": ["presentation_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "slides_get_text",
+    "description": "Extract all text content from a Google Slides presentation.",
+    "function": "slidesGetText",
+    "parameters": {
+      "properties": {
+        "presentation_id": {
+          "type": "string",
+          "description": "Google Slides presentation ID"
+        }
+      },
+      "required": ["presentation_id"]
+    },
+    "timeoutSeconds": 30
+  },
+  {
+    "name": "slides_batch_update",
+    "description": "Apply updates to a Google Slides presentation (advanced).",
+    "function": "slidesBatchUpdate",
+    "parameters": {
+      "properties": {
+        "presentation_id": {
+          "type": "string",
+          "description": "Google Slides presentation ID"
+        },
+        "requests": {
+          "type": "array",
+          "description": "Array of update request objects (Google Slides API format)"
+        }
+      },
+      "required": ["presentation_id", "requests"]
+    },
+    "timeoutSeconds": 30
+  },
+  {
+    "name": "slides_delete_slide",
+    "description": "Delete a slide from a Google Slides presentation.",
+    "function": "slidesDeleteSlide",
+    "parameters": {
+      "properties": {
+        "presentation_id": {
+          "type": "string",
+          "description": "Google Slides presentation ID"
+        },
+        "slide_id": {
+          "type": "string",
+          "description": "Slide object ID to delete"
+        }
+      },
+      "required": ["presentation_id", "slide_id"]
+    },
+    "timeoutSeconds": 15
+  }
+]

@@ -1,0 +1,335 @@
+[
+  {
+    "name": "gmail_search",
+    "description": "Search Gmail messages using Gmail query syntax (e.g., 'from:user@example.com', 'is:unread', 'subject:hello'). Returns message list with id, snippet, from, subject, date.",
+    "function": "gmailSearch",
+    "parameters": {
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Gmail search query (same syntax as Gmail search bar)"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of results to return (default: 20, max: 100)"
+        }
+      },
+      "required": ["query"]
+    },
+    "timeoutSeconds": 30
+  },
+  {
+    "name": "gmail_get_message",
+    "description": "Get the full content of a specific Gmail message by ID. Returns subject, from, to, cc, date, body text, labels, and attachment info.",
+    "function": "gmailGetMessage",
+    "parameters": {
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "description": "The Gmail message ID"
+        }
+      },
+      "required": ["message_id"]
+    },
+    "timeoutSeconds": 30
+  },
+  {
+    "name": "gmail_send",
+    "description": "Send a new email. Supports plain text and HTML body. Returns the sent message ID and thread ID.",
+    "function": "gmailSend",
+    "parameters": {
+      "properties": {
+        "to": {
+          "type": "string",
+          "description": "Recipient email address(es), comma-separated for multiple"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Email subject"
+        },
+        "body": {
+          "type": "string",
+          "description": "Email body (plain text or HTML)"
+        },
+        "cc": {
+          "type": "string",
+          "description": "CC recipients, comma-separated (optional)"
+        },
+        "bcc": {
+          "type": "string",
+          "description": "BCC recipients, comma-separated (optional)"
+        },
+        "html": {
+          "type": "boolean",
+          "description": "If true, body is treated as HTML. Default: false"
+        }
+      },
+      "required": ["to", "subject", "body"]
+    },
+    "timeoutSeconds": 30
+  },
+  {
+    "name": "gmail_reply",
+    "description": "Reply to an existing Gmail message thread. Returns the sent message ID.",
+    "function": "gmailReply",
+    "parameters": {
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "description": "The Gmail message ID to reply to"
+        },
+        "body": {
+          "type": "string",
+          "description": "Reply body text"
+        },
+        "html": {
+          "type": "boolean",
+          "description": "If true, body is treated as HTML. Default: false"
+        }
+      },
+      "required": ["message_id", "body"]
+    },
+    "timeoutSeconds": 30
+  },
+  {
+    "name": "gmail_trash",
+    "description": "Move a Gmail message to Trash.",
+    "function": "gmailTrash",
+    "parameters": {
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "description": "The Gmail message ID to trash"
+        }
+      },
+      "required": ["message_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_untrash",
+    "description": "Remove a Gmail message from Trash.",
+    "function": "gmailUntrash",
+    "parameters": {
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "description": "The Gmail message ID to remove from trash"
+        }
+      },
+      "required": ["message_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_mark_read",
+    "description": "Mark a Gmail message as read by removing the UNREAD label.",
+    "function": "gmailMarkRead",
+    "parameters": {
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "description": "The Gmail message ID to mark as read"
+        }
+      },
+      "required": ["message_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_mark_unread",
+    "description": "Mark a Gmail message as unread by adding the UNREAD label.",
+    "function": "gmailMarkUnread",
+    "parameters": {
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "description": "The Gmail message ID to mark as unread"
+        }
+      },
+      "required": ["message_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_add_label",
+    "description": "Add a label to a Gmail message.",
+    "function": "gmailAddLabel",
+    "parameters": {
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "description": "The Gmail message ID"
+        },
+        "label_id": {
+          "type": "string",
+          "description": "The label ID to add (use gmail_list_labels to get label IDs)"
+        }
+      },
+      "required": ["message_id", "label_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_remove_label",
+    "description": "Remove a label from a Gmail message.",
+    "function": "gmailRemoveLabel",
+    "parameters": {
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "description": "The Gmail message ID"
+        },
+        "label_id": {
+          "type": "string",
+          "description": "The label ID to remove"
+        }
+      },
+      "required": ["message_id", "label_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_list_labels",
+    "description": "List all Gmail labels for the user's account.",
+    "function": "gmailListLabels",
+    "parameters": {
+      "properties": {},
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_create_label",
+    "description": "Create a new Gmail label.",
+    "function": "gmailCreateLabel",
+    "parameters": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Label name"
+        }
+      },
+      "required": ["name"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_create_draft",
+    "description": "Create a Gmail draft message without sending it.",
+    "function": "gmailCreateDraft",
+    "parameters": {
+      "properties": {
+        "to": {
+          "type": "string",
+          "description": "Recipient email address(es), comma-separated"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Email subject"
+        },
+        "body": {
+          "type": "string",
+          "description": "Email body"
+        },
+        "cc": {
+          "type": "string",
+          "description": "CC recipients (optional)"
+        },
+        "html": {
+          "type": "boolean",
+          "description": "If true, body is treated as HTML"
+        }
+      },
+      "required": ["to", "subject", "body"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_list_drafts",
+    "description": "List Gmail draft messages.",
+    "function": "gmailListDrafts",
+    "parameters": {
+      "properties": {
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of drafts to return (default: 20)"
+        }
+      },
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_send_draft",
+    "description": "Send an existing Gmail draft.",
+    "function": "gmailSendDraft",
+    "parameters": {
+      "properties": {
+        "draft_id": {
+          "type": "string",
+          "description": "The draft ID to send"
+        }
+      },
+      "required": ["draft_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_get_attachment",
+    "description": "Get the content of a Gmail message attachment, saved to a file.",
+    "function": "gmailGetAttachment",
+    "parameters": {
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "description": "The Gmail message ID"
+        },
+        "attachment_id": {
+          "type": "string",
+          "description": "The attachment ID"
+        },
+        "save_path": {
+          "type": "string",
+          "description": "Local file path to save the attachment"
+        }
+      },
+      "required": ["message_id", "attachment_id", "save_path"]
+    },
+    "timeoutSeconds": 60
+  },
+  {
+    "name": "gmail_list_threads",
+    "description": "List Gmail threads (conversations) matching a query.",
+    "function": "gmailListThreads",
+    "parameters": {
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Gmail search query"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of threads to return (default: 20)"
+        }
+      },
+      "required": ["query"]
+    },
+    "timeoutSeconds": 30
+  },
+  {
+    "name": "gmail_get_thread",
+    "description": "Get all messages in a Gmail thread.",
+    "function": "gmailGetThread",
+    "parameters": {
+      "properties": {
+        "thread_id": {
+          "type": "string",
+          "description": "The Gmail thread ID"
+        }
+      },
+      "required": ["thread_id"]
+    },
+    "timeoutSeconds": 30
+  }
+]

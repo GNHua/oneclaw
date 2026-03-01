@@ -28,6 +28,7 @@ import com.oneclaw.shadow.feature.session.usecase.DeleteSessionUseCase
 import com.oneclaw.shadow.feature.session.usecase.GenerateTitleUseCase
 import com.oneclaw.shadow.feature.session.usecase.RenameSessionUseCase
 import com.oneclaw.shadow.feature.memory.ui.MemoryViewModel
+import com.oneclaw.shadow.feature.settings.GoogleAuthViewModel
 import com.oneclaw.shadow.feature.settings.JsToolsViewModel
 import com.oneclaw.shadow.feature.settings.SyncSettingsViewModel
 import com.oneclaw.shadow.feature.skill.SkillEditorViewModel
@@ -139,6 +140,9 @@ val featureModule = module {
 
     // RFC-012: JS Tool Engine
     viewModelOf(::JsToolsViewModel)
+
+    // RFC-030: Google Auth ViewModel
+    viewModelOf(::GoogleAuthViewModel)
 
     // RFC-014: Skill feature use cases
     factory { GetAllSkillsUseCase(get()) }

@@ -8,6 +8,7 @@ import com.oneclaw.shadow.core.model.ToolParameter
 import com.oneclaw.shadow.core.model.ToolParametersSchema
 import com.oneclaw.shadow.tool.engine.ToolRegistry
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -32,6 +33,8 @@ class JsToolLoader(
         private const val EXTERNAL_TOOLS_DIR = "OneClawShadow/tools"
         private const val ASSETS_TOOLS_DIR = "js/tools"
         private val TOOL_NAME_REGEX = Regex("^[a-z][a-z0-9_]*$")
+        private val FUNCTION_NAME_REGEX = Regex("^[a-zA-Z_\$][a-zA-Z0-9_\$]*$")
+        private const val MAX_GROUP_SIZE = 50
     }
 
     data class LoadResult(
@@ -77,14 +80,17 @@ class JsToolLoader(
             try {
                 val jsonContent = readAsset("$ASSETS_TOOLS_DIR/$jsonFileName")
                 val jsSource = readAsset("$ASSETS_TOOLS_DIR/$jsFileName")
-                val metadata = parseAndValidateMetadata(jsonContent, baseName)
+                val parsed = parseJsonManifest(jsonContent, baseName, jsonFileName)
 
-                tools.add(JsTool(
-                    definition = metadata,
-                    jsSource = jsSource,
-                    jsExecutionEngine = jsExecutionEngine,
-                    envVarStore = envVarStore
-                ))
+                for ((definition, functionName) in parsed) {
+                    tools.add(JsTool(
+                        definition = definition,
+                        jsSource = jsSource,
+                        functionName = functionName,
+                        jsExecutionEngine = jsExecutionEngine,
+                        envVarStore = envVarStore
+                    ))
+                }
             } catch (e: Exception) {
                 errors.add(ToolLoadError(
                     jsonFileName,
@@ -133,8 +139,18 @@ class JsToolLoader(
                 }
 
                 try {
-                    val tool = loadSingleTool(jsonFile, jsFile)
-                    tools.add(tool)
+                    val jsonContent = jsonFile.readText()
+                    val parsed = parseJsonManifest(jsonContent, baseName, jsonFile.name)
+
+                    for ((definition, functionName) in parsed) {
+                        tools.add(JsTool(
+                            definition = definition,
+                            jsFilePath = jsFile.absolutePath,
+                            functionName = functionName,
+                            jsExecutionEngine = jsExecutionEngine,
+                            envVarStore = envVarStore
+                        ))
+                    }
                 } catch (e: Exception) {
                     errors.add(ToolLoadError(
                         jsonFile.name,
@@ -147,30 +163,112 @@ class JsToolLoader(
         return LoadResult(tools, errors)
     }
 
-    private fun loadSingleTool(jsonFile: File, jsFile: File): JsTool {
-        val jsonContent = jsonFile.readText()
-        val metadata = parseAndValidateMetadata(jsonContent, jsonFile.nameWithoutExtension)
+    /**
+     * Parse a JSON manifest, detecting single-tool (object) or group (array) format.
+     * Returns a list of (ToolDefinition, functionName?) pairs.
+     *
+     * - Object format: returns [(definition, null)]  -- single tool, calls execute()
+     * - Array format:  returns [(def1, fn1), (def2, fn2), ...]  -- group, calls named functions
+     */
+    internal fun parseJsonManifest(
+        jsonContent: String,
+        baseName: String,
+        fileName: String
+    ): List<Pair<ToolDefinition, String?>> {
+        val element = Json.parseToJsonElement(jsonContent)
 
-        return JsTool(
-            definition = metadata,
-            jsFilePath = jsFile.absolutePath,
-            jsExecutionEngine = jsExecutionEngine,
-            envVarStore = envVarStore
-        )
+        return when {
+            element is JsonObject -> {
+                // Single-tool mode (existing behavior)
+                val definition = parseToolEntry(element, requireNameMatch = baseName)
+                listOf(Pair(definition, null))
+            }
+            element is JsonArray -> {
+                // Group mode (new)
+                parseGroupManifest(element, baseName, fileName)
+            }
+            else -> throw IllegalArgumentException("JSON must be an object or array")
+        }
     }
 
     /**
-     * Parse JSON metadata and validate against ToolDefinition schema.
+     * Parse a group manifest (JSON array).
+     * Each entry must have "name", "description", "function".
+     * Invalid entries are logged and skipped; valid entries are returned.
      */
-    private fun parseAndValidateMetadata(jsonContent: String, expectedName: String): ToolDefinition {
-        val json = Json.parseToJsonElement(jsonContent).jsonObject
+    private fun parseGroupManifest(
+        array: JsonArray,
+        baseName: String,
+        fileName: String
+    ): List<Pair<ToolDefinition, String?>> {
+        if (array.isEmpty()) {
+            Log.w(TAG, "Empty tool group in '$fileName'")
+            return emptyList()
+        }
 
+        if (array.size > MAX_GROUP_SIZE) {
+            throw IllegalArgumentException(
+                "Tool group in '$fileName' has ${array.size} entries (maximum: $MAX_GROUP_SIZE)"
+            )
+        }
+
+        val results = mutableListOf<Pair<ToolDefinition, String?>>()
+        val seenNames = mutableSetOf<String>()
+
+        for ((index, entry) in array.withIndex()) {
+            try {
+                val obj = entry.jsonObject
+                val name = obj["name"]?.jsonPrimitive?.content
+                    ?: throw IllegalArgumentException("Missing 'name'")
+
+                // Duplicate check within this group
+                if (name in seenNames) {
+                    Log.w(TAG, "Duplicate tool name '$name' in group '$fileName' (entry $index skipped)")
+                    continue
+                }
+
+                val functionName = obj["function"]?.jsonPrimitive?.content
+                    ?: throw IllegalArgumentException(
+                        "Tool '$name' in group '$fileName' missing required 'function' field"
+                    )
+
+                // Validate function name (prevent code injection)
+                if (!FUNCTION_NAME_REGEX.matches(functionName)) {
+                    throw IllegalArgumentException(
+                        "Invalid function name '$functionName' for tool '$name'"
+                    )
+                }
+
+                // Parse tool definition (no filename-name match requirement for groups)
+                val definition = parseToolEntry(obj, requireNameMatch = null)
+
+                seenNames.add(name)
+                results.add(Pair(definition, functionName))
+            } catch (e: Exception) {
+                Log.w(TAG, "Skipping entry $index in group '$fileName': ${e.message}")
+            }
+        }
+
+        return results
+    }
+
+    /**
+     * Parse a single tool entry (used for both single-tool and group entries).
+     *
+     * @param requireNameMatch If non-null, the tool name must match this string
+     *                         (for single-tool mode: name must match filename).
+     *                         Null for group mode (names are independent of filename).
+     */
+    private fun parseToolEntry(
+        json: JsonObject,
+        requireNameMatch: String?
+    ): ToolDefinition {
         val name = json["name"]?.jsonPrimitive?.content
             ?: throw IllegalArgumentException("Missing required field: 'name'")
 
-        if (name != expectedName) {
+        if (requireNameMatch != null && name != requireNameMatch) {
             throw IllegalArgumentException(
-                "Tool name '$name' does not match filename '$expectedName'"
+                "Tool name '$name' does not match filename '$requireNameMatch'"
             )
         }
 

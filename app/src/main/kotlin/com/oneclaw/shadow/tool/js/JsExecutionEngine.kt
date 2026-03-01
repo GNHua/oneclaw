@@ -39,17 +39,21 @@ class JsExecutionEngine(
      *
      * Creates a fresh QuickJS context, injects bridge functions,
      * loads the JS file, calls execute(params), and returns the result.
+     *
+     * @param functionName If non-null, calls the named function instead of execute().
+     *                     Used for tool group dispatch. Defaults to null (single-tool mode).
      */
     suspend fun execute(
         jsFilePath: String,
         toolName: String,
+        functionName: String? = null,
         params: Map<String, Any?>,
         env: Map<String, String>,
         timeoutSeconds: Int
     ): ToolResult {
         return try {
             withTimeout(timeoutSeconds * 1000L) {
-                executeInQuickJs(jsFilePath, null, toolName, params, env)
+                executeInQuickJs(jsFilePath, null, toolName, functionName, params, env)
             }
         } catch (e: TimeoutCancellationException) {
             ToolResult.error("timeout", "JS tool '$toolName' execution timed out after ${timeoutSeconds}s")
@@ -63,17 +67,21 @@ class JsExecutionEngine(
 
     /**
      * Execute from pre-loaded source code (built-in JS tools from assets).
+     *
+     * @param functionName If non-null, calls the named function instead of execute().
+     *                     Used for tool group dispatch. Defaults to null (single-tool mode).
      */
     suspend fun executeFromSource(
         jsSource: String,
         toolName: String,
+        functionName: String? = null,
         params: Map<String, Any?>,
         env: Map<String, String>,
         timeoutSeconds: Int
     ): ToolResult {
         return try {
             withTimeout(timeoutSeconds * 1000L) {
-                executeInQuickJs("", jsSource, toolName, params, env)
+                executeInQuickJs("", jsSource, toolName, functionName, params, env)
             }
         } catch (e: TimeoutCancellationException) {
             ToolResult.error("timeout", "JS tool '$toolName' execution timed out after ${timeoutSeconds}s")
@@ -89,6 +97,7 @@ class JsExecutionEngine(
         jsFilePath: String,
         jsSource: String?,
         toolName: String,
+        functionName: String?,
         params: Map<String, Any?>,
         env: Map<String, String>
     ): ToolResult {
@@ -119,10 +128,13 @@ class JsExecutionEngine(
             // Load JS source -- from file or from pre-loaded string (assets)
             val jsCode = jsSource ?: File(jsFilePath).readText()
 
-            // Build the wrapper that calls execute() and captures the result.
-            // We serialize params as JSON, parse it in JS, call execute(),
+            // Build the wrapper that calls the entry function and captures the result.
+            // We serialize params as JSON, parse it in JS, call the function,
             // and serialize the result back.
             val paramsJson = anyToJsonElement(paramsWithEnv).toString()
+
+            // Use the named function if provided, otherwise default to execute()
+            val entryFunction = functionName ?: "execute"
 
             val wrapperCode = """
                 ${FetchBridge.FETCH_WRAPPER_JS}
@@ -132,7 +144,7 @@ class JsExecutionEngine(
 
                 (async function __run__() {
                     const __params__ = JSON.parse(${quoteJsString(paramsJson)});
-                    const __result__ = await execute(__params__);
+                    const __result__ = await $entryFunction(__params__);
                     if (__result__ === null || __result__ === undefined) {
                         return "";
                     }

@@ -55,6 +55,7 @@ class BuiltinJsToolMigrationTest {
             engine.executeFromSource(
                 jsSource = jsSource,
                 toolName = "get_current_time",
+                functionName = null,
                 params = emptyMap(),
                 env = emptyMap(),
                 timeoutSeconds = 5
@@ -75,6 +76,7 @@ class BuiltinJsToolMigrationTest {
             engine.executeFromSource(
                 jsSource = jsSource,
                 toolName = "get_current_time",
+                functionName = null,
                 params = emptyMap(),
                 env = emptyMap(),
                 timeoutSeconds = 5
@@ -91,6 +93,7 @@ class BuiltinJsToolMigrationTest {
             engine.execute(
                 jsFilePath = jsFilePath,
                 toolName = "user_tool",
+                functionName = null,
                 params = emptyMap(),
                 env = emptyMap(),
                 timeoutSeconds = 30
@@ -111,6 +114,7 @@ class BuiltinJsToolMigrationTest {
             engine.execute(
                 jsFilePath = jsFilePath,
                 toolName = "user_tool",
+                functionName = null,
                 params = emptyMap(),
                 env = emptyMap(),
                 timeoutSeconds = 30
@@ -125,7 +129,7 @@ class BuiltinJsToolMigrationTest {
         val expectedResult = ToolResult.success("source")
 
         coEvery {
-            engine.executeFromSource(any(), any(), any(), any(), any())
+            engine.executeFromSource(any(), any(), any(), any(), any(), any())
         } returns expectedResult
 
         val tool = JsTool(
@@ -138,8 +142,8 @@ class BuiltinJsToolMigrationTest {
 
         tool.execute(emptyMap())
 
-        coVerify(exactly = 1) { engine.executeFromSource(any(), any(), any(), any(), any()) }
-        coVerify(exactly = 0) { engine.execute(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { engine.executeFromSource(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { engine.execute(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -151,6 +155,7 @@ class BuiltinJsToolMigrationTest {
             engine.executeFromSource(
                 jsSource = jsSource,
                 toolName = "read_file",
+                functionName = null,
                 params = params,
                 env = emptyMap(),
                 timeoutSeconds = 10
@@ -179,6 +184,7 @@ class BuiltinJsToolMigrationTest {
             engine.executeFromSource(
                 jsSource = jsSource,
                 toolName = "http_request",
+                functionName = null,
                 params = emptyMap(),
                 env = envVars,
                 timeoutSeconds = 30
@@ -198,6 +204,7 @@ class BuiltinJsToolMigrationTest {
             engine.executeFromSource(
                 jsSource = jsSource,
                 toolName = "http_request",
+                functionName = null,
                 params = emptyMap(),
                 env = envVars,
                 timeoutSeconds = 30
@@ -210,7 +217,7 @@ class BuiltinJsToolMigrationTest {
         val jsSource = "function execute(p) { throw new Error('fail'); }"
 
         coEvery {
-            engine.executeFromSource(any(), any(), any(), any(), any())
+            engine.executeFromSource(any(), any(), any(), any(), any(), any())
         } returns ToolResult.error("execution_error", "JS tool 'bad_tool' failed: Error: fail")
 
         val tool = JsTool(
@@ -233,7 +240,7 @@ class BuiltinJsToolMigrationTest {
     fun `get_current_time tool returns success result`() = runTest {
         val isoTime = "2026-02-28T12:00:00+08:00"
         coEvery {
-            engine.executeFromSource(any(), eq("get_current_time"), any(), any(), any())
+            engine.executeFromSource(any(), eq("get_current_time"), any(), any(), any(), any())
         } returns ToolResult.success(isoTime)
 
         val tool = JsTool(
@@ -254,7 +261,7 @@ class BuiltinJsToolMigrationTest {
     @Test
     fun `write_file append mode is supported`() = runTest {
         coEvery {
-            engine.executeFromSource(any(), eq("write_file"), any(), any(), any())
+            engine.executeFromSource(any(), eq("write_file"), any(), any(), any(), any())
         } returns ToolResult.success("Successfully wrote 10 bytes to /tmp/file.txt (mode: append)")
 
         val tool = JsTool(

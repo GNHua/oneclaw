@@ -76,6 +76,7 @@ class WebfetchToolTest {
             engine.executeFromSource(
                 jsSource = webfetchJsSource,
                 toolName = "webfetch",
+                functionName = null,
                 params = mapOf("url" to "https://example.com"),
                 env = emptyMap(),
                 timeoutSeconds = 30
@@ -92,7 +93,7 @@ class WebfetchToolTest {
     fun `webfetch tool returns raw body for non-HTML content`() = runTest {
         val jsonBody = """{"key": "value"}"""
         coEvery {
-            engine.executeFromSource(any(), eq("webfetch"), any(), any(), any())
+            engine.executeFromSource(any(), eq("webfetch"), any(), any(), any(), any())
         } returns ToolResult.success(jsonBody)
 
         val result = makeWebfetchTool().execute(mapOf("url" to "https://api.example.com/data.json"))
@@ -105,7 +106,7 @@ class WebfetchToolTest {
     fun `webfetch tool returns error object for HTTP error response`() = runTest {
         val errorJson = """{"error":"HTTP 404: Not Found","url":"https://example.com/missing"}"""
         coEvery {
-            engine.executeFromSource(any(), eq("webfetch"), any(), any(), any())
+            engine.executeFromSource(any(), eq("webfetch"), any(), any(), any(), any())
         } returns ToolResult.success(errorJson)
 
         val result = makeWebfetchTool().execute(mapOf("url" to "https://example.com/missing"))
@@ -117,13 +118,13 @@ class WebfetchToolTest {
     @Test
     fun `webfetch tool routes to executeFromSource not execute`() = runTest {
         coEvery {
-            engine.executeFromSource(any(), any(), any(), any(), any())
+            engine.executeFromSource(any(), any(), any(), any(), any(), any())
         } returns ToolResult.success("# Markdown")
 
         makeWebfetchTool().execute(mapOf("url" to "https://example.com"))
 
-        coVerify(exactly = 1) { engine.executeFromSource(any(), any(), any(), any(), any()) }
-        coVerify(exactly = 0) { engine.execute(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { engine.executeFromSource(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { engine.execute(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -133,6 +134,7 @@ class WebfetchToolTest {
             engine.executeFromSource(
                 jsSource = webfetchJsSource,
                 toolName = "webfetch",
+                functionName = null,
                 params = mapOf("url" to url),
                 env = emptyMap(),
                 timeoutSeconds = 30
@@ -146,6 +148,7 @@ class WebfetchToolTest {
             engine.executeFromSource(
                 jsSource = webfetchJsSource,
                 toolName = "webfetch",
+                functionName = null,
                 params = mapOf("url" to url),
                 env = emptyMap(),
                 timeoutSeconds = 30
@@ -156,7 +159,7 @@ class WebfetchToolTest {
     @Test
     fun `webfetch tool returns execution_error on engine failure`() = runTest {
         coEvery {
-            engine.executeFromSource(any(), any(), any(), any(), any())
+            engine.executeFromSource(any(), any(), any(), any(), any(), any())
         } returns ToolResult.error("execution_error", "JS tool 'webfetch' failed: network error")
 
         val result = makeWebfetchTool().execute(mapOf("url" to "https://unreachable.invalid/"))
@@ -171,6 +174,7 @@ class WebfetchToolTest {
             engine.executeFromSource(
                 jsSource = any(),
                 toolName = "webfetch",
+                functionName = any(),
                 params = any(),
                 env = any(),
                 timeoutSeconds = 30
@@ -183,6 +187,7 @@ class WebfetchToolTest {
             engine.executeFromSource(
                 jsSource = any(),
                 toolName = "webfetch",
+                functionName = any(),
                 params = any(),
                 env = any(),
                 timeoutSeconds = 30
@@ -194,7 +199,7 @@ class WebfetchToolTest {
     fun `webfetch headings links and code blocks are converted`() = runTest {
         val markdownWithFormatting = "# Main Heading\n\n## Sub Heading\n\n[Link](https://example.com)\n\n```kotlin\nval x = 1\n```"
         coEvery {
-            engine.executeFromSource(any(), any(), any(), any(), any())
+            engine.executeFromSource(any(), any(), any(), any(), any(), any())
         } returns ToolResult.success(markdownWithFormatting)
 
         val result = makeWebfetchTool().execute(mapOf("url" to "https://example.com/docs"))
@@ -206,7 +211,7 @@ class WebfetchToolTest {
     @Test
     fun `webfetch empty HTML body returns empty or minimal Markdown`() = runTest {
         coEvery {
-            engine.executeFromSource(any(), any(), any(), any(), any())
+            engine.executeFromSource(any(), any(), any(), any(), any(), any())
         } returns ToolResult.success("")
 
         val result = makeWebfetchTool().execute(mapOf("url" to "https://example.com/empty"))

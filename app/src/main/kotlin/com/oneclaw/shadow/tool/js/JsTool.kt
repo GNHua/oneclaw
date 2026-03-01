@@ -16,6 +16,7 @@ class JsTool(
     override val definition: ToolDefinition,
     val jsFilePath: String = "",
     private val jsSource: String? = null,
+    private val functionName: String? = null,
     private val jsExecutionEngine: JsExecutionEngine,
     private val envVarStore: EnvironmentVariableStore
 ) : Tool {
@@ -25,6 +26,7 @@ class JsTool(
             jsExecutionEngine.executeFromSource(
                 jsSource = jsSource,
                 toolName = definition.name,
+                functionName = functionName,
                 params = parameters,
                 env = envVarStore.getAll(),
                 timeoutSeconds = definition.timeoutSeconds
@@ -33,6 +35,7 @@ class JsTool(
             jsExecutionEngine.execute(
                 jsFilePath = jsFilePath,
                 toolName = definition.name,
+                functionName = functionName,
                 params = parameters,
                 env = envVarStore.getAll(),
                 timeoutSeconds = definition.timeoutSeconds

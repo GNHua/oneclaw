@@ -72,6 +72,7 @@ OneClawShadow is NOT a coding tool or IDE. It is a general-purpose AI agent that
 | FEAT-009 | Settings | P2 | Planning | [settings.md](features/FEAT-009-settings.md) |
 | FEAT-013 | Agent Memory System | P1 | Planning | [memory.md](features/FEAT-013-memory.md) |
 | FEAT-024 | Messaging Bridge | P1 | Planning | [messaging-bridge.md](features/FEAT-024-messaging-bridge.md) |
+| FEAT-032 | Search History Tool | P1 | Draft | [search-history.md](features/FEAT-032-search-history.md) |
 
 ### Module Descriptions
 

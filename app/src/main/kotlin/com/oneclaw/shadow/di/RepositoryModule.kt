@@ -1,6 +1,7 @@
 package com.oneclaw.shadow.di
 
 import com.oneclaw.shadow.core.repository.AgentRepository
+import com.oneclaw.shadow.core.repository.AttachmentRepository
 import com.oneclaw.shadow.core.repository.FileRepository
 import com.oneclaw.shadow.core.repository.MessageRepository
 import com.oneclaw.shadow.core.repository.ProviderRepository
@@ -9,6 +10,7 @@ import com.oneclaw.shadow.core.repository.ScheduledTaskRepository
 import com.oneclaw.shadow.core.repository.SettingsRepository
 import com.oneclaw.shadow.core.repository.TaskExecutionRecordRepository
 import com.oneclaw.shadow.data.repository.AgentRepositoryImpl
+import com.oneclaw.shadow.data.repository.AttachmentRepositoryImpl
 import com.oneclaw.shadow.data.repository.FileRepositoryImpl
 import com.oneclaw.shadow.data.repository.MessageRepositoryImpl
 import com.oneclaw.shadow.data.repository.ProviderRepositoryImpl
@@ -29,6 +31,8 @@ val repositoryModule = module {
     single<ScheduledTaskRepository> { ScheduledTaskRepositoryImpl(get()) }
     // RFC-028: Execution record repository
     single<TaskExecutionRecordRepository> { TaskExecutionRecordRepositoryImpl(get()) }
+    // RFC-026: Attachment repository
+    single<AttachmentRepository> { AttachmentRepositoryImpl(get()) }
 
     // RFC-025: File browsing
     single { UserFileStorage(androidContext()) }

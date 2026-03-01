@@ -1,6 +1,7 @@
 package com.oneclaw.shadow.data.remote.adapter
 
 import com.oneclaw.shadow.core.model.AiModel
+import com.oneclaw.shadow.core.model.AttachmentType
 import com.oneclaw.shadow.core.model.Citation
 import com.oneclaw.shadow.core.model.ConnectionErrorType
 import com.oneclaw.shadow.core.model.ConnectionTestResult
@@ -17,8 +18,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
@@ -277,9 +280,7 @@ class GeminiAdapter(
                 when (msg) {
                     is ApiMessage.User -> add(buildJsonObject {
                         put("role", "user")
-                        put("parts", buildJsonArray {
-                            add(buildJsonObject { put("text", msg.content) })
-                        })
+                        put("parts", buildUserParts(msg))
                     })
                     is ApiMessage.Assistant -> {
                         add(buildJsonObject {
@@ -340,6 +341,26 @@ class GeminiAdapter(
                     })
                 }
             })
+        }
+    }
+
+    private fun buildUserParts(message: ApiMessage.User): JsonArray {
+        return buildJsonArray {
+            if (message.content.isNotBlank()) {
+                addJsonObject {
+                    put("text", message.content)
+                }
+            }
+            message.attachments
+                .filter { it.type == AttachmentType.IMAGE || it.type == AttachmentType.VIDEO }
+                .forEach { attachment ->
+                    addJsonObject {
+                        putJsonObject("inlineData") {
+                            put("mimeType", attachment.mimeType)
+                            put("data", attachment.base64Data)
+                        }
+                    }
+                }
         }
     }
 

@@ -1,6 +1,7 @@
 package com.oneclaw.shadow.data.remote.adapter
 
 import com.oneclaw.shadow.core.model.AiModel
+import com.oneclaw.shadow.core.model.AttachmentType
 import com.oneclaw.shadow.core.model.Citation
 import com.oneclaw.shadow.core.model.ConnectionErrorType
 import com.oneclaw.shadow.core.model.ConnectionTestResult
@@ -21,12 +22,15 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -314,10 +318,7 @@ class OpenAiAdapter(
             }
             messages.forEach { msg ->
                 when (msg) {
-                    is ApiMessage.User -> add(buildJsonObject {
-                        put("role", "user")
-                        put("content", msg.content)
-                    })
+                    is ApiMessage.User -> add(buildUserMessage(msg))
                     is ApiMessage.Assistant -> {
                         if (msg.toolCalls != null) {
                             add(buildJsonObject {
@@ -393,6 +394,37 @@ class OpenAiAdapter(
 
     private fun formatOpenAiModelName(modelId: String): String {
         return modelId.replace("gpt-", "GPT-").replace("-mini", " Mini")
+    }
+
+    private fun buildUserMessage(message: ApiMessage.User): JsonObject {
+        if (message.attachments.isEmpty()) {
+            return buildJsonObject {
+                put("role", "user")
+                put("content", message.content)
+            }
+        }
+
+        return buildJsonObject {
+            put("role", "user")
+            putJsonArray("content") {
+                if (message.content.isNotBlank()) {
+                    addJsonObject {
+                        put("type", "text")
+                        put("text", message.content)
+                    }
+                }
+                message.attachments
+                    .filter { it.type == AttachmentType.IMAGE }
+                    .forEach { attachment ->
+                        addJsonObject {
+                            put("type", "image_url")
+                            putJsonObject("image_url") {
+                                put("url", "data:${attachment.mimeType};base64,${attachment.base64Data}")
+                            }
+                        }
+                    }
+            }
+        }
     }
 
     private data class ToolCallBuilder(val id: String, val name: String, val arguments: StringBuilder = StringBuilder())

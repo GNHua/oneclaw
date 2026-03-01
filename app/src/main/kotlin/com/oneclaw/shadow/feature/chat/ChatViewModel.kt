@@ -1,19 +1,25 @@
 package com.oneclaw.shadow.feature.chat
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.oneclaw.shadow.core.model.AgentConstants
+import com.oneclaw.shadow.core.model.Attachment
 import com.oneclaw.shadow.core.model.Message
 import com.oneclaw.shadow.core.model.MessageType
+import com.oneclaw.shadow.core.model.ProviderCapability
 import com.oneclaw.shadow.core.model.SkillDefinition
 import com.oneclaw.shadow.core.model.ToolCallStatus
 import com.oneclaw.shadow.core.model.ToolResultStatus
 import com.oneclaw.shadow.core.lifecycle.AppLifecycleObserver
 import com.oneclaw.shadow.core.notification.NotificationHelper
 import com.oneclaw.shadow.core.repository.AgentRepository
+import com.oneclaw.shadow.core.repository.AttachmentRepository
 import com.oneclaw.shadow.core.repository.MessageRepository
 import com.oneclaw.shadow.core.repository.ProviderRepository
 import com.oneclaw.shadow.core.repository.SessionRepository
+import com.oneclaw.shadow.core.util.AppResult
+import com.oneclaw.shadow.data.local.AttachmentFileManager
 import com.oneclaw.shadow.feature.chat.usecase.SendMessageUseCase
 import com.oneclaw.shadow.feature.session.usecase.CreateSessionUseCase
 import com.oneclaw.shadow.feature.session.usecase.GenerateTitleUseCase
@@ -29,6 +35,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 class ChatViewModel(
     private val sendMessageUseCase: SendMessageUseCase,
@@ -41,7 +48,9 @@ class ChatViewModel(
     private val appLifecycleObserver: AppLifecycleObserver,
     private val notificationHelper: NotificationHelper,
     private val skillRegistry: SkillRegistry? = null,
-    private val memoryTriggerManager: MemoryTriggerManager? = null
+    private val memoryTriggerManager: MemoryTriggerManager? = null,
+    private val attachmentFileManager: AttachmentFileManager? = null,
+    private val attachmentRepository: AttachmentRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -110,7 +119,14 @@ class ChatViewModel(
                 )
             }
             messageRepository.getMessagesForSession(sessionId).collect { messages ->
-                _uiState.update { it.copy(messages = messages.map { m -> m.toChatMessageItem() }) }
+                val messageIds = messages.map { it.id }
+                val allAttachments = attachmentRepository?.getAttachmentsForMessages(messageIds) ?: emptyList()
+                val attachmentsByMessage = allAttachments.groupBy { it.messageId }
+                _uiState.update {
+                    it.copy(messages = messages.map { m ->
+                        m.toChatMessageItem(attachments = attachmentsByMessage[m.id] ?: emptyList())
+                    })
+                }
             }
             isFirstMessage = false
         }
@@ -202,6 +218,71 @@ class ChatViewModel(
         _uiState.update { it.copy(showSkillSheet = false) }
     }
 
+    fun showAttachmentPicker() {
+        _uiState.update { it.copy(showAttachmentPicker = true) }
+    }
+
+    fun hideAttachmentPicker() {
+        _uiState.update { it.copy(showAttachmentPicker = false) }
+    }
+
+    fun addAttachment(uri: Uri) {
+        val manager = attachmentFileManager ?: return
+        viewModelScope.launch {
+            val sessionId = _uiState.value.sessionId ?: run {
+                val session = createSessionUseCase(agentId = _uiState.value.currentAgentId)
+                _uiState.update { it.copy(sessionId = session.id) }
+                val truncatedTitle = generateTitleUseCase.generateTruncatedTitle("attachment")
+                sessionRepository.updateTitle(session.id, truncatedTitle)
+                _uiState.update { it.copy(sessionTitle = truncatedTitle) }
+                session.id
+            }
+            when (val result = manager.copyFromUri(uri, sessionId)) {
+                is AppResult.Success -> {
+                    _uiState.update { it.copy(pendingAttachments = it.pendingAttachments + result.data) }
+                }
+                is AppResult.Error -> {
+                    _uiState.update { it.copy(snackbarMessage = result.message) }
+                }
+            }
+        }
+    }
+
+    fun addCameraPhoto(file: File) {
+        val manager = attachmentFileManager ?: return
+        viewModelScope.launch {
+            val sessionId = _uiState.value.sessionId ?: run {
+                val session = createSessionUseCase(agentId = _uiState.value.currentAgentId)
+                _uiState.update { it.copy(sessionId = session.id) }
+                session.id
+            }
+            when (val result = manager.copyFromCameraFile(file, sessionId)) {
+                is AppResult.Success -> {
+                    _uiState.update { it.copy(pendingAttachments = it.pendingAttachments + result.data) }
+                }
+                is AppResult.Error -> {
+                    _uiState.update { it.copy(snackbarMessage = result.message) }
+                }
+            }
+        }
+    }
+
+    fun removeAttachment(id: String) {
+        _uiState.update { it.copy(pendingAttachments = it.pendingAttachments.filter { a -> a.id != id }) }
+    }
+
+    fun openImageViewer(imagePath: String) {
+        _uiState.update { it.copy(viewingImagePath = imagePath) }
+    }
+
+    fun closeImageViewer() {
+        _uiState.update { it.copy(viewingImagePath = null) }
+    }
+
+    fun clearSnackbarMessage() {
+        _uiState.update { it.copy(snackbarMessage = null) }
+    }
+
     /**
      * Send a text message directly (used by skill selection flows).
      */
@@ -240,8 +321,9 @@ class ChatViewModel(
 
     fun sendMessage() {
         val text = _uiState.value.inputText.trim()
-        if (text.isBlank()) return
-        _uiState.update { it.copy(inputText = "") }
+        val pendingAttachments = _uiState.value.pendingAttachments
+        if (text.isBlank() && pendingAttachments.isEmpty()) return
+        _uiState.update { it.copy(inputText = "", pendingAttachments = emptyList()) }
 
         if (_uiState.value.isStreaming) {
             // Queue path: save to DB immediately, signal the running loop
@@ -279,11 +361,12 @@ class ChatViewModel(
                 _uiState.update { it.copy(sessionId = sessionId) }
 
                 // Phase 1 title: truncated user text
-                val truncatedTitle = generateTitleUseCase.generateTruncatedTitle(text)
+                val titleSource = text.ifBlank { pendingAttachments.firstOrNull()?.fileName ?: "attachment" }
+                val truncatedTitle = generateTitleUseCase.generateTruncatedTitle(titleSource)
                 sessionRepository.updateTitle(sessionId, truncatedTitle)
                 _uiState.update { it.copy(sessionTitle = truncatedTitle) }
 
-                firstUserMessageText = text
+                firstUserMessageText = text.ifBlank { titleSource }
                 isFirstMessage = true
             }
 
@@ -313,7 +396,8 @@ class ChatViewModel(
                         sessionId = finalSessionId,
                         userText = text,
                         agentId = _uiState.value.currentAgentId,
-                        pendingMessages = pendingMessages
+                        pendingMessages = pendingMessages,
+                        pendingAttachments = pendingAttachments
                     ).collect { event ->
                         handleChatEvent(event, finalSessionId, accumulatedText, accumulatedThinking) { newText, newThinking ->
                             accumulatedText = newText
@@ -384,7 +468,14 @@ class ChatViewModel(
                 }
                 // Reload from DB so tool call/result messages appear before next round starts
                 val messages = messageRepository.getMessagesSnapshot(sessionId)
-                _uiState.update { it.copy(messages = messages.map { m -> m.toChatMessageItem() }) }
+                val msgIds = messages.map { it.id }
+                val attachments = attachmentRepository?.getAttachmentsForMessages(msgIds) ?: emptyList()
+                val attachmentsByMsg = attachments.groupBy { it.messageId }
+                _uiState.update {
+                    it.copy(messages = messages.map { m ->
+                        m.toChatMessageItem(attachments = attachmentsByMsg[m.id] ?: emptyList())
+                    })
+                }
             }
             is ChatEvent.ResponseComplete -> {
                 _uiState.update { it.copy(isWebSearching = false, webSearchQuery = null) }
@@ -555,7 +646,14 @@ class ChatViewModel(
         }
         // Reload messages from DB
         val messages = messageRepository.getMessagesSnapshot(sessionId)
-        _uiState.update { it.copy(messages = messages.map { m -> m.toChatMessageItem() }) }
+        val messageIds = messages.map { it.id }
+        val allAttachments = attachmentRepository?.getAttachmentsForMessages(messageIds) ?: emptyList()
+        val attachmentsByMessage = allAttachments.groupBy { it.messageId }
+        _uiState.update {
+            it.copy(messages = messages.map { m ->
+                m.toChatMessageItem(attachments = attachmentsByMessage[m.id] ?: emptyList())
+            })
+        }
 
         // Phase 2 title generation: only for first message
         if (isFirstMessage && firstUserMessageText != null) {
@@ -594,7 +692,14 @@ class ChatViewModel(
             )
         }
         val messages = messageRepository.getMessagesSnapshot(sessionId)
-        _uiState.update { it.copy(messages = messages.map { m -> m.toChatMessageItem() }) }
+        val messageIds = messages.map { it.id }
+        val allAttachments = attachmentRepository?.getAttachmentsForMessages(messageIds) ?: emptyList()
+        val attachmentsByMessage = allAttachments.groupBy { it.messageId }
+        _uiState.update {
+            it.copy(messages = messages.map { m ->
+                m.toChatMessageItem(attachments = attachmentsByMessage[m.id] ?: emptyList())
+            })
+        }
     }
 
     private suspend fun savePartialResponse(sessionId: String, text: String, thinking: String) {
@@ -608,12 +713,13 @@ class ChatViewModel(
     }
 }
 
-fun Message.toChatMessageItem(): ChatMessageItem = ChatMessageItem(
+fun Message.toChatMessageItem(attachments: List<Attachment> = emptyList()): ChatMessageItem = ChatMessageItem(
     id = id, type = type, content = content, thinkingContent = thinkingContent,
     toolCallId = toolCallId, toolName = toolName, toolInput = toolInput, toolOutput = toolOutput,
     toolStatus = toolStatus, toolDurationMs = toolDurationMs, modelId = modelId,
     tokenCountInput = tokenCountInput,
     tokenCountOutput = tokenCountOutput,
     isRetryable = type == MessageType.ERROR, timestamp = createdAt,
-    citations = citations
+    citations = citations,
+    attachments = attachments
 )

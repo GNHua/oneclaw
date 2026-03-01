@@ -1,10 +1,12 @@
 package com.oneclaw.shadow.feature.chat
 
 import com.oneclaw.shadow.core.model.AgentConstants
+import com.oneclaw.shadow.core.model.Attachment
 import com.oneclaw.shadow.core.model.Citation
 import com.oneclaw.shadow.core.model.MessageType
 import com.oneclaw.shadow.core.model.SkillDefinition
 import com.oneclaw.shadow.core.model.ToolCallStatus
+import com.oneclaw.shadow.data.local.AttachmentFileManager
 
 data class ChatUiState(
     val sessionId: String? = null,
@@ -30,6 +32,7 @@ data class ChatUiState(
     val showAgentSelector: Boolean = false,
 
     val errorMessage: String? = null,
+    val snackbarMessage: String? = null,
 
     val hasConfiguredProvider: Boolean = false,
     val isCompacting: Boolean = false,
@@ -42,7 +45,12 @@ data class ChatUiState(
     val showSkillSheet: Boolean = false,
 
     // RFC-014: All available skills (for skill sheet)
-    val allSkills: List<SkillDefinition> = emptyList()
+    val allSkills: List<SkillDefinition> = emptyList(),
+
+    // RFC-026: Attachment state
+    val pendingAttachments: List<AttachmentFileManager.PendingAttachment> = emptyList(),
+    val showAttachmentPicker: Boolean = false,
+    val viewingImagePath: String? = null
 )
 
 /**
@@ -72,7 +80,8 @@ data class ChatMessageItem(
     val tokenCountOutput: Int? = null,
     val isRetryable: Boolean = false,
     val timestamp: Long = 0,
-    val citations: List<Citation>? = null
+    val citations: List<Citation>? = null,
+    val attachments: List<Attachment> = emptyList()
 )
 
 data class ActiveToolCall(

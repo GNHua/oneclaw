@@ -10,6 +10,7 @@ import com.oneclaw.shadow.data.local.db.MIGRATION_5_6
 import com.oneclaw.shadow.data.local.db.MIGRATION_6_7
 import com.oneclaw.shadow.data.local.db.MIGRATION_7_8
 import com.oneclaw.shadow.data.local.db.MIGRATION_8_9
+import com.oneclaw.shadow.data.local.db.MIGRATION_9_10
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -20,7 +21,7 @@ val databaseModule = module {
             AppDatabase::class.java,
             "oneclaw.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
             .addCallback(AppDatabase.createSeedCallback())
             .build()
     }
@@ -34,4 +35,6 @@ val databaseModule = module {
     single { get<AppDatabase>().scheduledTaskDao() }
     // RFC-028: Execution record DAO
     single { get<AppDatabase>().taskExecutionRecordDao() }
+    // RFC-026: Attachment DAO
+    single { get<AppDatabase>().attachmentDao() }
 }

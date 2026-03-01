@@ -2,19 +2,25 @@ package com.oneclaw.shadow.feature.chat.usecase
 
 import com.oneclaw.shadow.core.model.AiModel
 import com.oneclaw.shadow.core.model.Agent
+import com.oneclaw.shadow.core.model.Attachment
 import com.oneclaw.shadow.core.model.Citation
 import com.oneclaw.shadow.core.model.Message
 import com.oneclaw.shadow.core.model.MessageType
 import com.oneclaw.shadow.core.model.Provider
+import com.oneclaw.shadow.core.model.ProviderCapability
 import com.oneclaw.shadow.core.model.ToolCallStatus
 import com.oneclaw.shadow.core.model.ToolDefinition
 import com.oneclaw.shadow.core.model.ToolResult
 import com.oneclaw.shadow.core.repository.AgentRepository
+import com.oneclaw.shadow.core.repository.AttachmentRepository
 import com.oneclaw.shadow.core.repository.MessageRepository
 import com.oneclaw.shadow.core.repository.ProviderRepository
 import com.oneclaw.shadow.core.repository.SessionRepository
 import com.oneclaw.shadow.core.util.ErrorCode
 import com.oneclaw.shadow.core.util.ToolResultTruncator
+import com.oneclaw.shadow.data.local.AttachmentFileManager
+import com.oneclaw.shadow.data.remote.adapter.ApiAttachment
+import com.oneclaw.shadow.data.remote.adapter.ApiMessage
 import com.oneclaw.shadow.data.remote.adapter.ModelApiAdapterFactory
 import com.oneclaw.shadow.feature.memory.injection.MemoryInjector
 import com.oneclaw.shadow.data.remote.adapter.StreamEvent
@@ -44,7 +50,9 @@ class SendMessageUseCase(
     private val toolRegistry: ToolRegistry,
     private val autoCompactUseCase: AutoCompactUseCase,
     private val memoryInjector: MemoryInjector? = null,
-    private val skillRegistry: SkillRegistry? = null
+    private val skillRegistry: SkillRegistry? = null,
+    private val attachmentFileManager: AttachmentFileManager? = null,
+    private val attachmentRepository: AttachmentRepository? = null
 ) {
     companion object {
         const val MAX_TOOL_ROUNDS = 100
@@ -56,7 +64,8 @@ class SendMessageUseCase(
         sessionId: String,
         userText: String,
         agentId: String,
-        pendingMessages: Channel<String> = Channel(Channel.UNLIMITED)
+        pendingMessages: Channel<String> = Channel(Channel.UNLIMITED),
+        pendingAttachments: List<AttachmentFileManager.PendingAttachment> = emptyList()
     ): Flow<ChatEvent> = channelFlow {
 
         // 1. Resolve agent
@@ -90,7 +99,29 @@ class SendMessageUseCase(
             toolStatus = null, toolDurationMs = null, tokenCountInput = null,
             tokenCountOutput = null, modelId = null, providerId = null, createdAt = 0
         )
-        messageRepository.addMessage(userMessage)
+        val savedUserMessage = messageRepository.addMessage(userMessage)
+
+        // 3b. Save attachments linked to this user message
+        if (pendingAttachments.isNotEmpty() && attachmentRepository != null) {
+            val now = System.currentTimeMillis()
+            val attachmentDomains = pendingAttachments.map { pending ->
+                Attachment(
+                    id = pending.id,
+                    messageId = savedUserMessage.id,
+                    type = pending.type,
+                    fileName = pending.fileName,
+                    mimeType = pending.mimeType,
+                    fileSize = pending.fileSize,
+                    filePath = pending.filePath,
+                    thumbnailPath = pending.thumbnailPath,
+                    width = pending.width,
+                    height = pending.height,
+                    durationMs = pending.durationMs,
+                    createdAt = now
+                )
+            }
+            attachmentRepository.addAttachments(attachmentDomains)
+        }
 
         // 4. Update session stats
         sessionRepository.updateMessageStats(
@@ -128,6 +159,24 @@ class SendMessageUseCase(
             // RFC-014: Inject skill registry into system prompt
             val baseSystemPrompt = buildSystemPromptWithSkills(memorySystemPrompt)
 
+            // Build api attachments for first round only
+            val apiAttachments: List<ApiAttachment> = if (pendingAttachments.isNotEmpty() && attachmentFileManager != null) {
+                pendingAttachments
+                    .filter { ProviderCapability.supportsAttachmentType(provider.type, it.type) }
+                    .mapNotNull { pending ->
+                        try {
+                            ApiAttachment(
+                                type = pending.type,
+                                mimeType = pending.mimeType,
+                                base64Data = attachmentFileManager.readAsBase64(pending.filePath),
+                                fileName = pending.fileName
+                            )
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+            } else emptyList()
+
             while (round < MAX_TOOL_ROUNDS) {
                 val allMessages = messageRepository.getMessagesSnapshot(sessionId)
                 val session = sessionRepository.getSessionById(sessionId)!!
@@ -136,6 +185,18 @@ class SendMessageUseCase(
                     allMessages = allMessages,
                     originalSystemPrompt = baseSystemPrompt
                 )
+
+                // Inject attachments into the last user message (first round only)
+                val messagesWithAttachments = if (round == 0 && apiAttachments.isNotEmpty()) {
+                    val lastUserIndex = apiMessages.indexOfLast { it is ApiMessage.User }
+                    if (lastUserIndex >= 0) {
+                        apiMessages.toMutableList().also { list ->
+                            val userMsg = list[lastUserIndex] as ApiMessage.User
+                            list[lastUserIndex] = userMsg.copy(attachments = apiAttachments)
+                        }
+                    } else apiMessages
+                } else apiMessages
+
                 val adapter = adapterFactory.getAdapter(provider.type)
 
                 var accumulatedText = ""
@@ -148,7 +209,7 @@ class SendMessageUseCase(
                     apiBaseUrl = provider.apiBaseUrl,
                     apiKey = apiKey,
                     modelId = model.id,
-                    messages = apiMessages,
+                    messages = messagesWithAttachments,
                     tools = agentToolDefs,
                     systemPrompt = effectiveSystemPrompt,
                     webSearchEnabled = agent.webSearchEnabled

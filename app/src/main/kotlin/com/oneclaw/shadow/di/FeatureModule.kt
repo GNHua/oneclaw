@@ -52,6 +52,7 @@ import com.oneclaw.shadow.feature.schedule.usecase.RunScheduledTaskNowUseCase
 import com.oneclaw.shadow.feature.schedule.usecase.RunScheduledTaskUseCase
 import com.oneclaw.shadow.feature.schedule.usecase.ToggleScheduledTaskUseCase
 import com.oneclaw.shadow.feature.schedule.usecase.UpdateScheduledTaskUseCase
+import com.oneclaw.shadow.data.local.AttachmentFileManager
 import com.oneclaw.shadow.feature.file.FileBrowserViewModel
 import com.oneclaw.shadow.feature.file.FilePreviewViewModel
 import com.oneclaw.shadow.feature.file.usecase.DeleteFileUseCase
@@ -68,6 +69,9 @@ val featureModule = module {
     // RFC-008: Notification dependencies
     single { AppLifecycleObserver() }
     single { NotificationHelper(androidContext()) }
+
+    // RFC-026: Attachment file manager
+    single { AttachmentFileManager(androidContext()) }
 
     // RFC-003: Provider feature use cases
     factory { TestConnectionUseCase(get()) }
@@ -120,7 +124,9 @@ val featureModule = module {
             toolRegistry = get(),
             autoCompactUseCase = get(),
             memoryInjector = get(),
-            skillRegistry = get()
+            skillRegistry = get(),
+            attachmentFileManager = get(),
+            attachmentRepository = get()
         )
     }
 
@@ -140,7 +146,9 @@ val featureModule = module {
             appLifecycleObserver = get(),
             notificationHelper = get(),
             skillRegistry = get(),
-            memoryTriggerManager = get()
+            memoryTriggerManager = get(),
+            attachmentFileManager = get(),
+            attachmentRepository = get()
         )
     }
 

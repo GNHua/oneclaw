@@ -107,7 +107,7 @@ class SendMessageUseCase(
             if (agent.toolIds.isNotEmpty()) {
                 addAll(toolRegistry.getToolDefinitionsByNames(agent.toolIds))
             }
-        }.takeIf { it.isNotEmpty() }
+        }.distinctBy { it.name }.takeIf { it.isNotEmpty() }
 
         var round = 0
         try {

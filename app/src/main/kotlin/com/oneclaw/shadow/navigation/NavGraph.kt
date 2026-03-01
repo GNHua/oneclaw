@@ -24,6 +24,7 @@ import com.oneclaw.shadow.feature.schedule.ScheduledTaskEditScreen
 import com.oneclaw.shadow.feature.schedule.ScheduledTaskListScreen
 import com.oneclaw.shadow.feature.tool.ToolManagementScreen
 import com.oneclaw.shadow.feature.usage.UsageStatisticsScreen
+import com.oneclaw.shadow.feature.bridge.BridgeSettingsScreen
 import com.oneclaw.shadow.feature.file.FileBrowserScreen
 import com.oneclaw.shadow.feature.file.FilePreviewScreen
 import android.content.Intent
@@ -150,7 +151,14 @@ fun AppNavGraph(
                 onSkills = { navController.safeNavigate(Route.SkillManagement.path) },
                 onScheduledTasks = { navController.safeNavigate(Route.ScheduleList.path) },
                 onFiles = { navController.safeNavigate(Route.FileBrowser.path) },
-                onGoogleAccount = { navController.safeNavigate(Route.GoogleAuth.path) }
+                onGoogleAccount = { navController.safeNavigate(Route.GoogleAuth.path) },
+                onBridgeSettings = { navController.safeNavigate(Route.BridgeSettings.path) }
+            )
+        }
+
+        composable(Route.BridgeSettings.path) {
+            BridgeSettingsScreen(
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 

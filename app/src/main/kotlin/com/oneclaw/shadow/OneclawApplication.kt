@@ -14,7 +14,9 @@ import com.oneclaw.shadow.data.sync.SyncWorker
 import com.oneclaw.shadow.core.repository.ScheduledTaskRepository
 import com.oneclaw.shadow.feature.schedule.alarm.AlarmScheduler
 import com.oneclaw.shadow.feature.schedule.usecase.CleanupExecutionHistoryUseCase
+import com.oneclaw.shadow.bridge.service.BridgeWatchdogWorker
 import com.oneclaw.shadow.di.appModule
+import com.oneclaw.shadow.di.bridgeModule
 import com.oneclaw.shadow.di.databaseModule
 import com.oneclaw.shadow.di.featureModule
 import com.oneclaw.shadow.di.memoryModule
@@ -47,7 +49,8 @@ class OneclawApplication : Application() {
                 repositoryModule,
                 toolModule,
                 featureModule,
-                memoryModule
+                memoryModule,
+                bridgeModule
             )
         }
 
@@ -102,6 +105,15 @@ class OneclawApplication : Application() {
             SyncWorker.WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             syncRequest
+        )
+
+        // RFC-024: Schedule bridge watchdog every 15 minutes
+        val watchdogRequest = PeriodicWorkRequestBuilder<BridgeWatchdogWorker>(15, TimeUnit.MINUTES)
+            .build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            BridgeWatchdogWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            watchdogRequest
         )
     }
 

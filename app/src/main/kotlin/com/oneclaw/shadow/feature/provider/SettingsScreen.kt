@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.outlined.Settings
@@ -66,6 +67,7 @@ fun SettingsScreen(
     onScheduledTasks: () -> Unit = {},
     onFiles: () -> Unit = {},
     onGoogleAccount: () -> Unit = {},
+    onBridgeSettings: () -> Unit = {},
     themeManager: ThemeManager = koinInject()
 ) {
     val currentTheme by themeManager.themeMode.collectAsState()
@@ -162,6 +164,13 @@ fun SettingsScreen(
                 title = "Google Account",
                 subtitle = "Connect Google account for Workspace tools",
                 onClick = onGoogleAccount
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            SettingsItem(
+                icon = Icons.Filled.Hub,
+                title = "Messaging Bridge",
+                subtitle = "Connect Telegram, Discord, Slack and more",
+                onClick = onBridgeSettings
             )
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             SettingsItem(

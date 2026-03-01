@@ -139,6 +139,9 @@ dependencies {
     // QuickJS JavaScript Engine
     implementation(libs.quickjs.android)
 
+    // RFC-024: Messaging Bridge module
+    implementation(project(":bridge"))
+
     // Jsoup HTML parser (RFC-021: Kotlin webfetch tool)
     implementation("org.jsoup:jsoup:1.18.3")
 

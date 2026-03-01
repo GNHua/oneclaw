@@ -2,6 +2,8 @@
 agp = "8.7.3"
 kotlin = "2.0.21"
 ksp = "2.0.21-1.0.28"
+nanohttpd = "2.3.1"
+commonmark = "0.24.0"
 workManager = "2.10.0"
 playServicesAuth = "21.3.0"
 googleApiClientAndroid = "2.7.1"
@@ -89,6 +91,14 @@ work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 google-api-client-android = { group = "com.google.api-client", name = "google-api-client-android", version.ref = "googleApiClientAndroid" }
 google-api-services-drive = { group = "com.google.apis", name = "google-api-services-drive", version.ref = "googleApiServicesDrive" }
+
+# NanoHTTPD (lightweight HTTP + WebSocket server for bridge)
+nanohttpd = { group = "org.nanohttpd", name = "nanohttpd", version.ref = "nanohttpd" }
+nanohttpd-websocket = { group = "org.nanohttpd", name = "nanohttpd-websocket", version.ref = "nanohttpd" }
+
+# Commonmark (Markdown -> HTML rendering for bridge channels)
+commonmark = { group = "org.commonmark", name = "commonmark", version.ref = "commonmark" }
+commonmark-ext-strikethrough = { group = "org.commonmark", name = "commonmark-ext-gfm-strikethrough", version.ref = "commonmark" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

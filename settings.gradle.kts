@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "OneClawShadow"
 include(":app")
+include(":bridge")

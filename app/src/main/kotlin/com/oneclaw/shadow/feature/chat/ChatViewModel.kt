@@ -46,6 +46,7 @@ class ChatViewModel(
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     private var streamingJob: Job? = null
+    private var loadSessionJob: Job? = null
     private var isFirstMessage = true
     private var firstUserMessageText: String? = null
 
@@ -64,6 +65,8 @@ class ChatViewModel(
     }
 
     fun initialize(sessionId: String?) {
+        loadSessionJob?.cancel()
+        loadSessionJob = null
         if (sessionId != null) {
             loadSession(sessionId)
         } else {
@@ -87,7 +90,7 @@ class ChatViewModel(
     }
 
     private fun loadSession(sessionId: String) {
-        viewModelScope.launch {
+        loadSessionJob = viewModelScope.launch {
             val session = sessionRepository.getSessionById(sessionId) ?: return@launch
             val agent = agentRepository.getAgentById(session.currentAgentId)
             _uiState.update {

@@ -63,4 +63,31 @@ interface SessionDao {
 
     @Query("SELECT * FROM sessions WHERE is_active = 1 LIMIT 1")
     suspend fun getActiveSession(): SessionEntity?
+
+    /**
+     * RFC-032: Search sessions by title or last message preview using SQL LIKE.
+     * Only searches non-deleted sessions. Returns sessions whose title
+     * or preview contains the query string (case-insensitive).
+     *
+     * Optional date range filtering via createdAfter and createdBefore
+     * (epoch millis).
+     */
+    @Query(
+        """
+        SELECT * FROM sessions
+        WHERE deleted_at IS NULL
+          AND (title LIKE '%' || :query || '%' COLLATE NOCASE
+               OR last_message_preview LIKE '%' || :query || '%' COLLATE NOCASE)
+          AND created_at >= :createdAfter
+          AND created_at <= :createdBefore
+        ORDER BY updated_at DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun searchByTitleOrPreview(
+        query: String,
+        createdAfter: Long = 0,
+        createdBefore: Long = Long.MAX_VALUE,
+        limit: Int = 20
+    ): List<SessionEntity>
 }

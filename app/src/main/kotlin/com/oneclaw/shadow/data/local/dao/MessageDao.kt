@@ -63,4 +63,31 @@ interface MessageDao {
         """
     )
     suspend fun getUsageStatsByModel(since: Long): List<ModelUsageRow>
+
+    /**
+     * RFC-032: Search message content using SQL LIKE. Returns messages whose content
+     * contains the query string (case-insensitive). Results are ordered by
+     * creation time descending (newest first).
+     *
+     * Optional date range filtering via createdAfter and createdBefore
+     * (epoch millis). Pass 0 for createdAfter and Long.MAX_VALUE for
+     * createdBefore to disable date filtering.
+     */
+    @Query(
+        """
+        SELECT * FROM messages
+        WHERE content LIKE '%' || :query || '%' COLLATE NOCASE
+          AND type IN ('USER', 'AI_RESPONSE')
+          AND created_at >= :createdAfter
+          AND created_at <= :createdBefore
+        ORDER BY created_at DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun searchContent(
+        query: String,
+        createdAfter: Long = 0,
+        createdBefore: Long = Long.MAX_VALUE,
+        limit: Int = 50
+    ): List<MessageEntity>
 }

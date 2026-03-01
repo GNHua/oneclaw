@@ -9,7 +9,11 @@ import com.oneclaw.shadow.tool.browser.WebViewManager
 import com.oneclaw.shadow.tool.builtin.BrowserTool
 import com.oneclaw.shadow.tool.builtin.CreateAgentTool
 import com.oneclaw.shadow.tool.builtin.CreateScheduledTaskTool
+import com.oneclaw.shadow.tool.builtin.DeleteScheduledTaskTool
+import com.oneclaw.shadow.tool.builtin.ListScheduledTasksTool
 import com.oneclaw.shadow.tool.builtin.LoadSkillTool
+import com.oneclaw.shadow.tool.builtin.RunScheduledTaskTool
+import com.oneclaw.shadow.tool.builtin.UpdateScheduledTaskTool
 import com.oneclaw.shadow.tool.builtin.WebfetchTool
 import com.oneclaw.shadow.tool.engine.PermissionChecker
 import com.oneclaw.shadow.tool.engine.ToolEnabledStateStore
@@ -46,6 +50,12 @@ val toolModule = module {
     // RFC-019: schedule_task built-in tool
     single { CreateScheduledTaskTool(get()) }
 
+    // RFC-027: Scheduled task management tools
+    single { ListScheduledTasksTool(get()) }
+    single { RunScheduledTaskTool(get()) }
+    single { UpdateScheduledTaskTool(get(), get()) }
+    single { DeleteScheduledTaskTool(get(), get()) }
+
     // RFC-020: create_agent built-in tool
     single { CreateAgentTool(get()) }
 
@@ -74,6 +84,30 @@ val toolModule = module {
                 register(get<CreateScheduledTaskTool>(), ToolSourceInfo.BUILTIN)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register schedule_task: ${e.message}")
+            }
+
+            try {
+                register(get<ListScheduledTasksTool>(), ToolSourceInfo.BUILTIN)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register list_scheduled_tasks: ${e.message}")
+            }
+
+            try {
+                register(get<RunScheduledTaskTool>(), ToolSourceInfo.BUILTIN)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register run_scheduled_task: ${e.message}")
+            }
+
+            try {
+                register(get<UpdateScheduledTaskTool>(), ToolSourceInfo.BUILTIN)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register update_scheduled_task: ${e.message}")
+            }
+
+            try {
+                register(get<DeleteScheduledTaskTool>(), ToolSourceInfo.BUILTIN)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register delete_scheduled_task: ${e.message}")
             }
 
             try {

@@ -32,14 +32,18 @@ class ScheduledTaskWorker(
 
     companion object {
         const val KEY_TASK_ID = "task_id"
+        const val KEY_MANUAL_RUN = "manual_run"
         private const val FOREGROUND_NOTIFICATION_ID = 9001
     }
 
     override suspend fun doWork(): Result {
         val taskId = inputData.getString(KEY_TASK_ID) ?: return Result.failure()
+        val manualRun = inputData.getBoolean(KEY_MANUAL_RUN, false)
 
         val task = scheduledTaskRepository.getTaskById(taskId) ?: return Result.failure()
-        if (!task.isEnabled) return Result.success()
+
+        // Skip enabled check for manual runs
+        if (!manualRun && !task.isEnabled) return Result.success()
 
         // Show foreground notification
         setForeground(createForegroundInfo(task.name))
@@ -86,19 +90,35 @@ class ScheduledTaskWorker(
             isSuccess = false
         }
 
-        // Calculate next trigger for recurring tasks
-        val isOneTime = task.scheduleType == ScheduleType.ONE_TIME
-        val nextEnabled = if (isOneTime) false else task.isEnabled
-        val nextTriggerAt = if (isOneTime) null else NextTriggerCalculator.calculate(task)
+        if (manualRun) {
+            // Manual run: update execution status only, do not change enabled/nextTriggerAt
+            scheduledTaskRepository.updateExecutionResult(
+                id = taskId,
+                status = if (isSuccess) ExecutionStatus.SUCCESS else ExecutionStatus.FAILED,
+                sessionId = sessionId,
+                nextTriggerAt = task.nextTriggerAt,
+                isEnabled = task.isEnabled
+            )
+        } else {
+            // Alarm-triggered: calculate next trigger for recurring tasks
+            val isOneTime = task.scheduleType == ScheduleType.ONE_TIME
+            val nextEnabled = if (isOneTime) false else task.isEnabled
+            val nextTriggerAt = if (isOneTime) null else NextTriggerCalculator.calculate(task)
 
-        // Update execution result
-        scheduledTaskRepository.updateExecutionResult(
-            id = taskId,
-            status = if (isSuccess) ExecutionStatus.SUCCESS else ExecutionStatus.FAILED,
-            sessionId = sessionId,
-            nextTriggerAt = nextTriggerAt,
-            isEnabled = nextEnabled
-        )
+            scheduledTaskRepository.updateExecutionResult(
+                id = taskId,
+                status = if (isSuccess) ExecutionStatus.SUCCESS else ExecutionStatus.FAILED,
+                sessionId = sessionId,
+                nextTriggerAt = nextTriggerAt,
+                isEnabled = nextEnabled
+            )
+
+            // Schedule next alarm for recurring tasks
+            if (!isOneTime && nextTriggerAt != null) {
+                val updatedTask = task.copy(nextTriggerAt = nextTriggerAt)
+                alarmScheduler.scheduleTask(updatedTask)
+            }
+        }
 
         // Send notification
         if (isSuccess) {
@@ -113,12 +133,6 @@ class ScheduledTaskWorker(
                 sessionId = sessionId,
                 errorMessage = responseText
             )
-        }
-
-        // Schedule next alarm for recurring tasks
-        if (!isOneTime && nextTriggerAt != null) {
-            val updatedTask = task.copy(nextTriggerAt = nextTriggerAt)
-            alarmScheduler.scheduleTask(updatedTask)
         }
 
         return Result.success()

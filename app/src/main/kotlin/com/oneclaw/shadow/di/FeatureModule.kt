@@ -44,9 +44,11 @@ import com.oneclaw.shadow.feature.schedule.ScheduledTaskListViewModel
 import com.oneclaw.shadow.feature.schedule.alarm.AlarmScheduler
 import com.oneclaw.shadow.feature.schedule.usecase.CreateScheduledTaskUseCase
 import com.oneclaw.shadow.feature.schedule.usecase.DeleteScheduledTaskUseCase
+import com.oneclaw.shadow.feature.schedule.usecase.RunScheduledTaskUseCase
 import com.oneclaw.shadow.feature.schedule.usecase.ToggleScheduledTaskUseCase
 import com.oneclaw.shadow.feature.schedule.usecase.UpdateScheduledTaskUseCase
 import com.oneclaw.shadow.feature.tool.ToolManagementViewModel
+import androidx.work.WorkManager
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.androidx.viewmodel.dsl.viewModelOf
@@ -164,4 +166,7 @@ val featureModule = module {
     factory { ToggleScheduledTaskUseCase(get(), get()) }
     viewModelOf(::ScheduledTaskListViewModel)
     viewModelOf(::ScheduledTaskEditViewModel)
+
+    // RFC-027: RunScheduledTaskUseCase
+    factory { RunScheduledTaskUseCase(get(), WorkManager.getInstance(androidContext())) }
 }

@@ -36,5 +36,6 @@ enum class ErrorCode {
     PERMISSION_ERROR,
     PROVIDER_ERROR,
     TOOL_ERROR,
+    NOT_FOUND,
     UNKNOWN
 }

@@ -7,7 +7,8 @@ import com.oneclaw.shadow.core.model.ToolDefinition
  */
 class ToolRegistry {
 
-    private val tools = mutableMapOf<String, Tool>()
+    @PublishedApi
+    internal val tools = mutableMapOf<String, Tool>()
 
     /**
      * Register a tool. Throws IllegalArgumentException if a tool with the same name
@@ -39,4 +40,15 @@ class ToolRegistry {
 
     /** Get all registered tool names. */
     fun getAllToolNames(): List<String> = tools.keys.toList()
+
+    /**
+     * Unregister all tools of a specific type.
+     * Used by JS tool reload to remove old JS tools before re-scanning.
+     */
+    inline fun <reified T : Tool> unregisterByType() {
+        val keysToRemove = tools.entries
+            .filter { it.value is T }
+            .map { it.key }
+        keysToRemove.forEach { tools.remove(it) }
+    }
 }

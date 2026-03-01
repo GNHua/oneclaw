@@ -13,14 +13,18 @@ import com.oneclaw.shadow.core.repository.MessageRepository
 import com.oneclaw.shadow.core.repository.ProviderRepository
 import com.oneclaw.shadow.core.repository.SessionRepository
 import com.oneclaw.shadow.core.util.ErrorCode
+import com.oneclaw.shadow.core.util.ToolResultTruncator
 import com.oneclaw.shadow.data.remote.adapter.ModelApiAdapterFactory
+import com.oneclaw.shadow.feature.memory.injection.MemoryInjector
 import com.oneclaw.shadow.data.remote.adapter.StreamEvent
 import com.oneclaw.shadow.data.security.ApiKeyStorage
 import com.oneclaw.shadow.feature.chat.ChatEvent
 import com.oneclaw.shadow.tool.engine.ToolCallRequest
 import com.oneclaw.shadow.tool.engine.ToolExecutionEngine
 import com.oneclaw.shadow.tool.engine.ToolRegistry
+import com.oneclaw.shadow.tool.skill.SkillRegistry
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.first
@@ -36,7 +40,10 @@ class SendMessageUseCase(
     private val apiKeyStorage: ApiKeyStorage,
     private val adapterFactory: ModelApiAdapterFactory,
     private val toolExecutionEngine: ToolExecutionEngine,
-    private val toolRegistry: ToolRegistry
+    private val toolRegistry: ToolRegistry,
+    private val autoCompactUseCase: AutoCompactUseCase,
+    private val memoryInjector: MemoryInjector? = null,
+    private val skillRegistry: SkillRegistry? = null
 ) {
     companion object {
         const val MAX_TOOL_ROUNDS = 100
@@ -47,7 +54,8 @@ class SendMessageUseCase(
     fun execute(
         sessionId: String,
         userText: String,
-        agentId: String
+        agentId: String,
+        pendingMessages: Channel<String> = Channel(Channel.UNLIMITED)
     ): Flow<ChatEvent> = channelFlow {
 
         // 1. Resolve agent
@@ -91,16 +99,47 @@ class SendMessageUseCase(
         )
         sessionRepository.setActive(sessionId, true)
 
-        // 5. Get agent tools
-        val agentToolDefs: List<ToolDefinition>? = if (agent.toolIds.isNotEmpty()) {
-            toolRegistry.getToolDefinitionsByNames(agent.toolIds).takeIf { it.isNotEmpty() }
-        } else null
+        // 5. Get agent tools -- always include load_skill if available
+        val agentToolDefs: List<ToolDefinition>? = buildList {
+            // Always include load_skill (RFC-014)
+            toolRegistry.getTool("load_skill")?.let { add(it.definition) }
+            // Add agent's configured tools
+            if (agent.toolIds.isNotEmpty()) {
+                addAll(toolRegistry.getToolDefinitionsByNames(agent.toolIds))
+            }
+        }.distinctBy { it.name }.takeIf { it.isNotEmpty() }
 
         var round = 0
         try {
+            // Inject memory context into system prompt (only on first round)
+            val memorySystemPrompt = if (memoryInjector != null) {
+                try {
+                    val memoryInjection = memoryInjector.buildInjection(query = userText)
+                    if (memoryInjection.isNotBlank()) {
+                        if (agent.systemPrompt.isBlank()) memoryInjection
+                        else "${agent.systemPrompt}\n\n$memoryInjection"
+                    } else {
+                        agent.systemPrompt
+                    }
+                } catch (e: Exception) {
+                    // Memory injection failure is non-fatal -- proceed without it
+                    agent.systemPrompt
+                }
+            } else {
+                agent.systemPrompt
+            }
+
+            // RFC-014: Inject skill registry into system prompt
+            val baseSystemPrompt = buildSystemPromptWithSkills(memorySystemPrompt)
+
             while (round < MAX_TOOL_ROUNDS) {
                 val allMessages = messageRepository.getMessagesSnapshot(sessionId)
-                val apiMessages = allMessages.toApiMessages()
+                val session = sessionRepository.getSessionById(sessionId)!!
+                val (effectiveSystemPrompt, apiMessages) = CompactAwareMessageBuilder.build(
+                    session = session,
+                    allMessages = allMessages,
+                    originalSystemPrompt = baseSystemPrompt
+                )
                 val adapter = adapterFactory.getAdapter(provider.type)
 
                 var accumulatedText = ""
@@ -114,7 +153,7 @@ class SendMessageUseCase(
                     modelId = model.id,
                     messages = apiMessages,
                     tools = agentToolDefs,
-                    systemPrompt = agent.systemPrompt
+                    systemPrompt = effectiveSystemPrompt
                 ).collect { event ->
                     when (event) {
                         is StreamEvent.TextDelta -> {
@@ -157,14 +196,33 @@ class SendMessageUseCase(
                 ))
 
                 if (pendingToolCalls.isEmpty()) {
-                    // Response complete — no tool calls
-                    sessionRepository.updateMessageStats(
-                        id = sessionId,
-                        count = messageRepository.getMessageCount(sessionId),
-                        preview = accumulatedText.take(100)
-                    )
-                    send(ChatEvent.ResponseComplete(aiMessage, usage))
-                    break
+                    // Drain any pending user messages before deciding to stop
+                    val injected = drainPendingMessages(pendingMessages)
+                    for (text in injected) {
+                        send(ChatEvent.UserMessageInjected(text))
+                    }
+                    if (injected.isEmpty()) {
+                        // No pending messages -- loop is truly done
+                        sessionRepository.updateMessageStats(
+                            id = sessionId,
+                            count = messageRepository.getMessageCount(sessionId),
+                            preview = accumulatedText.take(100)
+                        )
+                        send(ChatEvent.ResponseComplete(aiMessage, usage))
+
+                        // Trigger auto-compact check
+                        send(ChatEvent.CompactStarted)
+                        val compactResult = autoCompactUseCase.compactIfNeeded(sessionId, model, provider)
+                        send(ChatEvent.CompactCompleted(compactResult.didCompact))
+
+                        break
+                    }
+                    // Pending messages found -- continue to next iteration
+                    round++
+                    if (round < MAX_TOOL_ROUNDS) {
+                        send(ChatEvent.ToolRoundStarting(round))
+                    }
+                    continue
                 }
 
                 // Execute tools in parallel
@@ -194,12 +252,14 @@ class SendMessageUseCase(
                         tokenCountInput = null, tokenCountOutput = null,
                         modelId = null, providerId = null, createdAt = 0
                     ))
+                    val rawOutput = tr.result.result ?: tr.result.errorMessage ?: ""
+                    val truncatedOutput = ToolResultTruncator.truncate(rawOutput)
                     messageRepository.addMessage(Message(
                         id = "", sessionId = sessionId, type = MessageType.TOOL_RESULT,
                         content = "", thinkingContent = null,
                         toolCallId = tr.toolCallId, toolName = tr.toolName,
                         toolInput = null,
-                        toolOutput = tr.result.result ?: tr.result.errorMessage ?: "",
+                        toolOutput = truncatedOutput,
                         toolStatus = finalStatus,
                         toolDurationMs = tr.durationMs,
                         tokenCountInput = null, tokenCountOutput = null,
@@ -208,6 +268,11 @@ class SendMessageUseCase(
                     send(ChatEvent.ToolCallCompleted(tr.toolCallId, tr.toolName, tr.result))
                 }
 
+                // Drain pending user messages before starting next tool round
+                val injectedBeforeTool = drainPendingMessages(pendingMessages)
+                for (text in injectedBeforeTool) {
+                    send(ChatEvent.UserMessageInjected(text))
+                }
                 round++
                 if (round < MAX_TOOL_ROUNDS) {
                     send(ChatEvent.ToolRoundStarting(round))
@@ -280,6 +345,30 @@ class SendMessageUseCase(
             }
         } catch (e: Exception) {
             emptyMap()
+        }
+    }
+
+    private fun drainPendingMessages(channel: Channel<String>): List<String> {
+        val injected = mutableListOf<String>()
+        while (true) {
+            val text = channel.tryReceive().getOrNull() ?: break
+            injected.add(text)
+        }
+        return injected
+    }
+
+    /**
+     * RFC-014: Append skill registry to system prompt when skills are available.
+     */
+    private fun buildSystemPromptWithSkills(basePrompt: String): String {
+        val registry = skillRegistry ?: return basePrompt
+        val registryPrompt = registry.generateRegistryPrompt()
+        return if (registryPrompt.isBlank()) {
+            basePrompt
+        } else if (basePrompt.isBlank()) {
+            registryPrompt
+        } else {
+            "$basePrompt\n\n---\n\n$registryPrompt"
         }
     }
 

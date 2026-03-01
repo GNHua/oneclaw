@@ -54,4 +54,13 @@ interface SessionDao {
 
     @Query("UPDATE sessions SET current_agent_id = :agentId, updated_at = :updatedAt WHERE id = :id")
     suspend fun updateCurrentAgent(id: String, agentId: String, updatedAt: Long)
+
+    @Query("UPDATE sessions SET compacted_summary = :summary, compact_boundary_timestamp = :boundaryTimestamp, updated_at = :updatedAt WHERE id = :id")
+    suspend fun updateCompactedSummary(id: String, summary: String?, boundaryTimestamp: Long?, updatedAt: Long)
+
+    @Query("UPDATE sessions SET last_logged_message_id = :messageId WHERE id = :sessionId")
+    suspend fun updateLastLoggedMessageId(sessionId: String, messageId: String)
+
+    @Query("SELECT * FROM sessions WHERE is_active = 1 LIMIT 1")
+    suspend fun getActiveSession(): SessionEntity?
 }

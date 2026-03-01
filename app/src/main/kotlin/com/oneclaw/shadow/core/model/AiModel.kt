@@ -5,7 +5,8 @@ data class AiModel(
     val displayName: String?,
     val providerId: String,
     val isDefault: Boolean,
-    val source: ModelSource
+    val source: ModelSource,
+    val contextWindowSize: Int? = null  // max context window in tokens; null = unknown
 )
 
 enum class ModelSource {

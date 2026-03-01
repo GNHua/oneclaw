@@ -5,8 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.oneclaw.shadow.core.model.AgentConstants
 import com.oneclaw.shadow.core.model.Message
 import com.oneclaw.shadow.core.model.MessageType
+import com.oneclaw.shadow.core.model.SkillDefinition
 import com.oneclaw.shadow.core.model.ToolCallStatus
 import com.oneclaw.shadow.core.model.ToolResultStatus
+import com.oneclaw.shadow.core.lifecycle.AppLifecycleObserver
+import com.oneclaw.shadow.core.notification.NotificationHelper
 import com.oneclaw.shadow.core.repository.AgentRepository
 import com.oneclaw.shadow.core.repository.MessageRepository
 import com.oneclaw.shadow.core.repository.ProviderRepository
@@ -14,9 +17,11 @@ import com.oneclaw.shadow.core.repository.SessionRepository
 import com.oneclaw.shadow.feature.chat.usecase.SendMessageUseCase
 import com.oneclaw.shadow.feature.session.usecase.CreateSessionUseCase
 import com.oneclaw.shadow.feature.session.usecase.GenerateTitleUseCase
+import com.oneclaw.shadow.tool.skill.SkillRegistry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,7 +36,10 @@ class ChatViewModel(
     private val agentRepository: AgentRepository,
     private val providerRepository: ProviderRepository,
     private val createSessionUseCase: CreateSessionUseCase,
-    private val generateTitleUseCase: GenerateTitleUseCase
+    private val generateTitleUseCase: GenerateTitleUseCase,
+    private val appLifecycleObserver: AppLifecycleObserver,
+    private val notificationHelper: NotificationHelper,
+    private val skillRegistry: SkillRegistry? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -41,9 +49,18 @@ class ChatViewModel(
     private var isFirstMessage = true
     private var firstUserMessageText: String? = null
 
+    private val pendingMessages = Channel<String>(Channel.UNLIMITED)
+
     init {
         initialize(null)
         checkProviderStatus()
+        loadSkillsIntoState()
+    }
+
+    private fun loadSkillsIntoState() {
+        if (skillRegistry == null) return
+        val allSkills = skillRegistry.getAllSkills()
+        _uiState.update { it.copy(allSkills = allSkills) }
     }
 
     fun initialize(sessionId: String?) {
@@ -63,8 +80,7 @@ class ChatViewModel(
                     streamingText = "",
                     streamingThinkingText = "",
                     activeToolCalls = emptyList(),
-                    inputText = "",
-                    canSend = true
+                    inputText = ""
                 )
             }
         }
@@ -100,15 +116,156 @@ class ChatViewModel(
 
     fun updateInputText(text: String) {
         _uiState.update { it.copy(inputText = text) }
+        // RFC-014: Detect slash command prefix for skill autocomplete
+        updateSlashCommandState(text)
+    }
+
+    private fun updateSlashCommandState(text: String) {
+        if (skillRegistry == null) return
+        if (text.startsWith("/")) {
+            val query = text.removePrefix("/").lowercase()
+            val allSkills = skillRegistry.getAllSkills()
+            val matches = if (query.isEmpty()) {
+                allSkills
+            } else {
+                allSkills.filter { skill ->
+                    skill.name.contains(query) || skill.displayName.lowercase().contains(query)
+                }
+            }
+            _uiState.update {
+                it.copy(
+                    slashCommandState = SlashCommandState(
+                        isActive = true,
+                        query = query,
+                        matchingSkills = matches
+                    )
+                )
+            }
+        } else {
+            _uiState.update {
+                it.copy(slashCommandState = SlashCommandState(isActive = false))
+            }
+        }
+    }
+
+    /**
+     * Select a skill from the slash command popup.
+     * Constructs a message and sends it.
+     * RFC-014
+     */
+    fun selectSkillFromSlashCommand(skill: SkillDefinition) {
+        val message = buildSkillMessage(skill)
+        _uiState.update {
+            it.copy(
+                inputText = "",
+                slashCommandState = SlashCommandState(isActive = false)
+            )
+        }
+        sendTextMessage(message)
+    }
+
+    /**
+     * Select a skill from the skill selection bottom sheet.
+     * RFC-014
+     */
+    fun selectSkillFromSheet(skill: SkillDefinition) {
+        val message = buildSkillMessage(skill)
+        _uiState.update { it.copy(showSkillSheet = false) }
+        sendTextMessage(message)
+    }
+
+    private fun buildSkillMessage(skill: SkillDefinition): String {
+        return if (skill.parameters.isEmpty()) {
+            "Use the ${skill.displayName} skill"
+        } else {
+            val paramsList = skill.parameters.joinToString(", ") { p ->
+                if (p.required) p.name else "${p.name} (optional)"
+            }
+            "Use the ${skill.displayName} skill. Parameters: $paramsList"
+        }
+    }
+
+    fun dismissSlashCommand() {
+        _uiState.update { it.copy(slashCommandState = SlashCommandState(isActive = false)) }
+    }
+
+    fun toggleSkillSheet() {
+        _uiState.update { it.copy(showSkillSheet = !it.showSkillSheet) }
+    }
+
+    fun dismissSkillSheet() {
+        _uiState.update { it.copy(showSkillSheet = false) }
+    }
+
+    /**
+     * Send a text message directly (used by skill selection flows).
+     */
+    private fun sendTextMessage(text: String) {
+        if (text.isBlank()) return
+
+        if (_uiState.value.isStreaming) {
+            viewModelScope.launch {
+                val sessionId = _uiState.value.sessionId ?: return@launch
+                messageRepository.addMessage(Message(
+                    id = "", sessionId = sessionId, type = MessageType.USER,
+                    content = text, thinkingContent = null,
+                    toolCallId = null, toolName = null, toolInput = null, toolOutput = null,
+                    toolStatus = null, toolDurationMs = null, tokenCountInput = null,
+                    tokenCountOutput = null, modelId = null, providerId = null, createdAt = 0
+                ))
+                val tempId = java.util.UUID.randomUUID().toString()
+                _uiState.update { state ->
+                    state.copy(
+                        messages = state.messages + ChatMessageItem(
+                            id = tempId, type = MessageType.USER,
+                            content = text, timestamp = System.currentTimeMillis()
+                        ),
+                        pendingCount = state.pendingCount + 1
+                    )
+                }
+                pendingMessages.trySend(text)
+            }
+            return
+        }
+
+        // Use the normal sendMessage path by setting input text then calling sendMessage
+        _uiState.update { it.copy(inputText = text) }
+        sendMessage()
     }
 
     fun sendMessage() {
         val text = _uiState.value.inputText.trim()
-        if (text.isBlank() || _uiState.value.isStreaming) return
+        if (text.isBlank()) return
+        _uiState.update { it.copy(inputText = "") }
 
+        if (_uiState.value.isStreaming) {
+            // Queue path: save to DB immediately, signal the running loop
+            viewModelScope.launch {
+                val sessionId = _uiState.value.sessionId ?: return@launch
+                messageRepository.addMessage(Message(
+                    id = "", sessionId = sessionId, type = MessageType.USER,
+                    content = text, thinkingContent = null,
+                    toolCallId = null, toolName = null, toolInput = null, toolOutput = null,
+                    toolStatus = null, toolDurationMs = null, tokenCountInput = null,
+                    tokenCountOutput = null, modelId = null, providerId = null, createdAt = 0
+                ))
+                val tempId = java.util.UUID.randomUUID().toString()
+                _uiState.update { state ->
+                    state.copy(
+                        messages = state.messages + ChatMessageItem(
+                            id = tempId, type = MessageType.USER,
+                            content = text, timestamp = System.currentTimeMillis()
+                        ),
+                        pendingCount = state.pendingCount + 1
+                    )
+                }
+                pendingMessages.trySend(text)
+            }
+            return
+        }
+
+        // Non-streaming path: start a new loop (existing logic)
         viewModelScope.launch {
-            _uiState.update { it.copy(inputText = "") }
-
             // Lazy session creation
             var sessionId = _uiState.value.sessionId
             if (sessionId == null) {
@@ -137,8 +294,7 @@ class ChatViewModel(
                     isStreaming = true,
                     streamingText = "",
                     streamingThinkingText = "",
-                    activeToolCalls = emptyList(),
-                    canSend = false
+                    activeToolCalls = emptyList()
                 )
             }
 
@@ -151,7 +307,8 @@ class ChatViewModel(
                     sendMessageUseCase.execute(
                         sessionId = finalSessionId,
                         userText = text,
-                        agentId = _uiState.value.currentAgentId
+                        agentId = _uiState.value.currentAgentId,
+                        pendingMessages = pendingMessages
                     ).collect { event ->
                         handleChatEvent(event, finalSessionId, accumulatedText, accumulatedThinking) { newText, newThinking ->
                             accumulatedText = newText
@@ -226,9 +383,28 @@ class ChatViewModel(
             }
             is ChatEvent.ResponseComplete -> {
                 finishStreaming(sessionId)
+                // RFC-008: Notify if app is in background
+                if (!appLifecycleObserver.isInForeground) {
+                    val preview = event.message.content
+                    notificationHelper.sendTaskCompletedNotification(sessionId, preview)
+                }
+            }
+            is ChatEvent.CompactStarted -> {
+                _uiState.update { it.copy(isCompacting = true) }
+            }
+            is ChatEvent.CompactCompleted -> {
+                _uiState.update { it.copy(isCompacting = false) }
+                // No Snackbar needed on success; fallback (didCompact=false) is silent
+            }
+            is ChatEvent.UserMessageInjected -> {
+                _uiState.update { it.copy(pendingCount = maxOf(0, it.pendingCount - 1)) }
             }
             is ChatEvent.Error -> {
                 handleError(sessionId, event)
+                // RFC-008: Notify if app is in background
+                if (!appLifecycleObserver.isInForeground) {
+                    notificationHelper.sendTaskFailedNotification(sessionId, event.message)
+                }
             }
         }
     }
@@ -259,7 +435,7 @@ class ChatViewModel(
         _uiState.update {
             it.copy(
                 isStreaming = true, streamingText = "", streamingThinkingText = "",
-                activeToolCalls = emptyList(), canSend = false
+                activeToolCalls = emptyList()
             )
         }
         streamingJob = viewModelScope.launch {
@@ -268,7 +444,8 @@ class ChatViewModel(
             try {
                 sendMessageUseCase.execute(
                     sessionId = sessionId, userText = userText,
-                    agentId = _uiState.value.currentAgentId
+                    agentId = _uiState.value.currentAgentId,
+                    pendingMessages = pendingMessages
                 ).collect { event ->
                     handleChatEvent(event, sessionId, accumulatedText, accumulatedThinking) { newText, newThinking ->
                         accumulatedText = newText
@@ -340,10 +517,29 @@ class ChatViewModel(
     }
 
     private suspend fun finishStreaming(sessionId: String) {
+        // Handle queued messages that won't be processed (Stop was pressed)
+        val abandonedTexts = mutableListOf<String>()
+        while (true) {
+            val text = pendingMessages.tryReceive().getOrNull() ?: break
+            abandonedTexts.add(text)
+        }
+        if (abandonedTexts.isNotEmpty()) {
+            messageRepository.addMessage(Message(
+                id = "", sessionId = sessionId, type = MessageType.SYSTEM,
+                content = "The user interrupted the previous response. " +
+                    "The preceding queued message(s) were submitted before the interruption " +
+                    "and can be ignored. Please respond to the user's next message.",
+                thinkingContent = null,
+                toolCallId = null, toolName = null, toolInput = null, toolOutput = null,
+                toolStatus = null, toolDurationMs = null, tokenCountInput = null,
+                tokenCountOutput = null, modelId = null, providerId = null, createdAt = 0
+            ))
+        }
+
         _uiState.update {
             it.copy(
                 isStreaming = false, streamingText = "", streamingThinkingText = "",
-                activeToolCalls = emptyList(), canSend = true
+                activeToolCalls = emptyList(), pendingCount = 0
             )
         }
         // Reload messages from DB
@@ -383,7 +579,7 @@ class ChatViewModel(
         _uiState.update {
             it.copy(
                 isStreaming = false, streamingText = "", streamingThinkingText = "",
-                activeToolCalls = emptyList(), canSend = true
+                activeToolCalls = emptyList(), pendingCount = 0
             )
         }
         val messages = messageRepository.getMessagesSnapshot(sessionId)
@@ -405,5 +601,7 @@ fun Message.toChatMessageItem(): ChatMessageItem = ChatMessageItem(
     id = id, type = type, content = content, thinkingContent = thinkingContent,
     toolCallId = toolCallId, toolName = toolName, toolInput = toolInput, toolOutput = toolOutput,
     toolStatus = toolStatus, toolDurationMs = toolDurationMs, modelId = modelId,
+    tokenCountInput = tokenCountInput,
+    tokenCountOutput = tokenCountOutput,
     isRetryable = type == MessageType.ERROR, timestamp = createdAt
 )

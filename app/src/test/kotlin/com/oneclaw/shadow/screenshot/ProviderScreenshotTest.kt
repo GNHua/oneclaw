@@ -1,17 +1,26 @@
 package com.oneclaw.shadow.screenshot
 
 import android.app.Application
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.oneclaw.shadow.core.model.ProviderType
+import com.oneclaw.shadow.core.repository.SettingsRepository
+import com.oneclaw.shadow.core.theme.ThemeManager
 import com.oneclaw.shadow.feature.provider.ConnectionStatus
 import com.oneclaw.shadow.feature.provider.ProviderListItem
 import com.oneclaw.shadow.feature.provider.ProviderListScreenContent
 import com.oneclaw.shadow.feature.provider.ProviderListUiState
 import com.oneclaw.shadow.feature.provider.SettingsScreen
 import com.oneclaw.shadow.ui.theme.OneClawShadowTheme
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,6 +35,21 @@ class ProviderScreenshotTest {
 
     @get:Rule
     val composeRule = createComposeRule()
+
+    private lateinit var themeManager: ThemeManager
+
+    @Before
+    fun setUp() {
+        mockkStatic(AppCompatDelegate::class)
+        every { AppCompatDelegate.setDefaultNightMode(any()) } returns Unit
+        val settingsRepository = mockk<SettingsRepository>()
+        themeManager = ThemeManager(settingsRepository)
+    }
+
+    @After
+    fun tearDown() {
+        unmockkStatic(AppCompatDelegate::class)
+    }
 
     private fun themed(content: @Composable () -> Unit) {
         composeRule.setContent {
@@ -42,7 +66,8 @@ class ProviderScreenshotTest {
         themed {
             SettingsScreen(
                 onNavigateBack = {},
-                onManageProviders = {}
+                onManageProviders = {},
+                themeManager = themeManager
             )
         }
         composeRule.onRoot()

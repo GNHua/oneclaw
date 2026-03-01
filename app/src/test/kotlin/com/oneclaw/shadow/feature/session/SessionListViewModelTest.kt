@@ -6,6 +6,7 @@ import com.oneclaw.shadow.core.repository.AgentRepository
 import com.oneclaw.shadow.core.repository.SessionRepository
 import com.oneclaw.shadow.core.util.AppResult
 import com.oneclaw.shadow.core.util.ErrorCode
+import com.oneclaw.shadow.data.local.dao.MessageDao
 import com.oneclaw.shadow.feature.session.usecase.BatchDeleteSessionsUseCase
 import com.oneclaw.shadow.feature.session.usecase.DeleteSessionUseCase
 import com.oneclaw.shadow.feature.session.usecase.RenameSessionUseCase
@@ -33,6 +34,7 @@ class SessionListViewModelTest {
     private lateinit var deleteSessionUseCase: DeleteSessionUseCase
     private lateinit var batchDeleteSessionsUseCase: BatchDeleteSessionsUseCase
     private lateinit var renameSessionUseCase: RenameSessionUseCase
+    private lateinit var messageDao: MessageDao
     private lateinit var viewModel: SessionListViewModel
 
     private val now = 1_000_000L
@@ -69,8 +71,10 @@ class SessionListViewModelTest {
         deleteSessionUseCase = mockk()
         batchDeleteSessionsUseCase = mockk()
         renameSessionUseCase = mockk()
+        messageDao = mockk()
 
         every { agentRepository.getAllAgents() } returns flowOf(listOf(agent))
+        coEvery { messageDao.getTotalTokensForSession(any()) } returns 0L
     }
 
     private fun createViewModel(): SessionListViewModel {
@@ -79,7 +83,8 @@ class SessionListViewModelTest {
             agentRepository,
             deleteSessionUseCase,
             batchDeleteSessionsUseCase,
-            renameSessionUseCase
+            renameSessionUseCase,
+            messageDao
         )
     }
 

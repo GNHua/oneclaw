@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.oneclaw.shadow.core.util.abbreviateNumber
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -306,6 +307,14 @@ fun SessionListItemRow(
                             text = item.agentName,
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    if (item.totalTokens > 0) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "${abbreviateNumber(item.totalTokens)} tokens",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

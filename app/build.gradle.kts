@@ -49,6 +49,18 @@ android {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
 
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/INDEX.LIST",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE.txt",
+                "META-INF/*.kotlin_module"
+            )
+        }
+    }
+
     @Suppress("UnstableApiUsage")
     testOptions {
         unitTests.all {
@@ -72,6 +84,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.process)
 
     // Compose
     implementation(platform(libs.compose.bom))
@@ -109,11 +122,22 @@ dependencies {
     // Security
     implementation(libs.security.crypto)
 
+    // WorkManager
+    implementation(libs.work.runtime.ktx)
+
+    // Google Sign-In & Drive API
+    implementation(libs.play.services.auth)
+    implementation(libs.google.api.client.android)
+    implementation(libs.google.api.services.drive)
+
     // Image loading
     implementation(libs.coil.compose)
 
     // Markdown
     implementation(libs.compose.markdown)
+
+    // QuickJS JavaScript Engine
+    implementation(libs.quickjs.android)
 
     // Testing
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")

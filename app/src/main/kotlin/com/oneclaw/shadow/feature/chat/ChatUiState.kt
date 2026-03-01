@@ -2,6 +2,7 @@ package com.oneclaw.shadow.feature.chat
 
 import com.oneclaw.shadow.core.model.AgentConstants
 import com.oneclaw.shadow.core.model.MessageType
+import com.oneclaw.shadow.core.model.SkillDefinition
 import com.oneclaw.shadow.core.model.ToolCallStatus
 
 data class ChatUiState(
@@ -19,7 +20,7 @@ data class ChatUiState(
     val activeToolCalls: List<ActiveToolCall> = emptyList(),
 
     val inputText: String = "",
-    val canSend: Boolean = true,
+    val pendingCount: Int = 0,
 
     val shouldAutoScroll: Boolean = true,
 
@@ -27,7 +28,29 @@ data class ChatUiState(
 
     val errorMessage: String? = null,
 
-    val hasConfiguredProvider: Boolean = false
+    val hasConfiguredProvider: Boolean = false,
+    val isCompacting: Boolean = false,
+    val compactSnackbarMessage: String? = null,
+
+    // RFC-014: Slash command autocomplete state
+    val slashCommandState: SlashCommandState = SlashCommandState(),
+
+    // RFC-014: Skill selection bottom sheet
+    val showSkillSheet: Boolean = false,
+
+    // RFC-014: All available skills (for skill sheet)
+    val allSkills: List<SkillDefinition> = emptyList()
+)
+
+/**
+ * State for the slash command autocomplete popup.
+ * Active when user types "/" as first character in chat input.
+ * RFC-014
+ */
+data class SlashCommandState(
+    val isActive: Boolean = false,
+    val query: String = "",
+    val matchingSkills: List<SkillDefinition> = emptyList()
 )
 
 data class ChatMessageItem(
@@ -42,6 +65,8 @@ data class ChatMessageItem(
     val toolStatus: ToolCallStatus? = null,
     val toolDurationMs: Long? = null,
     val modelId: String? = null,
+    val tokenCountInput: Int? = null,
+    val tokenCountOutput: Int? = null,
     val isRetryable: Boolean = false,
     val timestamp: Long = 0
 )

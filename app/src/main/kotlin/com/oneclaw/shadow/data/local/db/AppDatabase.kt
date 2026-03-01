@@ -8,12 +8,14 @@ import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.oneclaw.shadow.core.model.AgentConstants
 import com.oneclaw.shadow.data.local.dao.AgentDao
+import com.oneclaw.shadow.data.local.dao.MemoryIndexDao
 import com.oneclaw.shadow.data.local.dao.MessageDao
 import com.oneclaw.shadow.data.local.dao.ModelDao
 import com.oneclaw.shadow.data.local.dao.ProviderDao
 import com.oneclaw.shadow.data.local.dao.SessionDao
 import com.oneclaw.shadow.data.local.dao.SettingsDao
 import com.oneclaw.shadow.data.local.entity.AgentEntity
+import com.oneclaw.shadow.data.local.entity.MemoryIndexEntity
 import com.oneclaw.shadow.data.local.entity.MessageEntity
 import com.oneclaw.shadow.data.local.entity.ModelEntity
 import com.oneclaw.shadow.data.local.entity.ProviderEntity
@@ -30,9 +32,10 @@ import java.util.concurrent.Executors
         ModelEntity::class,
         SessionEntity::class,
         MessageEntity::class,
-        SettingsEntity::class
+        SettingsEntity::class,
+        MemoryIndexEntity::class
     ],
-    version = 1,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -43,6 +46,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun messageDao(): MessageDao
     abstract fun settingsDao(): SettingsDao
+    abstract fun memoryIndexDao(): MemoryIndexDao
 
     companion object {
         fun createSeedCallback(): Callback {
@@ -66,19 +70,19 @@ abstract class AppDatabase : RoomDatabase() {
                            VALUES ('provider-gemini', 'Google Gemini', 'GEMINI', 'https://generativelanguage.googleapis.com/v1beta', 1, 1, $now, $now)"""
                     )
 
-                    // Seed preset models
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gpt-4o', 'GPT-4o', 'provider-openai', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gpt-4o-mini', 'GPT-4o Mini', 'provider-openai', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('o1', 'o1', 'provider-openai', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('o3-mini', 'o3 Mini', 'provider-openai', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('claude-opus-4-5-20251101', 'Claude Opus 4.5', 'provider-anthropic', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('claude-sonnet-4-5-20250929', 'Claude Sonnet 4.5', 'provider-anthropic', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('claude-haiku-4-5-20251001', 'Claude Haiku 4.5', 'provider-anthropic', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gemini-2.0-flash', 'Gemini 2.0 Flash', 'provider-gemini', 0, 'PRESET')")
-                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source) VALUES ('gemini-2.5-pro', 'Gemini 2.5 Pro', 'provider-gemini', 0, 'PRESET')")
+                    // Seed preset models (include context_window_size for fresh installs at schema v2)
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('gpt-4o', 'GPT-4o', 'provider-openai', 0, 'PRESET', 128000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('gpt-4o-mini', 'GPT-4o Mini', 'provider-openai', 0, 'PRESET', 128000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('o1', 'o1', 'provider-openai', 0, 'PRESET', 200000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('o3-mini', 'o3 Mini', 'provider-openai', 0, 'PRESET', 200000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('claude-opus-4-5-20251101', 'Claude Opus 4.5', 'provider-anthropic', 0, 'PRESET', 200000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('claude-sonnet-4-5-20250929', 'Claude Sonnet 4.5', 'provider-anthropic', 0, 'PRESET', 200000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('claude-haiku-4-5-20251001', 'Claude Haiku 4.5', 'provider-anthropic', 0, 'PRESET', 200000)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('gemini-2.0-flash', 'Gemini 2.0 Flash', 'provider-gemini', 0, 'PRESET', 1048576)")
+                    db.execSQL("INSERT INTO models (id, display_name, provider_id, is_default, source, context_window_size) VALUES ('gemini-2.5-pro', 'Gemini 2.5 Pro', 'provider-gemini', 0, 'PRESET', 1048576)")
 
                     // Seed built-in General Assistant agent
-                    val toolIds = json.encodeToString(listOf("get_current_time", "read_file", "write_file", "http_request"))
+                    val toolIds = json.encodeToString(listOf("get_current_time", "read_file", "write_file", "http_request", "load_skill"))
                     val systemPrompt = AgentConstants.GENERAL_ASSISTANT_SYSTEM_PROMPT.replace("'", "''")
                     db.execSQL(
                         """INSERT INTO agents (id, name, description, system_prompt, tool_ids, preferred_provider_id, preferred_model_id, is_built_in, created_at, updated_at)

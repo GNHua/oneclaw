@@ -17,7 +17,8 @@ data class SessionListItem(
     val lastMessagePreview: String?,
     val relativeTime: String,
     val isActive: Boolean,
-    val isSelected: Boolean
+    val isSelected: Boolean,
+    val totalTokens: Long = 0
 )
 
 data class UndoState(

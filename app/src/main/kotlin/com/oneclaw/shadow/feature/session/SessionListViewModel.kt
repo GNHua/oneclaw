@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.oneclaw.shadow.core.repository.AgentRepository
 import com.oneclaw.shadow.core.repository.SessionRepository
 import com.oneclaw.shadow.core.util.AppResult
+import com.oneclaw.shadow.data.local.dao.MessageDao
 import com.oneclaw.shadow.feature.session.usecase.BatchDeleteSessionsUseCase
 import com.oneclaw.shadow.feature.session.usecase.DeleteSessionUseCase
 import com.oneclaw.shadow.feature.session.usecase.RenameSessionUseCase
@@ -24,7 +25,8 @@ class SessionListViewModel(
     private val agentRepository: AgentRepository,
     private val deleteSessionUseCase: DeleteSessionUseCase,
     private val batchDeleteSessionsUseCase: BatchDeleteSessionsUseCase,
-    private val renameSessionUseCase: RenameSessionUseCase
+    private val renameSessionUseCase: RenameSessionUseCase,
+    private val messageDao: MessageDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SessionListUiState())
@@ -60,6 +62,7 @@ class SessionListViewModel(
             sessionRepository.getAllSessions().collect { sessions ->
                 val selected = _uiState.value.selectedSessionIds
                 val items = sessions.map { session ->
+                    val totalTokens = messageDao.getTotalTokensForSession(session.id)
                     SessionListItem(
                         id = session.id,
                         title = session.title,
@@ -67,7 +70,8 @@ class SessionListViewModel(
                         lastMessagePreview = session.lastMessagePreview,
                         relativeTime = formatRelativeTime(session.updatedAt),
                         isActive = session.isActive,
-                        isSelected = session.id in selected
+                        isSelected = session.id in selected,
+                        totalTokens = totalTokens
                     )
                 }
                 _uiState.update { it.copy(sessions = items, isLoading = false) }

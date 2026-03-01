@@ -34,7 +34,8 @@ fun ModelEntity.toDomain(): AiModel = AiModel(
     displayName = displayName,
     providerId = providerId,
     isDefault = isDefault,
-    source = ModelSource.valueOf(source)
+    source = ModelSource.valueOf(source),
+    contextWindowSize = contextWindowSize
 )
 
 fun AiModel.toEntity(): ModelEntity = ModelEntity(
@@ -42,5 +43,6 @@ fun AiModel.toEntity(): ModelEntity = ModelEntity(
     displayName = displayName,
     providerId = providerId,
     isDefault = isDefault,
-    source = source.name
+    source = source.name,
+    contextWindowSize = contextWindowSize
 )

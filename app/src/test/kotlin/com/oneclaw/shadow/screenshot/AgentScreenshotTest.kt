@@ -176,7 +176,7 @@ class AgentScreenshotTest {
                 onSend = {},
                 onStop = {},
                 isStreaming = false,
-                canSend = false
+                hasConfiguredProvider = false
             )
         }
         composeRule.onRoot()
@@ -192,7 +192,7 @@ class AgentScreenshotTest {
                 onSend = {},
                 onStop = {},
                 isStreaming = false,
-                canSend = true
+                hasConfiguredProvider = true
             )
         }
         composeRule.onRoot()

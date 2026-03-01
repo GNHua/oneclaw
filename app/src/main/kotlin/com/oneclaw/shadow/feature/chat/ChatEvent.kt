@@ -13,4 +13,7 @@ sealed class ChatEvent {
     data class ResponseComplete(val message: com.oneclaw.shadow.core.model.Message, val usage: TokenUsage?) : ChatEvent()
     data class TokenUsage(val inputTokens: Int, val outputTokens: Int)
     data class Error(val message: String, val errorCode: ErrorCode, val isRetryable: Boolean) : ChatEvent()
+    data object CompactStarted : ChatEvent()
+    data class CompactCompleted(val didCompact: Boolean) : ChatEvent()
+    data class UserMessageInjected(val text: String) : ChatEvent()
 }

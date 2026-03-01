@@ -424,7 +424,7 @@ fun ChatInput(
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(34.dp),
                             strokeWidth = 2.dp,
                             color = MaterialTheme.colorScheme.error
                         )

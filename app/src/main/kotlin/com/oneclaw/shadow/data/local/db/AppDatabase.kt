@@ -15,6 +15,7 @@ import com.oneclaw.shadow.data.local.dao.ProviderDao
 import com.oneclaw.shadow.data.local.dao.ScheduledTaskDao
 import com.oneclaw.shadow.data.local.dao.SessionDao
 import com.oneclaw.shadow.data.local.dao.SettingsDao
+import com.oneclaw.shadow.data.local.dao.TaskExecutionRecordDao
 import com.oneclaw.shadow.data.local.entity.AgentEntity
 import com.oneclaw.shadow.data.local.entity.MemoryIndexEntity
 import com.oneclaw.shadow.data.local.entity.MessageEntity
@@ -23,6 +24,7 @@ import com.oneclaw.shadow.data.local.entity.ProviderEntity
 import com.oneclaw.shadow.data.local.entity.ScheduledTaskEntity
 import com.oneclaw.shadow.data.local.entity.SessionEntity
 import com.oneclaw.shadow.data.local.entity.SettingsEntity
+import com.oneclaw.shadow.data.local.entity.TaskExecutionRecordEntity
 import java.util.concurrent.Executors
 
 @Database(
@@ -34,9 +36,10 @@ import java.util.concurrent.Executors
         MessageEntity::class,
         SettingsEntity::class,
         MemoryIndexEntity::class,
-        ScheduledTaskEntity::class
+        ScheduledTaskEntity::class,
+        TaskExecutionRecordEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -49,6 +52,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao
     abstract fun memoryIndexDao(): MemoryIndexDao
     abstract fun scheduledTaskDao(): ScheduledTaskDao
+    abstract fun taskExecutionRecordDao(): TaskExecutionRecordDao
 
     companion object {
         fun createSeedCallback(): Callback {

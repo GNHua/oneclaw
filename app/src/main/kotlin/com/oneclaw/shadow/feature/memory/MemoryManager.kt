@@ -51,6 +51,29 @@ class MemoryManager(
     }
 
     /**
+     * Save content directly to long-term memory (MEMORY.md).
+     * Called by SaveMemoryTool when the AI proactively saves information.
+     * Content is appended and indexed for search.
+     */
+    suspend fun saveToLongTermMemory(content: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            // 1. Append to MEMORY.md
+            longTermMemoryManager.appendMemory(content)
+
+            // 2. Index the new content for search (failure is non-fatal -- content is already saved)
+            try {
+                indexContent(content, "long_term", null)
+            } catch (_: Exception) {
+                // Silently ignore indexing failures
+            }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Rebuild the entire search index from files.
      * Used when the index is corrupted or after manual edits.
      */

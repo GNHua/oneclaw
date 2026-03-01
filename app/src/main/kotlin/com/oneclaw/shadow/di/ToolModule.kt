@@ -10,6 +10,7 @@ import com.oneclaw.shadow.tool.builtin.BrowserTool
 import com.oneclaw.shadow.tool.builtin.CreateAgentTool
 import com.oneclaw.shadow.tool.builtin.CreateScheduledTaskTool
 import com.oneclaw.shadow.tool.builtin.LoadSkillTool
+import com.oneclaw.shadow.tool.builtin.SaveMemoryTool
 import com.oneclaw.shadow.tool.builtin.WebfetchTool
 import com.oneclaw.shadow.tool.engine.PermissionChecker
 import com.oneclaw.shadow.tool.engine.ToolEnabledStateStore
@@ -52,6 +53,9 @@ val toolModule = module {
     // RFC-021: webfetch built-in tool (replaces JS webfetch)
     single { WebfetchTool(get()) }
 
+    // RFC-023: save_memory built-in tool
+    single { SaveMemoryTool(get()) }
+
     // RFC-022: Browser tool components
     single { BrowserScreenshotCapture() }
     single { BrowserContentExtractor(androidContext()) }
@@ -92,6 +96,12 @@ val toolModule = module {
                 register(get<BrowserTool>(), ToolSourceInfo.BUILTIN)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register browser: ${e.message}")
+            }
+
+            try {
+                register(get<SaveMemoryTool>(), ToolSourceInfo.BUILTIN)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register save_memory: ${e.message}")
             }
 
             // Built-in JS tools from assets (replaces Kotlin tool registration)

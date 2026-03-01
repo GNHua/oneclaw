@@ -55,6 +55,16 @@ class MemoryTriggerManager(
     }
 
     /**
+     * Called when the date changes while the app is active.
+     * Resolves the active session internally, same pattern as onAppBackground().
+     */
+    fun onDayChangeForActiveSession() {
+        scope.launch {
+            flushActiveSession()
+        }
+    }
+
+    /**
      * Called before FEAT-011 Auto Compact compresses message history.
      * This is the pre-compaction flush integration point.
      */

@@ -27,6 +27,7 @@ import com.oneclaw.shadow.feature.session.usecase.CreateSessionUseCase
 import com.oneclaw.shadow.feature.session.usecase.DeleteSessionUseCase
 import com.oneclaw.shadow.feature.session.usecase.GenerateTitleUseCase
 import com.oneclaw.shadow.feature.session.usecase.RenameSessionUseCase
+import com.oneclaw.shadow.feature.memory.trigger.MemoryTriggerManager
 import com.oneclaw.shadow.feature.memory.ui.MemoryViewModel
 import com.oneclaw.shadow.feature.settings.JsToolsViewModel
 import com.oneclaw.shadow.feature.settings.SyncSettingsViewModel
@@ -115,7 +116,7 @@ val featureModule = module {
     // RFC-013: Memory ViewModel
     viewModelOf(::MemoryViewModel)
 
-    // RFC-001 + RFC-014: Chat feature view model (with skill registry)
+    // RFC-001 + RFC-014 + RFC-023: Chat feature view model (with skill registry and memory trigger)
     viewModel {
         ChatViewModel(
             sendMessageUseCase = get(),
@@ -127,7 +128,8 @@ val featureModule = module {
             generateTitleUseCase = get(),
             appLifecycleObserver = get(),
             notificationHelper = get(),
-            skillRegistry = get()
+            skillRegistry = get(),
+            memoryTriggerManager = get()
         )
     }
 

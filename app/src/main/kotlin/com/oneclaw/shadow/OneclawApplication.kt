@@ -65,11 +65,17 @@ class OneclawApplication : Application() {
             get<ThemeManager>(ThemeManager::class.java).initialize()
         }
 
-        // RFC-013: Register memory trigger for app background event
+        // RFC-013 + RFC-023: Register memory triggers for app lifecycle events
         val memoryTriggerManager = get<MemoryTriggerManager>(MemoryTriggerManager::class.java)
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) {
+                    // RFC-023: Day-change detection
+                    checkDayChange(memoryTriggerManager)
+                }
+
                 override fun onStop(owner: LifecycleOwner) {
+                    // RFC-013: Flush on background
                     memoryTriggerManager.onAppBackground()
                 }
             }
@@ -91,5 +97,19 @@ class OneclawApplication : Application() {
             ExistingPeriodicWorkPolicy.KEEP,
             syncRequest
         )
+    }
+
+    private fun checkDayChange(memoryTriggerManager: MemoryTriggerManager) {
+        val prefs = getSharedPreferences("memory_trigger_prefs", MODE_PRIVATE)
+        val today = java.time.LocalDate.now().toString()  // "YYYY-MM-DD"
+        val lastDate = prefs.getString("last_active_date", null)
+
+        if (lastDate != null && lastDate != today) {
+            // Day has changed since last foreground -- flush active session
+            memoryTriggerManager.onDayChangeForActiveSession()
+        }
+
+        // Always update the stored date
+        prefs.edit().putString("last_active_date", today).apply()
     }
 }

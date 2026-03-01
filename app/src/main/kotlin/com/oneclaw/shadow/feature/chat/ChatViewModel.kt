@@ -17,6 +17,7 @@ import com.oneclaw.shadow.core.repository.SessionRepository
 import com.oneclaw.shadow.feature.chat.usecase.SendMessageUseCase
 import com.oneclaw.shadow.feature.session.usecase.CreateSessionUseCase
 import com.oneclaw.shadow.feature.session.usecase.GenerateTitleUseCase
+import com.oneclaw.shadow.feature.memory.trigger.MemoryTriggerManager
 import com.oneclaw.shadow.tool.skill.SkillRegistry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -39,7 +40,8 @@ class ChatViewModel(
     private val generateTitleUseCase: GenerateTitleUseCase,
     private val appLifecycleObserver: AppLifecycleObserver,
     private val notificationHelper: NotificationHelper,
-    private val skillRegistry: SkillRegistry? = null
+    private val skillRegistry: SkillRegistry? = null,
+    private val memoryTriggerManager: MemoryTriggerManager? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -65,6 +67,12 @@ class ChatViewModel(
     }
 
     fun initialize(sessionId: String?) {
+        // RFC-023: Trigger session switch before loading new session
+        val previousSessionId = _uiState.value.sessionId
+        if (previousSessionId != null && sessionId != null && previousSessionId != sessionId) {
+            memoryTriggerManager?.onSessionSwitch(previousSessionId)
+        }
+
         loadSessionJob?.cancel()
         loadSessionJob = null
         if (sessionId != null) {

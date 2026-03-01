@@ -15,11 +15,15 @@ import com.oneclaw.shadow.tool.builtin.ExecTool
 import com.oneclaw.shadow.tool.builtin.JsEvalTool
 import com.oneclaw.shadow.tool.builtin.ListScheduledTasksTool
 import com.oneclaw.shadow.tool.builtin.LoadSkillTool
+import com.oneclaw.shadow.tool.builtin.PdfExtractTextTool
+import com.oneclaw.shadow.tool.builtin.PdfInfoTool
+import com.oneclaw.shadow.tool.builtin.PdfRenderPageTool
 import com.oneclaw.shadow.tool.builtin.RunScheduledTaskTool
 import com.oneclaw.shadow.tool.builtin.SaveMemoryTool
 import com.oneclaw.shadow.tool.builtin.SearchHistoryTool
 import com.oneclaw.shadow.tool.builtin.UpdateScheduledTaskTool
 import com.oneclaw.shadow.tool.builtin.WebfetchTool
+import com.oneclaw.shadow.tool.util.PdfToolUtils
 import com.oneclaw.shadow.tool.engine.PermissionChecker
 import com.oneclaw.shadow.tool.engine.ToolEnabledStateStore
 import com.oneclaw.shadow.tool.engine.ToolExecutionEngine
@@ -85,6 +89,14 @@ val toolModule = module {
     // RFC-032: search_history built-in tool
     single { SearchHistoryUseCase(get(), get(), get()) }
     single { SearchHistoryTool(get()) }
+
+    // RFC-033: PDF tools
+    single {
+        PdfToolUtils.initPdfBox(androidContext())
+        PdfInfoTool(androidContext())
+    }
+    single { PdfExtractTextTool(androidContext()) }
+    single { PdfRenderPageTool(androidContext()) }
 
     // RFC-017: Tool enabled state store
     single { ToolEnabledStateStore(androidContext()) }
@@ -168,6 +180,23 @@ val toolModule = module {
                 register(get<SearchHistoryTool>(), ToolSourceInfo.BUILTIN)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register search_history: ${e.message}")
+            }
+
+            // RFC-033: PDF tools
+            try {
+                register(get<PdfInfoTool>(), ToolSourceInfo.BUILTIN)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register pdf_info: ${e.message}")
+            }
+            try {
+                register(get<PdfExtractTextTool>(), ToolSourceInfo.BUILTIN)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register pdf_extract_text: ${e.message}")
+            }
+            try {
+                register(get<PdfRenderPageTool>(), ToolSourceInfo.BUILTIN)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register pdf_render_page: ${e.message}")
             }
 
             // Built-in JS tools from assets (replaces Kotlin tool registration)

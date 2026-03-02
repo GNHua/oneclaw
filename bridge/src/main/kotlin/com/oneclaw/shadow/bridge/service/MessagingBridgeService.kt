@@ -408,7 +408,7 @@ class MessagingBridgeService : Service() {
     private fun createNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Messaging Bridge")
-            .setContentText("Bridge is running")
+            .setContentText("Listening for messages")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setOngoing(true)
             .build()

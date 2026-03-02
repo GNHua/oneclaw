@@ -76,7 +76,7 @@ class MessagingBridgeService : Service() {
 
         serviceScope.launch {
             channelMutex.withLock {
-                val conversationMapper = ConversationMapper(preferences, conversationManager)
+                val conversationMapper = ConversationMapper(conversationManager)
                 var startedCount = 0
 
                 if (preferences.isTelegramEnabled()) {
@@ -230,7 +230,7 @@ class MessagingBridgeService : Service() {
             }
             // Re-read preferences and start channels with updated config
             channelMutex.withLock {
-                val conversationMapper = ConversationMapper(preferences, conversationManager)
+                val conversationMapper = ConversationMapper(conversationManager)
                 var startedCount = 0
 
                 if (preferences.isTelegramEnabled()) {

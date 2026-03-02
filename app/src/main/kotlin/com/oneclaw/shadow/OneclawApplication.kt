@@ -14,7 +14,9 @@ import com.oneclaw.shadow.data.sync.SyncWorker
 import com.oneclaw.shadow.core.repository.ScheduledTaskRepository
 import com.oneclaw.shadow.feature.schedule.alarm.AlarmScheduler
 import com.oneclaw.shadow.feature.schedule.usecase.CleanupExecutionHistoryUseCase
+import com.oneclaw.shadow.bridge.BridgePreferences
 import com.oneclaw.shadow.bridge.service.BridgeWatchdogWorker
+import com.oneclaw.shadow.bridge.service.MessagingBridgeService
 import com.oneclaw.shadow.di.appModule
 import com.oneclaw.shadow.di.bridgeModule
 import com.oneclaw.shadow.di.databaseModule
@@ -106,6 +108,12 @@ class OneclawApplication : Application() {
             ExistingPeriodicWorkPolicy.KEEP,
             syncRequest
         )
+
+        // RFC-041: Auto-restore bridge service on app start if channels are enabled
+        val bridgePrefs = BridgePreferences(this)
+        if (bridgePrefs.hasAnyChannelEnabled()) {
+            MessagingBridgeService.start(this)
+        }
 
         // RFC-024: Schedule bridge watchdog every 15 minutes
         val watchdogRequest = PeriodicWorkRequestBuilder<BridgeWatchdogWorker>(15, TimeUnit.MINUTES)

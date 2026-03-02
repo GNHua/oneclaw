@@ -45,7 +45,6 @@ class TelegramChannel(
     scope = scope
 ) {
     private val api = TelegramApi(botToken, okHttpClient)
-    private val htmlRenderer = TelegramHtmlRenderer()
     private val imageStorage = BridgeImageStorage(context)
     private var pollingJob: Job? = null
     private var running = false
@@ -131,10 +130,22 @@ class TelegramChannel(
     override fun isRunning(): Boolean = running && pollingJob?.isActive == true
 
     override suspend fun sendResponse(externalChatId: String, message: BridgeMessage) {
-        val htmlText = htmlRenderer.render(message.content)
-        val parts = htmlRenderer.splitForTelegram(htmlText)
-        parts.forEach { part ->
-            api.sendMessage(chatId = externalChatId, text = part, parseMode = "HTML")
+        val htmlText = try {
+            TelegramHtmlRenderer.render(message.content)
+        } catch (e: Exception) {
+            Log.w(TAG, "HTML rendering failed, falling back to plain text", e)
+            null
+        }
+        if (htmlText != null) {
+            val parts = TelegramHtmlRenderer.splitForTelegram(htmlText)
+            parts.forEach { part ->
+                api.sendMessage(chatId = externalChatId, text = part, parseMode = "HTML")
+            }
+        } else {
+            val parts = TelegramHtmlRenderer.splitForTelegram(message.content)
+            parts.forEach { part ->
+                api.sendMessage(chatId = externalChatId, text = part, parseMode = null)
+            }
         }
     }
 

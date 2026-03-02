@@ -45,13 +45,13 @@ class TelegramApi(
             }
         }
 
-    suspend fun sendMessage(chatId: String, text: String, parseMode: String = "HTML"): Boolean =
+    suspend fun sendMessage(chatId: String, text: String, parseMode: String? = "HTML"): Boolean =
         withContext(Dispatchers.IO) {
             try {
                 val body = buildJsonObject {
                     put("chat_id", chatId)
                     put("text", text)
-                    put("parse_mode", parseMode)
+                    if (parseMode != null) put("parse_mode", parseMode)
                 }
                 val request = Request.Builder()
                     .url("$baseUrl/sendMessage")

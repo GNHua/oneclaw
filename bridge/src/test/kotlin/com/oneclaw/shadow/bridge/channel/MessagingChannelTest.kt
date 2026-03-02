@@ -214,7 +214,7 @@ class MessagingChannelTest {
     }
 
     @Test
-    fun `processInboundMessage inserts user message before executing agent`() = runTest {
+    fun `processInboundMessage executes agent with resolved conversation ID`() = runTest {
         val msg = ChannelMessage(
             externalChatId = "chat-123",
             senderName = "User",
@@ -225,7 +225,6 @@ class MessagingChannelTest {
 
         channel.testProcessInboundMessage(msg)
 
-        coVerify { conversationManager.insertUserMessage("test-conv-id", "Test message", any()) }
         coVerify { agentExecutor.executeMessage("test-conv-id", "Test message", any()) }
     }
 

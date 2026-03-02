@@ -1,7 +1,7 @@
 package com.oneclaw.shadow.bridge
 
 interface BridgeConversationManager {
-    fun getActiveConversationId(): String?
+    suspend fun getActiveConversationId(): String?
     suspend fun createNewConversation(): String
     suspend fun createConversation(conversationId: String, title: String)
     suspend fun conversationExists(conversationId: String): Boolean

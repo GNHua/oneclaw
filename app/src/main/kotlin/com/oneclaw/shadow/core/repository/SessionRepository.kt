@@ -23,4 +23,5 @@ interface SessionRepository {
     suspend fun updateCompactedSummary(id: String, summary: String?, boundaryTimestamp: Long?)
     suspend fun updateLastLoggedMessageId(sessionId: String, messageId: String)
     suspend fun getActiveSession(): Session?
+    suspend fun getMostRecentSessionId(): String?
 }

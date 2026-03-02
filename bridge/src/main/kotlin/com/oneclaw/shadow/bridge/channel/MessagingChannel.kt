@@ -73,24 +73,25 @@ abstract class MessagingChannel(
         // 5. Resolve conversation ID
         val conversationId = conversationMapper.resolveConversationId()
 
-        // 6. Execute agent (SendMessageUseCase inserts the user message internally)
-        val beforeTimestamp = System.currentTimeMillis()
-        agentExecutor.executeMessage(
-            conversationId = conversationId,
-            userMessage = msg.text,
-            imagePaths = msg.imagePaths
-        )
-
-        // 8. Launch typing indicator coroutine (every 4s)
-        var typingJob: Job? = null
-        typingJob = scope.launch {
+        // 6. Launch typing indicator coroutine (every 4s) BEFORE agent execution
+        val typingJob = scope.launch {
             while (isActive) {
                 runCatching { sendTypingIndicator(msg.externalChatId) }
                 delay(TYPING_INTERVAL_MS)
             }
         }
 
-        // 9. Await assistant response (300s timeout)
+        // 7. Execute agent concurrently (SendMessageUseCase inserts the user message internally)
+        val beforeTimestamp = System.currentTimeMillis()
+        scope.launch {
+            agentExecutor.executeMessage(
+                conversationId = conversationId,
+                userMessage = msg.text,
+                imagePaths = msg.imagePaths
+            )
+        }
+
+        // 8. Await assistant response (300s timeout)
         val response = try {
             withTimeout(AGENT_RESPONSE_TIMEOUT_MS) {
                 messageObserver.awaitNextAssistantMessage(
@@ -104,8 +105,8 @@ abstract class MessagingChannel(
                 timestamp = System.currentTimeMillis()
             )
         } finally {
-            // 10. Cancel typing
-            typingJob?.cancel()
+            // 9. Cancel typing
+            typingJob.cancel()
         }
 
         // Send response

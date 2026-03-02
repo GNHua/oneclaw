@@ -94,4 +94,8 @@ class SessionRepositoryImpl(
     override suspend fun getActiveSession(): Session? {
         return sessionDao.getActiveSession()?.toDomain()
     }
+
+    override suspend fun getMostRecentSessionId(): String? {
+        return sessionDao.getMostRecentSessionId()
+    }
 }

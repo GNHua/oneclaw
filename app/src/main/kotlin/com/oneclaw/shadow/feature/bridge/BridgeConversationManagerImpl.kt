@@ -15,8 +15,8 @@ class BridgeConversationManagerImpl(
     private val agentRepository: AgentRepository
 ) : BridgeConversationManager {
 
-    override fun getActiveConversationId(): String? {
-        return null
+    override suspend fun getActiveConversationId(): String? {
+        return sessionRepository.getMostRecentSessionId()
     }
 
     override suspend fun createNewConversation(): String {

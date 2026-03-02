@@ -1,56 +1,61 @@
 package com.oneclaw.shadow.bridge.channel.telegram
 
+import org.commonmark.ext.gfm.strikethrough.Strikethrough
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension
+import org.commonmark.node.AbstractVisitor
+import org.commonmark.node.BlockQuote
+import org.commonmark.node.BulletList
+import org.commonmark.node.Code
+import org.commonmark.node.Document
+import org.commonmark.node.Emphasis
+import org.commonmark.node.FencedCodeBlock
+import org.commonmark.node.HardLineBreak
+import org.commonmark.node.Heading
+import org.commonmark.node.Image
+import org.commonmark.node.IndentedCodeBlock
+import org.commonmark.node.Link
+import org.commonmark.node.ListItem
+import org.commonmark.node.OrderedList
+import org.commonmark.node.Paragraph
+import org.commonmark.node.SoftLineBreak
+import org.commonmark.node.StrongEmphasis
+import org.commonmark.node.Text
+import org.commonmark.node.ThematicBreak
 import org.commonmark.parser.Parser
-import org.commonmark.renderer.html.HtmlRenderer
 
-class TelegramHtmlRenderer {
+/**
+ * Converts standard markdown to Telegram HTML using commonmark AST.
+ *
+ * Telegram HTML supports a limited tag set: <b>, <i>, <code>, <pre>,
+ * <a href="">, <s>, <blockquote>. Only &, <, > need escaping in regular text.
+ */
+object TelegramHtmlRenderer {
 
-    private val extensions = listOf(StrikethroughExtension.create())
-    private val parser = Parser.builder().extensions(extensions).build()
+    const val TELEGRAM_MAX_MESSAGE_LENGTH = 4096
+
+    private val parser: Parser = Parser.builder()
+        .extensions(listOf(StrikethroughExtension.create()))
+        .build()
 
     fun render(markdown: String): String {
+        if (markdown.isBlank()) return ""
         val document = parser.parse(markdown)
-        val html = HtmlRenderer.builder().extensions(extensions).build().render(document)
-        return convertToTelegramHtml(html)
+        val visitor = TelegramHtmlVisitor()
+        document.accept(visitor)
+        return visitor.result().trimEnd()
     }
 
-    private fun convertToTelegramHtml(html: String): String {
-        var result = html
-        // Telegram HTML supports: <b>, <i>, <u>, <s>, <code>, <pre>, <a>
-        // Remove unsupported tags but keep content
-        result = result.replace(Regex("<p>(.*?)</p>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            match.groupValues[1] + "\n\n"
+    internal fun escapeHtml(text: String): String {
+        val sb = StringBuilder(text.length)
+        for (c in text) {
+            when (c) {
+                '&' -> sb.append("&amp;")
+                '<' -> sb.append("&lt;")
+                '>' -> sb.append("&gt;")
+                else -> sb.append(c)
+            }
         }
-        result = result.replace(Regex("<h[1-6]>(.*?)</h[1-6]>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            "<b>${match.groupValues[1]}</b>\n\n"
-        }
-        result = result.replace(Regex("<strong>(.*?)</strong>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            "<b>${match.groupValues[1]}</b>"
-        }
-        result = result.replace(Regex("<em>(.*?)</em>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            "<i>${match.groupValues[1]}</i>"
-        }
-        result = result.replace(Regex("<del>(.*?)</del>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            "<s>${match.groupValues[1]}</s>"
-        }
-        result = result.replace(Regex("<ul>(.*?)</ul>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            match.groupValues[1]
-        }
-        result = result.replace(Regex("<ol>(.*?)</ol>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            match.groupValues[1]
-        }
-        result = result.replace(Regex("<li>(.*?)</li>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            "• ${match.groupValues[1]}\n"
-        }
-        result = result.replace(Regex("<blockquote>(.*?)</blockquote>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            "<i>${match.groupValues[1]}</i>"
-        }
-        // Remove any remaining unsupported HTML tags
-        result = result.replace(Regex("<(?!/?(?:b|i|u|s|code|pre|a)[^>]*>)[^>]+>"), "")
-        // Trim trailing whitespace
-        result = result.trim()
-        return result
+        return sb.toString()
     }
 
     fun splitForTelegram(text: String, maxLength: Int = TELEGRAM_MAX_MESSAGE_LENGTH): List<String> {
@@ -88,7 +93,175 @@ class TelegramHtmlRenderer {
         return parts
     }
 
-    companion object {
-        const val TELEGRAM_MAX_MESSAGE_LENGTH = 4096
+    private class TelegramHtmlVisitor : AbstractVisitor() {
+        private val sb = StringBuilder()
+        private var orderedListCounter = 0
+
+        fun result(): String = sb.toString()
+
+        // -- Block nodes --
+
+        override fun visit(document: Document) {
+            visitChildren(document)
+        }
+
+        override fun visit(heading: Heading) {
+            sb.append("<b>")
+            visitChildren(heading)
+            sb.append("</b>")
+            appendBlockSeparator(heading)
+        }
+
+        override fun visit(paragraph: Paragraph) {
+            visitChildren(paragraph)
+            appendBlockSeparator(paragraph)
+        }
+
+        override fun visit(blockQuote: BlockQuote) {
+            sb.append("<blockquote>")
+            val startLen = sb.length
+            visitChildren(blockQuote)
+            // Remove trailing newlines inside blockquote
+            while (sb.length > startLen && sb.last() == '\n') {
+                sb.deleteCharAt(sb.length - 1)
+            }
+            sb.append("</blockquote>")
+            appendBlockSeparator(blockQuote)
+        }
+
+        override fun visit(bulletList: BulletList) {
+            visitChildren(bulletList)
+            if (bulletList.parent is Document || bulletList.parent is BlockQuote) {
+                appendBlockSeparator(bulletList)
+            }
+        }
+
+        override fun visit(orderedList: OrderedList) {
+            val prevCounter = orderedListCounter
+            orderedListCounter = orderedList.markerStartNumber
+            visitChildren(orderedList)
+            orderedListCounter = prevCounter
+            if (orderedList.parent is Document || orderedList.parent is BlockQuote) {
+                appendBlockSeparator(orderedList)
+            }
+        }
+
+        override fun visit(listItem: ListItem) {
+            val parent = listItem.parent
+            if (parent is OrderedList) {
+                sb.append("${orderedListCounter}. ")
+                orderedListCounter++
+            } else {
+                sb.append("\u2022 ")
+            }
+            // Render list item children inline (skip paragraph wrapper)
+            var child = listItem.firstChild
+            while (child != null) {
+                if (child is Paragraph) {
+                    visitChildren(child)
+                } else {
+                    child.accept(this)
+                }
+                child = child.next
+            }
+            sb.append("\n")
+        }
+
+        override fun visit(fencedCodeBlock: FencedCodeBlock) {
+            val lang = fencedCodeBlock.info ?: ""
+            if (lang.isNotEmpty()) {
+                sb.append("<pre><code class=\"language-$lang\">")
+            } else {
+                sb.append("<pre>")
+            }
+            sb.append(escapeHtml(fencedCodeBlock.literal?.trimEnd('\n') ?: ""))
+            if (lang.isNotEmpty()) {
+                sb.append("</code></pre>")
+            } else {
+                sb.append("</pre>")
+            }
+            appendBlockSeparator(fencedCodeBlock)
+        }
+
+        override fun visit(indentedCodeBlock: IndentedCodeBlock) {
+            sb.append("<pre>")
+            sb.append(escapeHtml(indentedCodeBlock.literal?.trimEnd('\n') ?: ""))
+            sb.append("</pre>")
+            appendBlockSeparator(indentedCodeBlock)
+        }
+
+        override fun visit(thematicBreak: ThematicBreak) {
+            sb.append("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500")
+            appendBlockSeparator(thematicBreak)
+        }
+
+        override fun visit(hardLineBreak: HardLineBreak) {
+            sb.append("\n")
+        }
+
+        override fun visit(softLineBreak: SoftLineBreak) {
+            sb.append("\n")
+        }
+
+        // -- Inline nodes --
+
+        override fun visit(text: Text) {
+            sb.append(escapeHtml(text.literal))
+        }
+
+        override fun visit(strongEmphasis: StrongEmphasis) {
+            sb.append("<b>")
+            visitChildren(strongEmphasis)
+            sb.append("</b>")
+        }
+
+        override fun visit(emphasis: Emphasis) {
+            sb.append("<i>")
+            visitChildren(emphasis)
+            sb.append("</i>")
+        }
+
+        override fun visit(code: Code) {
+            sb.append("<code>")
+            sb.append(escapeHtml(code.literal))
+            sb.append("</code>")
+        }
+
+        override fun visit(link: Link) {
+            sb.append("<a href=\"${link.destination ?: ""}\">")
+            visitChildren(link)
+            sb.append("</a>")
+        }
+
+        override fun visit(image: Image) {
+            sb.append("<a href=\"${image.destination ?: ""}\">")
+            val before = sb.length
+            visitChildren(image)
+            if (sb.length == before) {
+                sb.append("image")
+            }
+            sb.append("</a>")
+        }
+
+        override fun visit(customNode: org.commonmark.node.CustomNode) {
+            if (customNode is Strikethrough) {
+                sb.append("<s>")
+                visitChildren(customNode)
+                sb.append("</s>")
+            } else {
+                visitChildren(customNode)
+            }
+        }
+
+        // -- Helpers --
+
+        private fun appendBlockSeparator(node: org.commonmark.node.Node) {
+            if (node.next != null) {
+                sb.append("\n")
+                if (node.parent is Document || node.parent is BlockQuote) {
+                    sb.append("\n")
+                }
+            }
+        }
     }
 }

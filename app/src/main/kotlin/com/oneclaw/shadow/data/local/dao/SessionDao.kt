@@ -64,6 +64,9 @@ interface SessionDao {
     @Query("SELECT * FROM sessions WHERE is_active = 1 LIMIT 1")
     suspend fun getActiveSession(): SessionEntity?
 
+    @Query("SELECT id FROM sessions WHERE deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1")
+    suspend fun getMostRecentSessionId(): String?
+
     /**
      * RFC-032: Search sessions by title or last message preview using SQL LIKE.
      * Only searches non-deleted sessions. Returns sessions whose title

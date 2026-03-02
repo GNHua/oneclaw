@@ -32,9 +32,10 @@
 
 | 缺陷 | 位置 | 影响 |
 |------|------|------|
-| Agent 执行结果被丢弃 | `BridgeAgentExecutorImpl.kt:23` | `.collect()` 丢弃了所有 `ChatEvent`，包括含有最终响应的 `ResponseComplete` |
-| 间接响应获取 | `MessagingChannel.kt:98-102` | 通过 `BridgeMessageObserver` 轮询数据库，可能返回错误的 `AI_RESPONSE` |
+| Agent 执行结果被丢弃 | `BridgeAgentExecutorImpl.kt` | `.collect()` 丢弃了所有 `ChatEvent`，包括含有最终响应的 `ResponseComplete` |
+| 间接响应获取 | `MessagingChannel.kt` | 通过 `BridgeMessageObserver` 轮询数据库，可能返回错误的 `AI_RESPONSE` |
 | 不必要的间接层 | 架构层面 | Agent 结果被丢弃后，再通过轮询从数据库中重新获取 |
+| 执行后异常导致管道崩溃 | `BridgeAgentExecutorImpl.kt` | `generateAiTitle()` 在 try/catch 外调用；其失败异常向上传播，阻断响应投递 |
 
 ### 问题详述
 
@@ -48,7 +49,9 @@
 
 ### 修复方案
 
-用直接响应传播替代间接数据库轮询方式：让 `BridgeAgentExecutorImpl` 从 Flow 中捕获最终的 `ChatEvent.ResponseComplete`，并将其直接返回给 `MessagingChannel`。数据库观察者作为兜底回退方案保留。
+1. **直接响应传播**：用直接响应传播替代间接数据库轮询方式，让 `BridgeAgentExecutorImpl` 从 Flow 中捕获最终的 `ChatEvent.ResponseComplete`，并将其直接返回给 `MessagingChannel`。数据库观察者作为兜底回退方案保留。
+2. **异常安全**：将执行后代码（`generateAiTitle()`）包裹在 try/catch 中，使非关键失败（如 AI 标题生成 API 错误）无法中断响应投递管道。
+3. **诊断日志**：在 `MessagingChannel` 和 `BridgeAgentExecutorImpl` 的关键节点添加结构化日志，便于后续调试。
 
 ## 验收标准
 
@@ -64,8 +67,10 @@
 ### 包含
 - 将 `BridgeAgentExecutor.executeMessage()` 的返回类型从 `Unit` 改为 `BridgeMessage?`
 - 更新 `BridgeAgentExecutorImpl`，从 `ChatEvent` Flow 中捕获最终响应
+- 将 `generateAiTitle()` 包裹在 try/catch 中，防止执行后异常导致投递管道崩溃
 - 简化 `MessagingChannel.processInboundMessage()`，直接使用返回的响应
 - 当直接响应为 null 时，保留 `BridgeMessageObserver` 作为回退方案
+- 在 `MessagingChannel` 和 `BridgeAgentExecutorImpl` 中添加诊断日志
 - 更新现有测试
 
 ### 不包含
@@ -98,6 +103,7 @@
 - 若 `agentExecutor.executeMessage()` 抛出异常，`processInboundMessage()` 将捕获该异常并回退到数据库观察者。
 - 若直接响应和数据库观察者均失败，则向 Telegram 发送面向用户的错误消息。
 - `BridgeAgentExecutorImpl` 将整个 Flow 收集过程包裹在 try/catch 中，确保 `SendMessageUseCase` 中的异常不会向上未处理地传播。
+- 执行后操作（`generateAiTitle()`）包裹在独立的 try/catch 块中，记录为非致命警告，不会阻断响应投递。
 
 ## 测试要点
 
@@ -112,3 +118,4 @@
 | 日期 | 版本 | 变更内容 | 负责人 |
 |------|------|----------|--------|
 | 2026-03-01 | 1.0 | 初始草稿 | - |
+| 2026-03-01 | 1.1 | 新增第 4 个根因（generateAiTitle 异常）、诊断日志、更新修复方案 | - |

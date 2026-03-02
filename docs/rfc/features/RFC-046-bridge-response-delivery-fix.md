@@ -21,6 +21,8 @@ The root cause is an architectural indirection in the bridge's response delivery
 1. Deliver the agent's final response directly from the execution flow, eliminating the DB-polling indirection
 2. Keep `BridgeMessageObserver` as a fallback for edge cases
 3. Simplify `processInboundMessage()` by removing the `scope.launch`/`join` pattern
+4. Ensure post-execution operations (e.g., AI title generation) cannot crash the response delivery pipeline
+5. Add diagnostic logging for future debugging
 
 ### Non-Goals
 
@@ -104,20 +106,33 @@ override suspend fun executeMessage(
     userMessage: String,
     imagePaths: List<String>
 ): BridgeMessage? {
+    // Phase 1 title: immediate truncated title from user message (FEAT-045)
+    val isFirstMessage = (sessionRepository.getSessionById(conversationId)?.messageCount ?: 0) == 0
+    if (isFirstMessage) {
+        val truncatedTitle = generateTitleUseCase.generateTruncatedTitle(userMessage)
+        sessionRepository.updateTitle(conversationId, truncatedTitle)
+    }
+
     val agentId = resolveAgentId()
+    val pendingAttachments = imagePaths.mapNotNull { path -> /* ... image handling ... */ }
     var lastResponseContent: String? = null
     var lastResponseTimestamp: Long = 0L
+    var lastModelId: String? = null
+    var lastProviderId: String? = null
 
     try {
         sendMessageUseCase.execute(
             sessionId = conversationId,
             userText = userMessage,
-            agentId = agentId
+            agentId = agentId,
+            pendingAttachments = pendingAttachments
         ).collect { event ->
             when (event) {
                 is ChatEvent.ResponseComplete -> {
                     lastResponseContent = event.message.content
                     lastResponseTimestamp = event.message.createdAt
+                    lastModelId = event.message.modelId
+                    lastProviderId = event.message.providerId
                 }
                 else -> { /* other events not needed by bridge */ }
             }
@@ -130,6 +145,24 @@ override suspend fun executeMessage(
     }
 
     val content = lastResponseContent
+
+    // Phase 2 title: AI-generated title after first response (non-fatal)
+    if (isFirstMessage && content != null && lastModelId != null && lastProviderId != null) {
+        try {
+            generateTitleUseCase.generateAiTitle(
+                sessionId = conversationId,
+                firstUserMessage = userMessage,
+                firstAiResponse = content,
+                currentModelId = lastModelId!!,
+                currentProviderId = lastProviderId!!
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "AI title generation failed (non-fatal)", e)
+        }
+    }
+
     return if (content != null && content.isNotBlank()) {
         BridgeMessage(content = content, timestamp = lastResponseTimestamp)
     } else {
@@ -143,6 +176,7 @@ override suspend fun executeMessage(
 - `ChatEvent.ResponseComplete` is emitted by `SendMessageUseCase` exactly once, at the end of the tool-call loop, when no more tool calls remain. It contains the **final** AI response message -- the one the user actually wants.
 - If the flow completes without emitting `ResponseComplete` (e.g., all rounds produced tool calls and the max-round limit was hit, or an error occurred), `lastResponseContent` remains null, and the method returns `null`.
 - `CancellationException` is re-thrown per Kotlin coroutine convention. All other exceptions return `null` so the caller can fall back gracefully.
+- Phase 2 title generation (`generateAiTitle()`) is wrapped in its own try/catch block. This is critical: without this wrapper, a title generation API failure would propagate as an unhandled exception, crashing the entire `processInboundMessage()` pipeline and preventing the response from being delivered to Telegram. See Change 4 for details.
 
 **Behavior after fix**:
 
@@ -199,6 +233,7 @@ runCatching { sendResponse(msg.externalChatId, response) }
 ```kotlin
 // 7. Execute agent and get direct response
 val beforeTimestamp = System.currentTimeMillis()
+Log.d(TAG, "Executing agent for conv=$conversationId, text=${msg.text.take(50)}")
 val response = try {
     withTimeout(AGENT_RESPONSE_TIMEOUT_MS) {
         // executeMessage now returns the final response directly
@@ -207,14 +242,21 @@ val response = try {
             userMessage = msg.text,
             imagePaths = msg.imagePaths
         )
+        Log.d(TAG, "executeMessage returned: ${if (directResponse != null) "content(${directResponse.content.length} chars)" else "null"}")
         // Use direct response; fall back to DB observer if null
-        directResponse ?: messageObserver.awaitNextAssistantMessage(
-            conversationId = conversationId,
-            afterTimestamp = beforeTimestamp,
-            timeoutMs = 10_000
-        )
+        if (directResponse != null) {
+            directResponse
+        } else {
+            Log.d(TAG, "Falling back to DB observer")
+            messageObserver.awaitNextAssistantMessage(
+                conversationId = conversationId,
+                afterTimestamp = beforeTimestamp,
+                timeoutMs = 10_000
+            )
+        }
     }
 } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+    Log.w(TAG, "Agent timed out after ${AGENT_RESPONSE_TIMEOUT_MS}ms")
     BridgeMessage(
         content = "Sorry, the agent did not respond in time. Please try again.",
         timestamp = System.currentTimeMillis()
@@ -225,7 +267,11 @@ val response = try {
 }
 
 // Send response
-runCatching { sendResponse(msg.externalChatId, response) }
+Log.d(TAG, "Sending response to ${msg.externalChatId}: ${response.content.length} chars")
+val sendResult = runCatching { sendResponse(msg.externalChatId, response) }
+if (sendResult.isFailure) {
+    Log.e(TAG, "sendResponse FAILED", sendResult.exceptionOrNull())
+}
 ```
 
 **Rationale**:
@@ -250,6 +296,36 @@ Before:                                    After:
 ```
 
 Both models achieve the same concurrency: the typing coroutine runs in parallel with agent execution. The difference is that the new model directly captures the result instead of discarding it and re-fetching from the database.
+
+---
+
+### Change 4: Exception Safety for Post-Execution Code
+
+**File**: `app/src/main/kotlin/com/oneclaw/shadow/feature/bridge/BridgeAgentExecutorImpl.kt`
+
+**Problem discovered during testing**: FEAT-045 added `generateAiTitle()` to `BridgeAgentExecutorImpl.executeMessage()` after the flow collection. This call was placed **outside** the try/catch block that wraps `sendMessageUseCase.execute().collect()`. When the AI title generation API call failed (e.g., network error, API rate limit), the exception propagated unhandled through `executeMessage()` -> `withTimeout` -> `processInboundMessage()` -> `scope.launch` (where `SupervisorJob` silently swallowed it). The result: `sendResponse()` was never reached, and the user received nothing on Telegram despite the agent having produced a valid response.
+
+**Fix**: Wrap `generateAiTitle()` in its own try/catch block with `Log.w()` for non-fatal logging. See the code in Change 2 above.
+
+**Design principle**: Post-execution operations (title generation, analytics, etc.) must never prevent response delivery. They should be treated as best-effort and wrapped in independent error boundaries.
+
+---
+
+### Change 5: Diagnostic Logging
+
+**Files**: `MessagingChannel.kt`, `BridgeAgentExecutorImpl.kt`
+
+The bridge code previously had zero logging, making it impossible to diagnose delivery failures from logcat. The following log points were added:
+
+| Location | Level | Content |
+|----------|-------|---------|
+| `MessagingChannel` before agent execution | `Log.d` | Conversation ID, message text preview |
+| `MessagingChannel` after `executeMessage()` returns | `Log.d` | Whether response is non-null, content length |
+| `MessagingChannel` on fallback to observer | `Log.d` | Fallback triggered |
+| `MessagingChannel` before `sendResponse()` | `Log.d` | Target chat ID, response length |
+| `MessagingChannel` on `sendResponse()` failure | `Log.e` | Exception details |
+| `MessagingChannel` on timeout | `Log.w` | Timeout duration |
+| `BridgeAgentExecutorImpl` on `generateAiTitle()` failure | `Log.w` | Exception details (non-fatal) |
 
 ---
 
@@ -297,3 +373,4 @@ Both models achieve the same concurrency: the typing coroutine runs in parallel 
 | Date | Version | Changes | Owner |
 |------|---------|---------|-------|
 | 2026-03-01 | 1.0 | Initial draft | - |
+| 2026-03-01 | 1.1 | Added Change 4 (generateAiTitle exception safety), Change 5 (diagnostic logging), updated code snippets to reflect FEAT-045 integration | - |

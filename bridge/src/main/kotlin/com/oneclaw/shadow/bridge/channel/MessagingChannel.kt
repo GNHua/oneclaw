@@ -1,5 +1,6 @@
 package com.oneclaw.shadow.bridge.channel
 
+import android.util.Log
 import com.oneclaw.shadow.bridge.BridgeAgentExecutor
 import com.oneclaw.shadow.bridge.BridgeConversationManager
 import com.oneclaw.shadow.bridge.BridgeMessage
@@ -84,6 +85,7 @@ abstract class MessagingChannel(
 
         // 7. Execute agent and get direct response
         val beforeTimestamp = System.currentTimeMillis()
+        Log.d(TAG, "Executing agent for conv=$conversationId, text=${msg.text.take(50)}")
         val response = try {
             withTimeout(AGENT_RESPONSE_TIMEOUT_MS) {
                 // executeMessage now returns the final response directly
@@ -92,14 +94,21 @@ abstract class MessagingChannel(
                     userMessage = msg.text,
                     imagePaths = msg.imagePaths
                 )
+                Log.d(TAG, "executeMessage returned: ${if (directResponse != null) "content(${directResponse.content.length} chars)" else "null"}")
                 // Use direct response; fall back to DB observer if null
-                directResponse ?: messageObserver.awaitNextAssistantMessage(
-                    conversationId = conversationId,
-                    afterTimestamp = beforeTimestamp,
-                    timeoutMs = 10_000
-                )
+                if (directResponse != null) {
+                    directResponse
+                } else {
+                    Log.d(TAG, "Falling back to DB observer")
+                    messageObserver.awaitNextAssistantMessage(
+                        conversationId = conversationId,
+                        afterTimestamp = beforeTimestamp,
+                        timeoutMs = 10_000
+                    )
+                }
             }
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.w(TAG, "Agent timed out after ${AGENT_RESPONSE_TIMEOUT_MS}ms")
             BridgeMessage(
                 content = "Sorry, the agent did not respond in time. Please try again.",
                 timestamp = System.currentTimeMillis()
@@ -110,7 +119,11 @@ abstract class MessagingChannel(
         }
 
         // Send response
-        runCatching { sendResponse(msg.externalChatId, response) }
+        Log.d(TAG, "Sending response to ${msg.externalChatId}: ${response.content.length} chars")
+        val sendResult = runCatching { sendResponse(msg.externalChatId, response) }
+        if (sendResult.isFailure) {
+            Log.e(TAG, "sendResponse FAILED", sendResult.exceptionOrNull())
+        }
 
         // Update state
         updateChannelState(newMessage = true)

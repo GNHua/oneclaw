@@ -1,5 +1,6 @@
 package com.oneclaw.shadow.feature.bridge
 
+import android.util.Log
 import com.oneclaw.shadow.bridge.BridgeAgentExecutor
 import com.oneclaw.shadow.bridge.BridgeMessage
 import com.oneclaw.shadow.core.model.AttachmentType
@@ -82,15 +83,21 @@ class BridgeAgentExecutorImpl(
 
         val content = lastResponseContent
 
-        // Phase 2 title: AI-generated title after first response
+        // Phase 2 title: AI-generated title after first response (non-fatal)
         if (isFirstMessage && content != null && lastModelId != null && lastProviderId != null) {
-            generateTitleUseCase.generateAiTitle(
-                sessionId = conversationId,
-                firstUserMessage = userMessage,
-                firstAiResponse = content,
-                currentModelId = lastModelId!!,
-                currentProviderId = lastProviderId!!
-            )
+            try {
+                generateTitleUseCase.generateAiTitle(
+                    sessionId = conversationId,
+                    firstUserMessage = userMessage,
+                    firstAiResponse = content,
+                    currentModelId = lastModelId!!,
+                    currentProviderId = lastProviderId!!
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "AI title generation failed (non-fatal)", e)
+            }
         }
 
         return if (content != null && content.isNotBlank()) {
@@ -98,6 +105,10 @@ class BridgeAgentExecutorImpl(
         } else {
             null
         }
+    }
+
+    companion object {
+        private const val TAG = "BridgeAgentExecutor"
     }
 
     private fun mimeTypeFromExtension(ext: String): String = when (ext.lowercase()) {

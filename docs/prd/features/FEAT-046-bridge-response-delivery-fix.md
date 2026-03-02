@@ -32,9 +32,10 @@ When the AI agent processes a request that involves tool calls (e.g., loading to
 
 | Bug | Location | Impact |
 |-----|----------|--------|
-| Agent execution result discarded | `BridgeAgentExecutorImpl.kt:23` | `.collect()` discards all `ChatEvent` including `ResponseComplete` |
-| Indirect response retrieval | `MessagingChannel.kt:98-102` | DB polling via `BridgeMessageObserver` may return wrong `AI_RESPONSE` |
+| Agent execution result discarded | `BridgeAgentExecutorImpl.kt` | `.collect()` discards all `ChatEvent` including `ResponseComplete` |
+| Indirect response retrieval | `MessagingChannel.kt` | DB polling via `BridgeMessageObserver` may return wrong `AI_RESPONSE` |
 | Unnecessary indirection | Architecture | Agent result is thrown away, then re-fetched from DB via polling |
+| Post-execution exception crashes pipeline | `BridgeAgentExecutorImpl.kt` | `generateAiTitle()` called outside try/catch; its failure propagates unhandled, preventing response delivery |
 
 ### Detailed Problem
 
@@ -48,7 +49,9 @@ The current message delivery flow has an architectural flaw:
 
 ### Fix Description
 
-Replace the indirect DB-polling approach with direct response propagation: have `BridgeAgentExecutorImpl` capture the final `ChatEvent.ResponseComplete` from the flow and return it directly to `MessagingChannel`. The DB observer is kept as a fallback.
+1. **Direct response propagation**: Replace the indirect DB-polling approach by having `BridgeAgentExecutorImpl` capture the final `ChatEvent.ResponseComplete` from the flow and return it directly to `MessagingChannel`. The DB observer is kept as a fallback.
+2. **Exception safety**: Wrap post-execution code (`generateAiTitle()`) in try/catch so that non-critical failures (e.g., AI title generation API errors) cannot crash the response delivery pipeline.
+3. **Diagnostic logging**: Add structured logging at key points in `MessagingChannel` and `BridgeAgentExecutorImpl` for future debugging.
 
 ## Acceptance Criteria
 
@@ -64,8 +67,10 @@ Replace the indirect DB-polling approach with direct response propagation: have 
 ### Included
 - Change `BridgeAgentExecutor.executeMessage()` return type from `Unit` to `BridgeMessage?`
 - Update `BridgeAgentExecutorImpl` to capture final response from `ChatEvent` flow
+- Wrap `generateAiTitle()` in try/catch to prevent post-execution exceptions from crashing the delivery pipeline
 - Simplify `MessagingChannel.processInboundMessage()` to use returned response directly
 - Keep `BridgeMessageObserver` as fallback when direct response is null
+- Add diagnostic logging to `MessagingChannel` and `BridgeAgentExecutorImpl`
 - Update existing tests
 
 ### Not Included
@@ -98,6 +103,7 @@ Replace the indirect DB-polling approach with direct response propagation: have 
 - If `agentExecutor.executeMessage()` throws an exception, `processInboundMessage()` catches it and falls back to the DB observer.
 - If both the direct response and DB observer fail, a user-facing error message is sent to Telegram.
 - `BridgeAgentExecutorImpl` wraps the entire flow collection in try/catch so exceptions in `SendMessageUseCase` never propagate unhandled.
+- Post-execution operations (`generateAiTitle()`) are wrapped in their own try/catch block, logged as non-fatal warnings, and cannot prevent response delivery.
 
 ## Test Points
 
@@ -112,3 +118,4 @@ Replace the indirect DB-polling approach with direct response propagation: have 
 | Date | Version | Changes | Owner |
 |------|---------|---------|-------|
 | 2026-03-01 | 1.0 | Initial draft | - |
+| 2026-03-01 | 1.1 | Added 4th root cause (generateAiTitle exception), diagnostic logging, updated fix description | - |

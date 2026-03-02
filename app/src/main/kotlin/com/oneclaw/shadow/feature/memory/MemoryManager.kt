@@ -2,6 +2,7 @@ package com.oneclaw.shadow.feature.memory
 
 import com.oneclaw.shadow.data.local.dao.MemoryIndexDao
 import com.oneclaw.shadow.data.local.entity.MemoryIndexEntity
+import com.oneclaw.shadow.feature.memory.compaction.MemoryCompactor
 import com.oneclaw.shadow.feature.memory.embedding.EmbeddingEngine
 import com.oneclaw.shadow.feature.memory.embedding.EmbeddingSerializer
 import com.oneclaw.shadow.feature.memory.injection.MemoryInjector
@@ -26,7 +27,8 @@ class MemoryManager(
     private val memoryInjector: MemoryInjector,
     private val memoryIndexDao: MemoryIndexDao,
     private val memoryFileStorage: MemoryFileStorage,
-    private val embeddingEngine: EmbeddingEngine
+    private val embeddingEngine: EmbeddingEngine,
+    private val memoryCompactor: MemoryCompactor? = null
 ) {
     /**
      * Flush daily log for a session.
@@ -48,6 +50,13 @@ class MemoryManager(
      */
     suspend fun getInjectionContent(query: String, tokenBudget: Int = 2000): String {
         return memoryInjector.buildInjection(query, tokenBudget)
+    }
+
+    /**
+     * Read the current content of MEMORY.md.
+     */
+    suspend fun readLongTermMemory(): String = withContext(Dispatchers.IO) {
+        longTermMemoryManager.readMemory()
     }
 
     /**
@@ -74,6 +83,51 @@ class MemoryManager(
     }
 
     /**
+     * Save content to a specific section in MEMORY.md.
+     * Creates the section if it doesn't exist.
+     * Called by SaveMemoryTool when the category parameter is provided.
+     */
+    suspend fun saveToLongTermMemoryInSection(content: String, sectionName: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                longTermMemoryManager.appendToSection(content, sectionName)
+
+                try {
+                    indexContent(content, "long_term", null)
+                } catch (_: Exception) {
+                    // Silently ignore indexing failures
+                }
+
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    /**
+     * Update or delete an entry in long-term memory (MEMORY.md).
+     * Returns Result containing the match count (0 = not found, 1 = success, >1 = ambiguous).
+     */
+    suspend fun updateLongTermMemory(oldText: String, newText: String): Result<Int> =
+        withContext(Dispatchers.IO) {
+            try {
+                val matchCount = longTermMemoryManager.replaceMemoryEntry(oldText, newText)
+
+                if (matchCount == 1) {
+                    try {
+                        rebuildIndex()
+                    } catch (_: Exception) {
+                        // Indexing failure is non-fatal
+                    }
+                }
+
+                Result.success(matchCount)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    /**
      * Rebuild the entire search index from files.
      * Used when the index is corrupted or after manual edits.
      */
@@ -91,6 +145,29 @@ class MemoryManager(
         if (memoryContent != null) {
             indexContent(memoryContent, "long_term", null)
         }
+    }
+
+    /**
+     * Run memory compaction if the size threshold is exceeded.
+     * Called by MemoryTriggerManager on day change (at most once per day).
+     */
+    suspend fun compactMemoryIfNeeded(): Boolean {
+        val compacted = memoryCompactor?.compactIfNeeded() ?: return false
+        if (compacted) {
+            try { rebuildIndex() } catch (_: Exception) {}
+        }
+        return compacted
+    }
+
+    /**
+     * Force memory compaction (manual trigger from settings).
+     */
+    suspend fun forceCompactMemory(): Boolean {
+        val compacted = memoryCompactor?.forceCompact() ?: return false
+        if (compacted) {
+            try { rebuildIndex() } catch (_: Exception) {}
+        }
+        return compacted
     }
 
     /**

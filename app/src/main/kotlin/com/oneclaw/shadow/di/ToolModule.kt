@@ -25,6 +25,7 @@ import com.oneclaw.shadow.tool.builtin.PdfInfoTool
 import com.oneclaw.shadow.tool.builtin.PdfRenderPageTool
 import com.oneclaw.shadow.tool.builtin.RunScheduledTaskTool
 import com.oneclaw.shadow.tool.builtin.SaveMemoryTool
+import com.oneclaw.shadow.tool.builtin.UpdateMemoryTool
 import com.oneclaw.shadow.tool.builtin.SearchHistoryTool
 import com.oneclaw.shadow.tool.builtin.UpdateJsToolTool
 import com.oneclaw.shadow.tool.builtin.UpdateScheduledTaskTool
@@ -97,6 +98,9 @@ val toolModule = module {
 
     // RFC-023: save_memory built-in tool
     single { SaveMemoryTool(get()) }
+
+    // RFC-049: update_memory built-in tool
+    single { UpdateMemoryTool(get()) }
 
     // RFC-022: Browser tool components
     single { BrowserScreenshotCapture() }
@@ -189,6 +193,11 @@ val toolModule = module {
                 register(get<SaveMemoryTool>(), coreSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register save_memory: ${e.message}")
+            }
+            try {
+                register(get<UpdateMemoryTool>(), coreSourceInfo)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register update_memory: ${e.message}")
             }
             try {
                 register(get<SearchHistoryTool>(), coreSourceInfo)

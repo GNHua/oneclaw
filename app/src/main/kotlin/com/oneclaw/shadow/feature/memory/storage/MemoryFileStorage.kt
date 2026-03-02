@@ -2,6 +2,8 @@ package com.oneclaw.shadow.feature.memory.storage
 
 import android.content.Context
 import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 /**
  * Handles file I/O for memory Markdown files.
@@ -19,6 +21,13 @@ class MemoryFileStorage(
     private val memoryFile: File
         get() = File(memoryDir, "MEMORY.md")
 
+    companion object {
+        const val MAX_BACKUPS = 5
+        private const val BACKUP_PREFIX = "MEMORY_backup_"
+        private const val BACKUP_SUFFIX = ".md"
+        private val BACKUP_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")
+    }
+
     /**
      * Read MEMORY.md content. Returns null if file doesn't exist.
      */
@@ -31,6 +40,58 @@ class MemoryFileStorage(
      */
     fun writeMemoryFile(content: String) {
         memoryFile.writeText(content)
+    }
+
+    /**
+     * Create a timestamped backup of MEMORY.md.
+     * Returns the backup file name, or null if there is nothing to back up.
+     */
+    fun createBackup(): String? {
+        val content = readMemoryFile() ?: return null
+        if (content.isBlank()) return null
+
+        val timestamp = LocalDateTime.now().format(BACKUP_TIMESTAMP_FORMAT)
+        val backupName = "$BACKUP_PREFIX$timestamp$BACKUP_SUFFIX"
+        val backupFile = File(memoryDir, backupName)
+        backupFile.writeText(content)
+        return backupName
+    }
+
+    /**
+     * Prune old backups, keeping only the most recent [maxBackups].
+     */
+    fun pruneOldBackups(maxBackups: Int = MAX_BACKUPS) {
+        val backups = memoryDir.listFiles { file ->
+            file.name.startsWith(BACKUP_PREFIX) && file.name.endsWith(BACKUP_SUFFIX)
+        }?.sortedByDescending { it.lastModified() } ?: return
+
+        if (backups.size > maxBackups) {
+            backups.drop(maxBackups).forEach { it.delete() }
+        }
+    }
+
+    /**
+     * List all backup files, most recent first.
+     */
+    fun listBackups(): List<String> {
+        return memoryDir.listFiles { file ->
+            file.name.startsWith(BACKUP_PREFIX) && file.name.endsWith(BACKUP_SUFFIX)
+        }?.sortedByDescending { it.lastModified() }
+            ?.map { it.name }
+            ?: emptyList()
+    }
+
+    /**
+     * Restore MEMORY.md from a specific backup file.
+     * Returns true if restored successfully.
+     */
+    fun restoreFromBackup(backupName: String): Boolean {
+        val backupFile = File(memoryDir, backupName)
+        if (!backupFile.exists()) return false
+        val content = backupFile.readText()
+        if (content.isBlank()) return false
+        writeMemoryFile(content)
+        return true
     }
 
     /**

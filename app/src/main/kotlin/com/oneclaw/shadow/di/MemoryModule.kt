@@ -1,6 +1,7 @@
 package com.oneclaw.shadow.di
 
 import com.oneclaw.shadow.feature.memory.MemoryManager
+import com.oneclaw.shadow.feature.memory.compaction.MemoryCompactor
 import com.oneclaw.shadow.feature.memory.embedding.EmbeddingEngine
 import com.oneclaw.shadow.feature.memory.injection.MemoryInjector
 import com.oneclaw.shadow.feature.memory.log.DailyLogWriter
@@ -40,6 +41,18 @@ val memoryModule = module {
         )
     }
     single { MemoryInjector(get(), get()) }
+
+    // RFC-049: Memory compactor (Phase 3)
+    single {
+        MemoryCompactor(
+            longTermMemoryManager = get(),
+            memoryFileStorage = get(),
+            providerRepository = get(),
+            apiKeyStorage = get(),
+            adapterFactory = get()
+        )
+    }
+
     single {
         MemoryManager(
             dailyLogWriter = get(),
@@ -48,7 +61,8 @@ val memoryModule = module {
             memoryInjector = get(),
             memoryIndexDao = get(),
             memoryFileStorage = get(),
-            embeddingEngine = get()
+            embeddingEngine = get(),
+            memoryCompactor = get()
         )
     }
 

@@ -61,6 +61,12 @@ class MemoryTriggerManager(
     fun onDayChangeForActiveSession() {
         scope.launch {
             flushActiveSession()
+            // Compact memory if it has grown too large (at most once per day)
+            try {
+                memoryManager.compactMemoryIfNeeded()
+            } catch (_: Exception) {
+                // Non-fatal
+            }
         }
     }
 

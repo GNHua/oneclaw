@@ -11,6 +11,7 @@ import com.oneclaw.shadow.core.model.ProviderCapability
 import com.oneclaw.shadow.core.model.SkillDefinition
 import com.oneclaw.shadow.core.model.ToolCallStatus
 import com.oneclaw.shadow.core.model.ToolResultStatus
+import com.oneclaw.shadow.bridge.BridgeStateTracker
 import com.oneclaw.shadow.core.lifecycle.AppLifecycleObserver
 import com.oneclaw.shadow.core.notification.NotificationHelper
 import com.oneclaw.shadow.core.repository.AgentRepository
@@ -81,6 +82,8 @@ class ChatViewModel(
         if (previousSessionId != null && previousSessionId != sessionId) {
             memoryTriggerManager?.onSessionSwitch(previousSessionId)
         }
+
+        BridgeStateTracker.setActiveAppSession(sessionId)
 
         loadSessionJob?.cancel()
         loadSessionJob = null

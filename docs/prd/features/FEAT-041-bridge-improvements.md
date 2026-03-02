@@ -3,7 +3,7 @@
 ## Feature Information
 - **Feature ID**: FEAT-041
 - **Created**: 2026-03-01
-- **Last Updated**: 2026-03-01
+- **Last Updated**: 2026-03-01 (Scenario 3 fully implemented via RFC-045)
 - **Status**: Completed
 - **Priority**: P1 (Should Have)
 - **Owner**: TBD
@@ -43,11 +43,12 @@ FEAT-041 consolidates improvements to the Messaging Bridge (FEAT-024) based on u
 
 #### 3. Active Session Integration (Enhancement)
 - **Problem**: Bridge messages went to a dedicated bridge-only session via `preferences.getBridgeConversationId()`, disconnected from the app's UI.
-- **Solution**: Bridge now uses the most recently updated session (`ORDER BY updated_at DESC LIMIT 1`) as the target for bridge messages. This means:
-  - Messages go to whatever session the user last interacted with.
-  - `/clear` creates a new session which becomes the most recent.
-  - Switching sessions in the app changes where bridge messages go.
+- **Solution**: Bridge now routes messages to whichever session is currently active in the app. This means:
+  - Messages go to whatever session the user is currently viewing in ChatScreen.
+  - `/clear` creates a new session; ChatScreen switches to it and it becomes the new active target.
+  - Switching sessions in the app immediately changes where bridge messages go.
 - The `ConversationMapper` no longer depends on `BridgePreferences` for conversation ID storage.
+- *Note*: The initial RFC-041 implementation tracked the active session via `updated_at DESC` in the database, which did not follow manual app-side session switches. This was corrected in RFC-045 using an in-memory `BridgeStateTracker.activeAppSessionId` updated by `ChatViewModel` on every session switch.
 
 #### 4. Plain Text Fallback (Robustness)
 - **Problem**: If HTML rendering failed for any reason, the entire message send would fail silently.

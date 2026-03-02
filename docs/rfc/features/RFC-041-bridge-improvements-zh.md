@@ -4,7 +4,7 @@
 - **RFC ID**: RFC-041
 - **关联 PRD**: [FEAT-041（桥接改进）](../../prd/features/FEAT-041-bridge-improvements.md)
 - **创建时间**: 2026-03-01
-- **最后更新**: 2026-03-01
+- **最后更新**: 2026-03-01（修复 3 已于 2026-03-01 通过 RFC-045 更正）
 - **状态**: 已完成
 - **作者**: TBD
 
@@ -145,10 +145,11 @@ suspend fun getMostRecentSessionId(): String?
 suspend fun getMostRecentSessionId(): String?
 ```
 
-**实现** -- `BridgeConversationManagerImpl`：
+**实现** -- `BridgeConversationManagerImpl`（见下方勘误说明）：
 ```kotlin
 override suspend fun getActiveConversationId(): String? {
-    return sessionRepository.getMostRecentSessionId()
+    return BridgeStateTracker.activeAppSessionId.value
+        ?: sessionRepository.getMostRecentSessionId()
 }
 ```
 
@@ -169,6 +170,13 @@ class ConversationMapper(
     }
 }
 ```
+
+**勘误（RFC-045）**：`getActiveConversationId()` 的初始实现仅返回 `sessionRepository.getMostRecentSessionId()`，该查询按 `updated_at DESC` 排序。对于通过 bridge 发送的消息（会更新 `updated_at`）和 `/clear`（会创建更新的会话）而言，这一方式可以正常工作。然而，当用户在 app 中切换到旧会话但未发送消息时，该会话的 `updated_at` 不会被更新，导致 bridge 仍将消息路由到之前 `updated_at` 较新的会话。
+
+此问题已在 RFC-045 中修复，具体方式为：
+- 在 `BridgeStateTracker` 中新增 `activeAppSessionId: StateFlow<String?>` 和 `setActiveAppSession()`
+- `ChatViewModel.initialize(sessionId)` 在每次会话切换时（包括从抽屉手动选择）调用 `BridgeStateTracker.setActiveAppSession(sessionId)`
+- `getActiveConversationId()` 优先返回 `BridgeStateTracker.activeAppSessionId.value`，仅在 app 从未设置活跃会话时（如首次启动且用户尚未打开 ChatScreen）才回退到 DB 查询
 
 ### 修复 4：纯文本回退
 

@@ -48,6 +48,13 @@ object BridgeStateTracker {
         _newSessionFromBridge.tryEmit(sessionId)
     }
 
+    private val _activeAppSessionId = MutableStateFlow<String?>(null)
+    val activeAppSessionId: StateFlow<String?> = _activeAppSessionId.asStateFlow()
+
+    fun setActiveAppSession(sessionId: String?) {
+        _activeAppSessionId.value = sessionId
+    }
+
     fun reset() {
         _serviceRunning.value = false
         _channelStates.value = emptyMap()

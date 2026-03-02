@@ -4,7 +4,7 @@
 - **RFC ID**: RFC-041
 - **Related PRD**: [FEAT-041 (Bridge Improvements)](../../prd/features/FEAT-041-bridge-improvements.md)
 - **Created**: 2026-03-01
-- **Last Updated**: 2026-03-01
+- **Last Updated**: 2026-03-01 (Fix 3 corrected 2026-03-01 via RFC-045)
 - **Status**: Completed
 - **Author**: TBD
 
@@ -123,7 +123,7 @@ The typing coroutine now starts immediately. `agentExecutor.executeMessage()` is
 
 **Problem**: Bridge messages went to a dedicated bridge-only session stored in `BridgePreferences.getBridgeConversationId()`. This session was invisible in the app's UI and disconnected from the user's workflow.
 
-**Solution**: Use the most recently updated session as the bridge target.
+**Solution**: Use the app's currently active session as the bridge target, falling back to the most recently updated session in the database when the app has not explicitly set one.
 
 **Interface change** -- `BridgeConversationManager`:
 ```kotlin
@@ -145,10 +145,11 @@ suspend fun getMostRecentSessionId(): String?
 suspend fun getMostRecentSessionId(): String?
 ```
 
-**Implementation** -- `BridgeConversationManagerImpl`:
+**Implementation** -- `BridgeConversationManagerImpl` (see correction note below):
 ```kotlin
 override suspend fun getActiveConversationId(): String? {
-    return sessionRepository.getMostRecentSessionId()
+    return BridgeStateTracker.activeAppSessionId.value
+        ?: sessionRepository.getMostRecentSessionId()
 }
 ```
 
@@ -169,6 +170,13 @@ class ConversationMapper(
     }
 }
 ```
+
+**Correction (RFC-045)**: The initial implementation of `getActiveConversationId()` returned only `sessionRepository.getMostRecentSessionId()`, which is ordered by `updated_at DESC`. This worked for messages sent via the bridge (which update `updated_at`) and for `/clear` (which creates a newer session). However, it did not correctly handle the case where the user switches to an older session in the app without sending a message: the `updated_at` of the selected session was not touched, so the bridge continued routing to the previously newer session.
+
+This was corrected as part of RFC-045 by:
+- Adding `activeAppSessionId: StateFlow<String?>` and `setActiveAppSession()` to `BridgeStateTracker`
+- Having `ChatViewModel.initialize(sessionId)` call `BridgeStateTracker.setActiveAppSession(sessionId)` on every session switch (including manual selection from the drawer)
+- Changing `getActiveConversationId()` to prefer `BridgeStateTracker.activeAppSessionId.value` over the DB query, falling back to `getMostRecentSessionId()` only when the app has never set an active session (e.g., first launch before the user opens ChatScreen)
 
 ### Fix 4: Plain Text Fallback
 

@@ -1,6 +1,7 @@
 package com.oneclaw.shadow.feature.bridge
 
 import com.oneclaw.shadow.bridge.BridgeConversationManager
+import com.oneclaw.shadow.bridge.BridgeStateTracker
 import com.oneclaw.shadow.core.model.Message
 import com.oneclaw.shadow.core.model.MessageType
 import com.oneclaw.shadow.core.model.Session
@@ -16,7 +17,8 @@ class BridgeConversationManagerImpl(
 ) : BridgeConversationManager {
 
     override suspend fun getActiveConversationId(): String? {
-        return sessionRepository.getMostRecentSessionId()
+        return BridgeStateTracker.activeAppSessionId.value
+            ?: sessionRepository.getMostRecentSessionId()
     }
 
     override suspend fun createNewConversation(): String {

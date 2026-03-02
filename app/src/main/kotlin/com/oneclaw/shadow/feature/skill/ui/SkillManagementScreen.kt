@@ -43,6 +43,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.oneclaw.shadow.core.model.SkillDefinition
 import com.oneclaw.shadow.feature.skill.SkillListViewModel
@@ -58,6 +60,10 @@ fun SkillManagementScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.loadSkills()
+    }
     val clipboardManager = LocalClipboardManager.current
     var deleteTarget by remember { mutableStateOf<String?>(null) }
 

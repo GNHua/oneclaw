@@ -137,7 +137,7 @@ class SendMessageUseCase(
         val activeToolDefs = toolRegistry.getCoreToolDefinitions().toMutableList()
 
         // Determine effective max iterations from agent or global default
-        val effectiveMaxRounds = agent.maxIterations ?: Int.MAX_VALUE
+        val effectiveMaxRounds = if (agent.maxIterations == null || agent.maxIterations >= 200) Int.MAX_VALUE else agent.maxIterations
 
         var round = 0
         try {

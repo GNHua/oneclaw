@@ -258,7 +258,7 @@ fun AgentDetailScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Max Iterations slider
-                        val sliderValue = (uiState.maxIterations ?: 25).coerceIn(1, 200).toFloat()
+                        val sliderValue = (uiState.maxIterations ?: 200).coerceIn(1, 200).toFloat()
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -277,8 +277,7 @@ fun AgentDetailScreen(
                         Slider(
                             value = sliderValue,
                             onValueChange = { v ->
-                                val intVal = v.toInt()
-                                viewModel.updateMaxIterations(if (intVal >= 200) null else intVal)
+                                viewModel.updateMaxIterations(v.toInt())
                             },
                             valueRange = 1f..200f,
                             steps = 198,

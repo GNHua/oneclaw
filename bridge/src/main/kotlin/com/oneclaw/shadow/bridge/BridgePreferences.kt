@@ -5,7 +5,7 @@ import com.oneclaw.shadow.bridge.channel.ChannelType
 
 class BridgePreferences(context: Context) {
 
-    private val prefs = context.getSharedPreferences("messaging_bridge", Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences("oneclaw_messaging_bridge", Context.MODE_PRIVATE)
 
     // Master toggle
     fun isBridgeEnabled(): Boolean = prefs.getBoolean(KEY_BRIDGE_ENABLED, false)

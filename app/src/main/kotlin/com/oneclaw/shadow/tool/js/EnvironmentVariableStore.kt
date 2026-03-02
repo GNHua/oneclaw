@@ -12,7 +12,7 @@ import androidx.security.crypto.MasterKey
 class EnvironmentVariableStore(context: Context) {
 
     companion object {
-        private const val PREFS_NAME = "js_tool_env_vars"
+        private const val PREFS_NAME = "oneclaw_js_tool_env_vars"
     }
 
     private val prefs: SharedPreferences = EncryptedSharedPreferences.create(

@@ -48,7 +48,7 @@ class GoogleAuthManager(
 ) {
     companion object {
         private const val TAG = "GoogleAuthManager"
-        private const val PREFS_NAME = "google_oauth_prefs"
+        private const val PREFS_NAME = "oneclaw_google_oauth_prefs"
         private const val KEY_CLIENT_ID = "google_oauth_client_id"
         private const val KEY_CLIENT_SECRET = "google_oauth_client_secret"
         private const val KEY_REFRESH_TOKEN = "google_oauth_refresh_token"

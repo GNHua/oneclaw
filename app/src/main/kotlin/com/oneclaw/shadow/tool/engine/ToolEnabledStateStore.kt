@@ -15,7 +15,7 @@ class ToolEnabledStateStore(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     companion object {
-        private const val PREFS_NAME = "tool_enabled_state"
+        private const val PREFS_NAME = "oneclaw_tool_enabled_state"
         private const val PREFIX_TOOL = "tool:"
         private const val PREFIX_GROUP = "group:"
     }

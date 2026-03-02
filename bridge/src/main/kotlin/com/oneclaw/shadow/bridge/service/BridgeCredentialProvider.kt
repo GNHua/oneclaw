@@ -14,7 +14,7 @@ class BridgeCredentialProvider(context: Context) {
         return try {
             val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
             EncryptedSharedPreferences.create(
-                "bridge_credentials",
+                "oneclaw_bridge_credentials",
                 masterKeyAlias,
                 context,
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
@@ -22,7 +22,7 @@ class BridgeCredentialProvider(context: Context) {
             )
         } catch (e: Exception) {
             Log.w(TAG, "EncryptedSharedPreferences unavailable, falling back to plain prefs: ${e.message}")
-            context.getSharedPreferences("bridge_credentials_plain", Context.MODE_PRIVATE)
+            context.getSharedPreferences("oneclaw_bridge_credentials_plain", Context.MODE_PRIVATE)
         }
     }
 

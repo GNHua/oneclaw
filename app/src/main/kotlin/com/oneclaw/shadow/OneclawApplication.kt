@@ -126,7 +126,7 @@ class OneclawApplication : Application() {
     }
 
     private fun checkDayChange(memoryTriggerManager: MemoryTriggerManager) {
-        val prefs = getSharedPreferences("memory_trigger_prefs", MODE_PRIVATE)
+        val prefs = getSharedPreferences("oneclaw_memory_trigger_prefs", MODE_PRIVATE)
         val today = java.time.LocalDate.now().toString()  // "YYYY-MM-DD"
         val lastDate = prefs.getString("last_active_date", null)
 

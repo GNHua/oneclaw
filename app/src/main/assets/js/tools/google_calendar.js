@@ -148,3 +148,38 @@ async function calendarDeleteCalendar(params) {
     }
     return { success: true };
 }
+
+async function calendarRespond(params) {
+    var calendarId = encodeURIComponent(params.calendar_id);
+    var event = await calendarFetch("GET", "/calendars/" + calendarId + "/events/" + params.event_id);
+    var email = await google.getAccountEmail();
+    var attendees = event.attendees || [];
+    var found = false;
+    for (var i = 0; i < attendees.length; i++) {
+        if (attendees[i].email.toLowerCase() === email.toLowerCase()) {
+            attendees[i].responseStatus = params.response;
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        attendees.push({ email: email, responseStatus: params.response });
+    }
+    event.attendees = attendees;
+    return await calendarFetch("PUT", "/calendars/" + calendarId + "/events/" + params.event_id, event);
+}
+
+async function calendarListColors(params) {
+    return await calendarFetch("GET", "/colors");
+}
+
+async function calendarInstances(params) {
+    var calendarId = encodeURIComponent(params.calendar_id);
+    var query = "?";
+    if (params.time_min) query += "timeMin=" + encodeURIComponent(params.time_min) + "&";
+    if (params.time_max) query += "timeMax=" + encodeURIComponent(params.time_max) + "&";
+    var maxResults = params.max_results || 20;
+    query += "maxResults=" + maxResults;
+    var data = await calendarFetch("GET", "/calendars/" + calendarId + "/events/" + params.event_id + "/instances" + query);
+    return { instances: data.items || [], nextPageToken: data.nextPageToken };
+}

@@ -155,5 +155,24 @@
       "required": ["title"]
     },
     "timeoutSeconds": 15
+  },
+  {
+    "name": "tasks_get_task",
+    "description": "Get the details of a specific Google Task by ID.",
+    "function": "tasksGetTask",
+    "parameters": {
+      "properties": {
+        "tasklist_id": {
+          "type": "string",
+          "description": "Task list ID (use '@default' for the default list)"
+        },
+        "task_id": {
+          "type": "string",
+          "description": "Task ID to retrieve"
+        }
+      },
+      "required": ["tasklist_id", "task_id"]
+    },
+    "timeoutSeconds": 15
   }
 ]

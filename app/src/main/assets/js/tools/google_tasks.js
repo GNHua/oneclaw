@@ -88,3 +88,8 @@ async function tasksDeleteTask(params) {
 async function tasksCreateTasklist(params) {
     return await tasksFetch("POST", "/users/@me/lists", { title: params.title });
 }
+
+async function tasksGetTask(params) {
+    var listId = encodeURIComponent(params.tasklist_id);
+    return await tasksFetch("GET", "/lists/" + listId + "/tasks/" + params.task_id);
+}

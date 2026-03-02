@@ -76,6 +76,33 @@ async function docsBatchUpdate(params) {
     });
 }
 
+async function docsDeleteRange(params) {
+    return await docsFetch("POST", "/documents/" + params.document_id + ":batchUpdate", {
+        requests: [{
+            deleteContentRange: {
+                range: {
+                    startIndex: params.start_index,
+                    endIndex: params.end_index
+                }
+            }
+        }]
+    });
+}
+
+async function docsFindReplace(params) {
+    return await docsFetch("POST", "/documents/" + params.document_id + ":batchUpdate", {
+        requests: [{
+            replaceAllText: {
+                containsText: {
+                    text: params.find_text,
+                    matchCase: params.match_case || false
+                },
+                replaceText: params.replace_text
+            }
+        }]
+    });
+}
+
 function extractDocText(doc) {
     var text = "";
     if (!doc.body || !doc.body.content) return text;

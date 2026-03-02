@@ -83,6 +83,26 @@ async function slidesDeleteSlide(params) {
     });
 }
 
+async function slidesListSlides(params) {
+    var presentation = await slidesFetch("GET", "/presentations/" + params.presentation_id);
+    var slides = (presentation.slides || []).map(function(slide, index) {
+        var layout = slide.slideProperties && slide.slideProperties.layoutObjectId;
+        var elementCount = (slide.pageElements || []).length;
+        return {
+            objectId: slide.objectId,
+            index: index,
+            layoutObjectId: layout,
+            pageElementCount: elementCount
+        };
+    });
+    return {
+        presentationId: presentation.presentationId,
+        title: presentation.title,
+        slideCount: slides.length,
+        slides: slides
+    };
+}
+
 function extractTextFromTextContent(textContent) {
     if (!textContent || !textContent.textElements) return "";
     var text = "";

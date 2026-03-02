@@ -111,7 +111,16 @@ async function gmailReply(params) {
 }
 
 async function gmailTrash(params) {
-    return await gmailFetch("POST", "/messages/" + params.message_id + "/trash");
+    var ids = ensureArray(params.message_ids || params.message_id);
+    if (ids.length === 0) throw new Error("message_id or message_ids is required");
+    if (ids.length === 1) {
+        return await gmailFetch("POST", "/messages/" + ids[0] + "/trash");
+    }
+    return await gmailFetch("POST", "/messages/batchModify", {
+        ids: ids,
+        addLabelIds: ["TRASH"],
+        removeLabelIds: ["INBOX"]
+    });
 }
 
 async function gmailUntrash(params) {
@@ -205,6 +214,90 @@ async function gmailGetThread(params) {
     return { id: data.id, messages: messages };
 }
 
+async function gmailModifyLabels(params) {
+    if (!params.message_id && !params.thread_id) {
+        throw new Error("Either message_id or thread_id is required");
+    }
+    var addIds = params.add_labels ? await resolveLabels(params.add_labels) : [];
+    var removeIds = params.remove_labels ? await resolveLabels(params.remove_labels) : [];
+    var body = {};
+    if (addIds.length > 0) body.addLabelIds = addIds;
+    if (removeIds.length > 0) body.removeLabelIds = removeIds;
+    if (params.thread_id) {
+        return await gmailFetch("POST", "/threads/" + params.thread_id + "/modify", body);
+    }
+    return await gmailFetch("POST", "/messages/" + params.message_id + "/modify", body);
+}
+
+async function gmailDeleteLabel(params) {
+    var token = await google.getAccessToken();
+    var resp = await fetch(GMAIL_API + "/labels/" + params.label_id, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token }
+    });
+    if (!resp.ok) {
+        var errorText = await resp.text();
+        throw new Error("Gmail API error (" + resp.status + "): " + errorText);
+    }
+    return { success: true };
+}
+
+async function gmailGetDraft(params) {
+    var data = await gmailFetch("GET", "/drafts/" + params.draft_id + "?format=full");
+    var msg = data.message;
+    var headers = msg.payload.headers;
+    return {
+        id: data.id,
+        messageId: msg.id,
+        threadId: msg.threadId,
+        subject: findHeader(headers, "Subject"),
+        to: findHeader(headers, "To"),
+        from: findHeader(headers, "From"),
+        cc: findHeader(headers, "Cc"),
+        date: findHeader(headers, "Date"),
+        body: extractBody(msg.payload),
+        labelIds: msg.labelIds || []
+    };
+}
+
+async function gmailDeleteDraft(params) {
+    var token = await google.getAccessToken();
+    var resp = await fetch(GMAIL_API + "/drafts/" + params.draft_id, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token }
+    });
+    if (!resp.ok) {
+        var errorText = await resp.text();
+        throw new Error("Gmail API error (" + resp.status + "): " + errorText);
+    }
+    return { success: true };
+}
+
+async function gmailHistory(params) {
+    var path = "/history?startHistoryId=" + encodeURIComponent(params.start_history_id);
+    var maxResults = params.max_results || 50;
+    path += "&maxResults=" + maxResults;
+    if (params.label_id) path += "&labelId=" + encodeURIComponent(params.label_id);
+    var data = await gmailFetch("GET", path);
+    return {
+        history: data.history || [],
+        historyId: data.historyId,
+        nextPageToken: data.nextPageToken
+    };
+}
+
+async function gmailBatchModify(params) {
+    if (!params.message_ids || params.message_ids.length === 0) {
+        throw new Error("message_ids is required and must not be empty");
+    }
+    var addIds = params.add_labels ? await resolveLabels(params.add_labels) : [];
+    var removeIds = params.remove_labels ? await resolveLabels(params.remove_labels) : [];
+    var body = { ids: params.message_ids };
+    if (addIds.length > 0) body.addLabelIds = addIds;
+    if (removeIds.length > 0) body.removeLabelIds = removeIds;
+    return await gmailFetch("POST", "/messages/batchModify", body);
+}
+
 // --- Helpers ---
 
 function findHeader(headers, name) {
@@ -258,6 +351,57 @@ function extractAttachments(payload) {
 function decodeBase64Url(data) {
     var str = data.replace(/-/g, "+").replace(/_/g, "/");
     return decodeURIComponent(escape(atob(str)));
+}
+
+function ensureArray(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    return [val];
+}
+
+var _labelCache = null;
+var SYSTEM_LABELS = {
+    "INBOX": "INBOX", "SENT": "SENT", "TRASH": "TRASH", "DRAFT": "DRAFT",
+    "SPAM": "SPAM", "STARRED": "STARRED", "UNREAD": "UNREAD", "IMPORTANT": "IMPORTANT",
+    "CATEGORY_PERSONAL": "CATEGORY_PERSONAL", "CATEGORY_SOCIAL": "CATEGORY_SOCIAL",
+    "CATEGORY_PROMOTIONS": "CATEGORY_PROMOTIONS", "CATEGORY_UPDATES": "CATEGORY_UPDATES",
+    "CATEGORY_FORUMS": "CATEGORY_FORUMS"
+};
+
+async function resolveLabels(labels) {
+    var resolved = [];
+    var needLookup = [];
+    for (var i = 0; i < labels.length; i++) {
+        var label = labels[i];
+        if (SYSTEM_LABELS[label]) {
+            resolved.push(label);
+        } else if (label.match(/^Label_/)) {
+            resolved.push(label);
+        } else {
+            needLookup.push(label);
+        }
+    }
+    if (needLookup.length > 0) {
+        if (!_labelCache) {
+            var data = await gmailFetch("GET", "/labels");
+            _labelCache = data.labels || [];
+        }
+        for (var i = 0; i < needLookup.length; i++) {
+            var name = needLookup[i].toLowerCase();
+            var found = false;
+            for (var j = 0; j < _labelCache.length; j++) {
+                if (_labelCache[j].name.toLowerCase() === name) {
+                    resolved.push(_labelCache[j].id);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                resolved.push(needLookup[i]);
+            }
+        }
+    }
+    return resolved;
 }
 
 function buildMimeMessage(params) {

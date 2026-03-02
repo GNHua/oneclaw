@@ -98,18 +98,23 @@
   },
   {
     "name": "gmail_trash",
-    "description": "Move a Gmail message to Trash.",
+    "description": "Move one or more Gmail messages to Trash. Pass a single message_id string or an array of message_ids for batch trash.",
     "function": "gmailTrash",
     "parameters": {
       "properties": {
         "message_id": {
           "type": "string",
-          "description": "The Gmail message ID to trash"
+          "description": "A single Gmail message ID to trash (for backwards compatibility)"
+        },
+        "message_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array of Gmail message IDs to trash (for batch operations)"
         }
       },
-      "required": ["message_id"]
+      "required": []
     },
-    "timeoutSeconds": 15
+    "timeoutSeconds": 30
   },
   {
     "name": "gmail_untrash",
@@ -334,6 +339,129 @@
         }
       },
       "required": ["thread_id"]
+    },
+    "timeoutSeconds": 30
+  },
+  {
+    "name": "gmail_modify_labels",
+    "description": "Add and/or remove labels on a Gmail message or thread. Accepts label names or IDs.",
+    "function": "gmailModifyLabels",
+    "parameters": {
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "description": "Gmail message ID (provide message_id or thread_id, not both)"
+        },
+        "thread_id": {
+          "type": "string",
+          "description": "Gmail thread ID (provide message_id or thread_id, not both)"
+        },
+        "add_labels": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Label names or IDs to add"
+        },
+        "remove_labels": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Label names or IDs to remove"
+        }
+      },
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_delete_label",
+    "description": "Permanently delete a Gmail label by ID. Built-in system labels cannot be deleted.",
+    "function": "gmailDeleteLabel",
+    "parameters": {
+      "properties": {
+        "label_id": {
+          "type": "string",
+          "description": "The label ID to delete (use gmail_list_labels to find IDs)"
+        }
+      },
+      "required": ["label_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_get_draft",
+    "description": "Get the full content of a specific Gmail draft by ID. Returns subject, to, body, and other headers.",
+    "function": "gmailGetDraft",
+    "parameters": {
+      "properties": {
+        "draft_id": {
+          "type": "string",
+          "description": "The Gmail draft ID"
+        }
+      },
+      "required": ["draft_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_delete_draft",
+    "description": "Permanently delete a Gmail draft.",
+    "function": "gmailDeleteDraft",
+    "parameters": {
+      "properties": {
+        "draft_id": {
+          "type": "string",
+          "description": "The Gmail draft ID to delete"
+        }
+      },
+      "required": ["draft_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_history",
+    "description": "List Gmail history records (changes) since a given history ID. Returns messages added, deleted, and label changes.",
+    "function": "gmailHistory",
+    "parameters": {
+      "properties": {
+        "start_history_id": {
+          "type": "string",
+          "description": "The history ID to start listing from (obtain from a message's historyId field)"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of history records to return (default: 50)"
+        },
+        "label_id": {
+          "type": "string",
+          "description": "Only return history for this label ID (optional)"
+        }
+      },
+      "required": ["start_history_id"]
+    },
+    "timeoutSeconds": 30
+  },
+  {
+    "name": "gmail_batch_modify",
+    "description": "Batch modify labels on multiple Gmail messages at once. Accepts label names or IDs.",
+    "function": "gmailBatchModify",
+    "parameters": {
+      "properties": {
+        "message_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array of Gmail message IDs to modify"
+        },
+        "add_labels": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Label names or IDs to add to all messages"
+        },
+        "remove_labels": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Label names or IDs to remove from all messages"
+        }
+      },
+      "required": ["message_ids"]
     },
     "timeoutSeconds": 30
   }

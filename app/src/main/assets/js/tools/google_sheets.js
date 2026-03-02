@@ -90,3 +90,20 @@ async function sheetsBatchUpdate(params) {
         requests: params.requests
     });
 }
+
+async function sheetsMetadata(params) {
+    var fields = params.fields || "spreadsheetId,properties,sheets.properties,namedRanges";
+    return await sheetsFetch("GET", "/spreadsheets/" + params.spreadsheet_id + "?fields=" + encodeURIComponent(fields));
+}
+
+async function sheetsCreate(params) {
+    var body = {
+        properties: { title: params.title }
+    };
+    if (params.sheet_titles && params.sheet_titles.length > 0) {
+        body.sheets = params.sheet_titles.map(function(title, index) {
+            return { properties: { title: title, index: index } };
+        });
+    }
+    return await sheetsFetch("POST", "/spreadsheets", body);
+}

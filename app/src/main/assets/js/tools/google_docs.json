@@ -109,5 +109,55 @@
       "required": ["document_id", "requests"]
     },
     "timeoutSeconds": 30
+  },
+  {
+    "name": "docs_delete_range",
+    "description": "Delete a range of content from a Google Docs document by start and end index.",
+    "function": "docsDeleteRange",
+    "parameters": {
+      "properties": {
+        "document_id": {
+          "type": "string",
+          "description": "Google Docs document ID"
+        },
+        "start_index": {
+          "type": "integer",
+          "description": "Start character index of the range to delete"
+        },
+        "end_index": {
+          "type": "integer",
+          "description": "End character index of the range to delete"
+        }
+      },
+      "required": ["document_id", "start_index", "end_index"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "docs_find_replace",
+    "description": "Find and replace text in a Google Docs document.",
+    "function": "docsFindReplace",
+    "parameters": {
+      "properties": {
+        "document_id": {
+          "type": "string",
+          "description": "Google Docs document ID"
+        },
+        "find_text": {
+          "type": "string",
+          "description": "Text to search for"
+        },
+        "replace_text": {
+          "type": "string",
+          "description": "Replacement text"
+        },
+        "match_case": {
+          "type": "boolean",
+          "description": "Whether to match case (default: false)"
+        }
+      },
+      "required": ["document_id", "find_text", "replace_text"]
+    },
+    "timeoutSeconds": 15
   }
 ]

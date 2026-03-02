@@ -109,5 +109,20 @@
       "required": ["presentation_id", "slide_id"]
     },
     "timeoutSeconds": 15
+  },
+  {
+    "name": "slides_list_slides",
+    "description": "List all slides in a Google Slides presentation with their object IDs and basic info.",
+    "function": "slidesListSlides",
+    "parameters": {
+      "properties": {
+        "presentation_id": {
+          "type": "string",
+          "description": "Google Slides presentation ID"
+        }
+      },
+      "required": ["presentation_id"]
+    },
+    "timeoutSeconds": 30
   }
 ]

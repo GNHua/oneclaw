@@ -277,5 +277,69 @@
       "required": ["calendar_id"]
     },
     "timeoutSeconds": 15
+  },
+  {
+    "name": "calendar_respond",
+    "description": "Respond to a Google Calendar event invitation (accept, decline, or tentative).",
+    "function": "calendarRespond",
+    "parameters": {
+      "properties": {
+        "calendar_id": {
+          "type": "string",
+          "description": "Calendar ID (use 'primary' for the main calendar)"
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Event ID to respond to"
+        },
+        "response": {
+          "type": "string",
+          "description": "Response status: 'accepted', 'declined', or 'tentative'"
+        }
+      },
+      "required": ["calendar_id", "event_id", "response"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "calendar_list_colors",
+    "description": "Get the color definitions for Google Calendar events and calendars.",
+    "function": "calendarListColors",
+    "parameters": {
+      "properties": {},
+      "required": []
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "calendar_instances",
+    "description": "List instances of a recurring Google Calendar event.",
+    "function": "calendarInstances",
+    "parameters": {
+      "properties": {
+        "calendar_id": {
+          "type": "string",
+          "description": "Calendar ID (use 'primary' for the main calendar)"
+        },
+        "event_id": {
+          "type": "string",
+          "description": "Recurring event ID"
+        },
+        "time_min": {
+          "type": "string",
+          "description": "Start of time range (ISO 8601 format, optional)"
+        },
+        "time_max": {
+          "type": "string",
+          "description": "End of time range (ISO 8601 format, optional)"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of instances to return (default: 20)"
+        }
+      },
+      "required": ["calendar_id", "event_id"]
+    },
+    "timeoutSeconds": 30
   }
 ]

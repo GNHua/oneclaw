@@ -191,5 +191,53 @@
       "required": []
     },
     "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_settings_add_forwarding",
+    "description": "Add a new forwarding email address. The address must be verified before it can be used for forwarding.",
+    "function": "gmailSettingsAddForwarding",
+    "parameters": {
+      "properties": {
+        "forwarding_email": {
+          "type": "string",
+          "description": "Email address to add as a forwarding address"
+        }
+      },
+      "required": ["forwarding_email"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_settings_set_auto_forward",
+    "description": "Update Gmail auto-forwarding settings. The forwarding address must already be verified.",
+    "function": "gmailSettingsSetAutoForward",
+    "parameters": {
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether to enable auto-forwarding"
+        },
+        "email_address": {
+          "type": "string",
+          "description": "Email address to forward to (must be a verified forwarding address)"
+        },
+        "disposition": {
+          "type": "string",
+          "description": "Action for the original message: 'leaveInInbox', 'archive', 'trash', or 'markRead'"
+        }
+      },
+      "required": ["enabled"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "gmail_settings_list_delegates",
+    "description": "List the delegates for the specified account. Delegates can read, send, and delete messages on behalf of the account owner.",
+    "function": "gmailSettingsListDelegates",
+    "parameters": {
+      "properties": {},
+      "required": []
+    },
+    "timeoutSeconds": 15
   }
 ]

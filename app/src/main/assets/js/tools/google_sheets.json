@@ -146,5 +146,44 @@
       "required": ["spreadsheet_id", "requests"]
     },
     "timeoutSeconds": 30
+  },
+  {
+    "name": "sheets_metadata",
+    "description": "Get detailed metadata for a Google Sheets spreadsheet including sheet properties, named ranges, and developer metadata.",
+    "function": "sheetsMetadata",
+    "parameters": {
+      "properties": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "Google Sheets spreadsheet ID"
+        },
+        "fields": {
+          "type": "string",
+          "description": "Fields to return (default: 'spreadsheetId,properties,sheets.properties,namedRanges')"
+        }
+      },
+      "required": ["spreadsheet_id"]
+    },
+    "timeoutSeconds": 15
+  },
+  {
+    "name": "sheets_create",
+    "description": "Create a new Google Sheets spreadsheet.",
+    "function": "sheetsCreate",
+    "parameters": {
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Spreadsheet title"
+        },
+        "sheet_titles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Names for initial sheets/tabs (optional, defaults to one sheet named 'Sheet1')"
+        }
+      },
+      "required": ["title"]
+    },
+    "timeoutSeconds": 15
   }
 ]

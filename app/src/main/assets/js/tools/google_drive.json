@@ -257,5 +257,43 @@
       "required": ["query"]
     },
     "timeoutSeconds": 30
+  },
+  {
+    "name": "drive_copy",
+    "description": "Create a copy of a Google Drive file. Optionally rename and place in a specific folder.",
+    "function": "driveCopy",
+    "parameters": {
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "description": "File ID to copy"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name for the copy (optional, defaults to 'Copy of <original>')"
+        },
+        "parent_id": {
+          "type": "string",
+          "description": "Parent folder ID for the copy (optional)"
+        }
+      },
+      "required": ["file_id"]
+    },
+    "timeoutSeconds": 30
+  },
+  {
+    "name": "drive_permissions",
+    "description": "List permissions (sharing settings) for a Google Drive file.",
+    "function": "drivePermissions",
+    "parameters": {
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "description": "File ID to list permissions for"
+        }
+      },
+      "required": ["file_id"]
+    },
+    "timeoutSeconds": 15
   }
 ]

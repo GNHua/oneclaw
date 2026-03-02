@@ -190,3 +190,15 @@ async function driveSearch(params) {
     var data = await driveFetch("GET", "/files" + query);
     return { files: data.files || [] };
 }
+
+async function driveCopy(params) {
+    var body = {};
+    if (params.name) body.name = params.name;
+    if (params.parent_id) body.parents = [params.parent_id];
+    return await driveFetch("POST", "/files/" + params.file_id + "/copy?fields=" + DETAIL_FIELDS, body);
+}
+
+async function drivePermissions(params) {
+    var data = await driveFetch("GET", "/files/" + params.file_id + "/permissions?fields=permissions(id,type,role,emailAddress,displayName,domain)");
+    return { permissions: data.permissions || [] };
+}

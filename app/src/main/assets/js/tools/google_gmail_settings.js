@@ -106,3 +106,21 @@ async function gmailSettingsListSendAs(params) {
 async function gmailSettingsGetLanguage(params) {
     return await gmailSettingsFetch("GET", "/language");
 }
+
+async function gmailSettingsAddForwarding(params) {
+    return await gmailSettingsFetch("POST", "/forwardingAddresses", {
+        forwardingEmail: params.forwarding_email
+    });
+}
+
+async function gmailSettingsSetAutoForward(params) {
+    var body = { enabled: params.enabled };
+    if (params.email_address !== undefined) body.emailAddress = params.email_address;
+    if (params.disposition !== undefined) body.disposition = params.disposition;
+    return await gmailSettingsFetch("PUT", "/autoForwarding", body);
+}
+
+async function gmailSettingsListDelegates(params) {
+    var data = await gmailSettingsFetch("GET", "/delegates");
+    return { delegates: data.delegates || [] };
+}

@@ -1,6 +1,7 @@
 package com.oneclaw.shadow.di
 
 import android.util.Log
+import com.oneclaw.shadow.core.model.ToolGroupDefinition
 import com.oneclaw.shadow.core.model.ToolSourceInfo
 import com.oneclaw.shadow.core.model.ToolSourceType
 import com.oneclaw.shadow.tool.browser.BrowserContentExtractor
@@ -18,6 +19,7 @@ import com.oneclaw.shadow.tool.builtin.JsEvalTool
 import com.oneclaw.shadow.tool.builtin.ListScheduledTasksTool
 import com.oneclaw.shadow.tool.builtin.ListUserToolsTool
 import com.oneclaw.shadow.tool.builtin.LoadSkillTool
+import com.oneclaw.shadow.tool.builtin.LoadToolGroupTool
 import com.oneclaw.shadow.tool.builtin.PdfExtractTextTool
 import com.oneclaw.shadow.tool.builtin.PdfInfoTool
 import com.oneclaw.shadow.tool.builtin.PdfRenderPageTool
@@ -167,39 +169,49 @@ val toolModule = module {
 
     single {
         ToolRegistry().apply {
-            // Only Kotlin built-in: LoadSkillTool
+            // Core meta-tools (always available, no groupName)
             try {
                 register(get<LoadSkillTool>(), ToolSourceInfo.BUILTIN)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register load_skill: ${e.message}")
             }
-
+            // Pass `this` to avoid circular Koin dependency (same pattern as ListToolStatesTool)
             try {
-                register(get<CreateScheduledTaskTool>(), ToolSourceInfo.BUILTIN)
+                register(LoadToolGroupTool(this), ToolSourceInfo.BUILTIN)
+            } catch (e: Exception) {
+                Log.e("ToolModule", "Failed to register load_tool_group: ${e.message}")
+            }
+
+            val scheduledTasksSourceInfo = ToolSourceInfo(
+                type = ToolSourceType.BUILTIN,
+                groupName = "scheduled_tasks"
+            )
+            try {
+                register(get<CreateScheduledTaskTool>(), scheduledTasksSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register schedule_task: ${e.message}")
             }
 
             try {
-                register(get<ListScheduledTasksTool>(), ToolSourceInfo.BUILTIN)
+                register(get<ListScheduledTasksTool>(), scheduledTasksSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register list_scheduled_tasks: ${e.message}")
             }
 
             try {
-                register(get<RunScheduledTaskTool>(), ToolSourceInfo.BUILTIN)
+                register(get<RunScheduledTaskTool>(), scheduledTasksSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register run_scheduled_task: ${e.message}")
             }
 
             try {
-                register(get<UpdateScheduledTaskTool>(), ToolSourceInfo.BUILTIN)
+                register(get<UpdateScheduledTaskTool>(), scheduledTasksSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register update_scheduled_task: ${e.message}")
             }
 
             try {
-                register(get<DeleteScheduledTaskTool>(), ToolSourceInfo.BUILTIN)
+                register(get<DeleteScheduledTaskTool>(), scheduledTasksSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register delete_scheduled_task: ${e.message}")
             }
@@ -246,46 +258,52 @@ val toolModule = module {
                 Log.e("ToolModule", "Failed to register search_history: ${e.message}")
             }
 
-            // RFC-033: PDF tools
+            // RFC-033: PDF tools (grouped)
+            val pdfSourceInfo = ToolSourceInfo(type = ToolSourceType.BUILTIN, groupName = "pdf")
             try {
-                register(get<PdfInfoTool>(), ToolSourceInfo.BUILTIN)
+                register(get<PdfInfoTool>(), pdfSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register pdf_info: ${e.message}")
             }
             try {
-                register(get<PdfExtractTextTool>(), ToolSourceInfo.BUILTIN)
+                register(get<PdfExtractTextTool>(), pdfSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register pdf_extract_text: ${e.message}")
             }
             try {
-                register(get<PdfRenderPageTool>(), ToolSourceInfo.BUILTIN)
+                register(get<PdfRenderPageTool>(), pdfSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register pdf_render_page: ${e.message}")
             }
 
-            // RFC-035: JS tool CRUD tools
+            // RFC-035: JS tool CRUD tools (grouped)
+            val jsToolMgmtSourceInfo = ToolSourceInfo(
+                type = ToolSourceType.BUILTIN,
+                groupName = "js_tool_management"
+            )
             try {
-                register(get<CreateJsToolTool>(), ToolSourceInfo.BUILTIN)
+                register(get<CreateJsToolTool>(), jsToolMgmtSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register create_js_tool: ${e.message}")
             }
             try {
-                register(get<ListUserToolsTool>(), ToolSourceInfo.BUILTIN)
+                register(get<ListUserToolsTool>(), jsToolMgmtSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register list_user_tools: ${e.message}")
             }
             try {
-                register(get<UpdateJsToolTool>(), ToolSourceInfo.BUILTIN)
+                register(get<UpdateJsToolTool>(), jsToolMgmtSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register update_js_tool: ${e.message}")
             }
             try {
-                register(get<DeleteJsToolTool>(), ToolSourceInfo.BUILTIN)
+                register(get<DeleteJsToolTool>(), jsToolMgmtSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register delete_js_tool: ${e.message}")
             }
 
-            // RFC-036: Configuration management tools
+            // RFC-036: Configuration management tools (grouped)
+            val configSourceInfo = ToolSourceInfo(type = ToolSourceType.BUILTIN, groupName = "config")
             val configTools = listOf(
                 get<ListProvidersTool>(),
                 get<CreateProviderTool>(),
@@ -305,7 +323,7 @@ val toolModule = module {
             )
             configTools.forEach { tool ->
                 try {
-                    register(tool, ToolSourceInfo.BUILTIN)
+                    register(tool, configSourceInfo)
                 } catch (e: Exception) {
                     Log.e("ToolModule", "Failed to register ${tool.definition.name}: ${e.message}")
                 }
@@ -313,27 +331,59 @@ val toolModule = module {
 
             // Tool state tools: pass `this` (ToolRegistry) to avoid circular Koin dependency
             try {
-                register(ListToolStatesTool(this, get()), ToolSourceInfo.BUILTIN)
+                register(ListToolStatesTool(this, get()), configSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register list_tool_states: ${e.message}")
             }
             try {
-                register(SetToolEnabledTool(this, get()), ToolSourceInfo.BUILTIN)
+                register(SetToolEnabledTool(this, get()), configSourceInfo)
             } catch (e: Exception) {
                 Log.e("ToolModule", "Failed to register set_tool_enabled: ${e.message}")
             }
+
+            // RFC-040: Register Kotlin tool group metadata
+            registerGroup(ToolGroupDefinition(
+                name = "config",
+                displayName = "Configuration",
+                description = "Manage providers, models, agents, app settings, environment variables, and tool states"
+            ))
+            registerGroup(ToolGroupDefinition(
+                name = "pdf",
+                displayName = "PDF Tools",
+                description = "Extract text, get info, and render pages from PDF files"
+            ))
+            registerGroup(ToolGroupDefinition(
+                name = "scheduled_tasks",
+                displayName = "Scheduled Tasks",
+                description = "Create, list, run, update, and delete scheduled tasks"
+            ))
+            registerGroup(ToolGroupDefinition(
+                name = "js_tool_management",
+                displayName = "JS Tool Management",
+                description = "Create, list, update, and delete user JavaScript tools"
+            ))
 
             // Built-in JS tools from assets (replaces Kotlin tool registration)
             val loader: JsToolLoader = get()
             try {
                 val builtinResult = loader.loadBuiltinTools()
-                // Register built-in JS tools with BUILTIN source type
+                // Register JS group definitions from _meta entries
+                for (groupDef in builtinResult.groupDefinitions) {
+                    registerGroup(groupDef)
+                }
+                // Register built-in JS tools with appropriate source info
                 for (tool in builtinResult.loadedTools) {
                     if (hasTool(tool.definition.name)) {
                         Log.w("ToolModule", "Built-in JS tool '${tool.definition.name}' conflicts with existing tool")
                         continue
                     }
-                    register(tool, ToolSourceInfo(type = ToolSourceType.BUILTIN))
+                    val groupName = builtinResult.groupNames[tool.definition.name]
+                    val sourceInfo = if (groupName != null) {
+                        ToolSourceInfo(type = ToolSourceType.TOOL_GROUP, groupName = groupName)
+                    } else {
+                        ToolSourceInfo(type = ToolSourceType.BUILTIN)
+                    }
+                    register(tool, sourceInfo)
                     Log.i("ToolModule", "Registered built-in JS tool: ${tool.definition.name}")
                 }
                 builtinResult.errors.forEach { error ->

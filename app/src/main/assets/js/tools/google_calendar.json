@@ -1,5 +1,10 @@
 [
   {
+    "_meta": true,
+    "display_name": "Google Calendar",
+    "description": "Calendar management: list, create, update, delete events, and manage Google Calendar"
+  },
+  {
     "name": "calendar_list_calendars",
     "description": "List all Google Calendars the user has access to.",
     "function": "calendarListCalendars",

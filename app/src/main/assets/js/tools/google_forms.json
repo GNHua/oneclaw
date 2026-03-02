@@ -1,5 +1,10 @@
 [
   {
+    "_meta": true,
+    "display_name": "Google Forms",
+    "description": "Form management: create forms, add questions, get responses, and manage Google Forms"
+  },
+  {
     "name": "forms_get",
     "description": "Get the structure and questions of a Google Form.",
     "function": "formsGet",

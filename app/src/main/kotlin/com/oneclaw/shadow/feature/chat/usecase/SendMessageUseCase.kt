@@ -11,6 +11,7 @@ import com.oneclaw.shadow.core.model.ProviderCapability
 import com.oneclaw.shadow.core.model.ToolCallStatus
 import com.oneclaw.shadow.core.model.ToolDefinition
 import com.oneclaw.shadow.core.model.ToolResult
+import com.oneclaw.shadow.core.model.ToolResultStatus
 import com.oneclaw.shadow.core.repository.AgentRepository
 import com.oneclaw.shadow.core.repository.AttachmentRepository
 import com.oneclaw.shadow.core.repository.MessageRepository
@@ -131,10 +132,9 @@ class SendMessageUseCase(
         )
         sessionRepository.setActive(sessionId, true)
 
-        // 5. Get agent tools
-        val agentToolDefs: List<ToolDefinition>? = toolRegistry
-            .getAllToolDefinitions()
-            .takeIf { it.isNotEmpty() }
+        // 5. Build dynamic tool list: start with core tools only
+        val loadedGroupNames = mutableSetOf<String>()
+        val activeToolDefs = toolRegistry.getCoreToolDefinitions().toMutableList()
 
         // Determine effective max iterations from agent or global default
         val effectiveMaxRounds = agent.maxIterations ?: Int.MAX_VALUE
@@ -160,7 +160,10 @@ class SendMessageUseCase(
             }
 
             // RFC-014: Inject skill registry into system prompt
-            val baseSystemPrompt = buildSystemPromptWithSkills(memorySystemPrompt)
+            // RFC-040: Inject tool group listing after skills
+            val baseSystemPrompt = buildSystemPromptWithToolGroups(
+                buildSystemPromptWithSkills(memorySystemPrompt)
+            )
 
             // Build api attachments for first round only
             val apiAttachments: List<ApiAttachment> = if (pendingAttachments.isNotEmpty() && attachmentFileManager != null) {
@@ -213,7 +216,7 @@ class SendMessageUseCase(
                     apiKey = apiKey,
                     modelId = model.id,
                     messages = messagesWithAttachments,
-                    tools = agentToolDefs,
+                    tools = activeToolDefs.takeIf { it.isNotEmpty() },
                     systemPrompt = effectiveSystemPrompt,
                     webSearchEnabled = agent.webSearchEnabled,
                     temperature = agent.temperature
@@ -307,14 +310,27 @@ class SendMessageUseCase(
                 }
                 val toolResponses = toolExecutionEngine.executeToolsParallel(
                     toolCalls = toolRequests,
-                    availableToolNames = toolRegistry.getAllToolNames()
+                    availableToolNames = activeToolDefs.map { it.name }
                 )
+
+                // RFC-040: Expand active tool list when load_tool_group succeeds
+                for (tr in toolResponses) {
+                    if (tr.toolName == "load_tool_group" &&
+                        tr.result.status == ToolResultStatus.SUCCESS
+                    ) {
+                        val groupName = extractGroupName(toolRequests, tr.toolCallId)
+                        if (groupName != null && loadedGroupNames.add(groupName)) {
+                            val groupDefs = toolRegistry.getGroupToolDefinitions(groupName)
+                            activeToolDefs.addAll(groupDefs)
+                        }
+                    }
+                }
 
                 // Save all TOOL_CALL messages first, then all TOOL_RESULT messages.
                 // This ensures MessageToApiMapper can collect consecutive TOOL_CALL rows
                 // after an AI_RESPONSE before encountering any TOOL_RESULT rows.
                 for (tr in toolResponses) {
-                    val isSuccess = tr.result.status == com.oneclaw.shadow.core.model.ToolResultStatus.SUCCESS
+                    val isSuccess = tr.result.status == ToolResultStatus.SUCCESS
                     val finalStatus = if (isSuccess) ToolCallStatus.SUCCESS else ToolCallStatus.ERROR
                     messageRepository.addMessage(Message(
                         id = "", sessionId = sessionId, type = MessageType.TOOL_CALL,
@@ -328,7 +344,7 @@ class SendMessageUseCase(
                     ))
                 }
                 for (tr in toolResponses) {
-                    val isSuccess = tr.result.status == com.oneclaw.shadow.core.model.ToolResultStatus.SUCCESS
+                    val isSuccess = tr.result.status == ToolResultStatus.SUCCESS
                     val finalStatus = if (isSuccess) ToolCallStatus.SUCCESS else ToolCallStatus.ERROR
                     val rawOutput = tr.result.result ?: tr.result.errorMessage ?: ""
                     val truncatedOutput = ToolResultTruncator.truncate(rawOutput)
@@ -433,6 +449,35 @@ class SendMessageUseCase(
             injected.add(text)
         }
         return injected
+    }
+
+    /**
+     * RFC-040: Append tool group listing to system prompt when groups are available.
+     */
+    private fun buildSystemPromptWithToolGroups(basePrompt: String): String {
+        val groups = toolRegistry.getAllGroupDefinitions()
+        if (groups.isEmpty()) return basePrompt
+
+        val registryPrompt = buildString {
+            appendLine("## Available Tool Groups")
+            appendLine()
+            appendLine("Use `load_tool_group` to load tools from a group before using them.")
+            appendLine()
+            groups.forEach { group ->
+                appendLine("- ${group.name}: ${group.description}")
+            }
+        }.trimEnd()
+
+        return if (basePrompt.isBlank()) registryPrompt
+        else "$basePrompt\n\n---\n\n$registryPrompt"
+    }
+
+    private fun extractGroupName(
+        toolRequests: List<ToolCallRequest>,
+        toolCallId: String
+    ): String? {
+        val request = toolRequests.find { it.toolCallId == toolCallId } ?: return null
+        return request.parameters["group_name"] as? String
     }
 
     /**

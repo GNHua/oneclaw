@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Environment
 import android.util.Log
 import com.oneclaw.shadow.core.model.ToolDefinition
+import com.oneclaw.shadow.core.model.ToolGroupDefinition
 import com.oneclaw.shadow.core.model.ToolParameter
 import com.oneclaw.shadow.core.model.ToolParametersSchema
 import com.oneclaw.shadow.tool.engine.ToolRegistry
@@ -16,6 +17,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.int
 import java.io.File
 
@@ -39,7 +41,11 @@ class JsToolLoader(
 
     data class LoadResult(
         val loadedTools: List<JsTool>,
-        val errors: List<ToolLoadError>
+        val errors: List<ToolLoadError>,
+        /** tool name -> group name mapping (for group manifests) */
+        val groupNames: Map<String, String> = emptyMap(),
+        /** extracted group metadata from _meta entries or auto-generated */
+        val groupDefinitions: List<ToolGroupDefinition> = emptyList()
     )
 
     data class ToolLoadError(
@@ -54,6 +60,8 @@ class JsToolLoader(
     fun loadBuiltinTools(): LoadResult {
         val tools = mutableListOf<JsTool>()
         val errors = mutableListOf<ToolLoadError>()
+        val groupNames = mutableMapOf<String, String>()
+        val groupDefs = mutableListOf<ToolGroupDefinition>()
 
         val assetFiles = try {
             context.assets.list(ASSETS_TOOLS_DIR) ?: emptyArray()
@@ -80,7 +88,15 @@ class JsToolLoader(
             try {
                 val jsonContent = readAsset("$ASSETS_TOOLS_DIR/$jsonFileName")
                 val jsSource = readAsset("$ASSETS_TOOLS_DIR/$jsFileName")
-                val parsed = parseJsonManifest(jsonContent, baseName, jsonFileName)
+                val (parsed, groupDef) = parseJsonManifestWithMeta(jsonContent, baseName, jsonFileName)
+
+                // If this is a group manifest (multiple tools), track group info
+                if (groupDef != null) {
+                    groupDefs.add(groupDef)
+                    for ((definition, _) in parsed) {
+                        groupNames[definition.name] = baseName
+                    }
+                }
 
                 for ((definition, functionName) in parsed) {
                     tools.add(JsTool(
@@ -99,7 +115,7 @@ class JsToolLoader(
             }
         }
 
-        return LoadResult(tools, errors)
+        return LoadResult(tools, errors, groupNames, groupDefs)
     }
 
     private fun readAsset(path: String): String {
@@ -174,17 +190,27 @@ class JsToolLoader(
         jsonContent: String,
         baseName: String,
         fileName: String
-    ): List<Pair<ToolDefinition, String?>> {
+    ): List<Pair<ToolDefinition, String?>> = parseJsonManifestWithMeta(jsonContent, baseName, fileName).first
+
+    /**
+     * Parse a JSON manifest and also extract optional ToolGroupDefinition metadata.
+     * Returns Pair(toolList, groupDef) where groupDef is non-null only for array (group) manifests.
+     */
+    internal fun parseJsonManifestWithMeta(
+        jsonContent: String,
+        baseName: String,
+        fileName: String
+    ): Pair<List<Pair<ToolDefinition, String?>>, ToolGroupDefinition?> {
         val element = Json.parseToJsonElement(jsonContent)
 
         return when {
             element is JsonObject -> {
                 // Single-tool mode (existing behavior)
                 val definition = parseToolEntry(element, requireNameMatch = baseName)
-                listOf(Pair(definition, null))
+                Pair(listOf(Pair(definition, null)), null)
             }
             element is JsonArray -> {
-                // Group mode (new)
+                // Group mode
                 parseGroupManifest(element, baseName, fileName)
             }
             else -> throw IllegalArgumentException("JSON must be an object or array")
@@ -193,29 +219,59 @@ class JsToolLoader(
 
     /**
      * Parse a group manifest (JSON array).
-     * Each entry must have "name", "description", "function".
+     * Optionally, the first entry may be a _meta object with display_name and description.
+     * Each non-meta entry must have "name", "description", "function".
      * Invalid entries are logged and skipped; valid entries are returned.
+     * Returns Pair(toolList, groupDef).
      */
     private fun parseGroupManifest(
         array: JsonArray,
         baseName: String,
         fileName: String
-    ): List<Pair<ToolDefinition, String?>> {
+    ): Pair<List<Pair<ToolDefinition, String?>>, ToolGroupDefinition?> {
         if (array.isEmpty()) {
             Log.w(TAG, "Empty tool group in '$fileName'")
-            return emptyList()
+            return Pair(emptyList(), null)
         }
 
-        if (array.size > MAX_GROUP_SIZE) {
+        val entries = array.toList()
+
+        // Check for _meta first entry
+        var groupDef: ToolGroupDefinition?
+        val toolEntries: List<kotlinx.serialization.json.JsonElement>
+
+        val firstEntry = entries[0]
+        if (firstEntry is JsonObject &&
+            firstEntry["_meta"]?.jsonPrimitive?.booleanOrNull == true
+        ) {
+            groupDef = ToolGroupDefinition(
+                name = baseName,
+                displayName = firstEntry["display_name"]?.jsonPrimitive?.content
+                    ?: baseName.split("_").joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } },
+                description = firstEntry["description"]?.jsonPrimitive?.content
+                    ?: "Tools from $baseName group"
+            )
+            toolEntries = entries.drop(1)
+        } else {
+            // Auto-generate group definition from baseName
+            groupDef = ToolGroupDefinition(
+                name = baseName,
+                displayName = baseName.split("_").joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } },
+                description = "Tools from $baseName group"
+            )
+            toolEntries = entries
+        }
+
+        if (toolEntries.size > MAX_GROUP_SIZE) {
             throw IllegalArgumentException(
-                "Tool group in '$fileName' has ${array.size} entries (maximum: $MAX_GROUP_SIZE)"
+                "Tool group in '$fileName' has ${toolEntries.size} entries (maximum: $MAX_GROUP_SIZE)"
             )
         }
 
         val results = mutableListOf<Pair<ToolDefinition, String?>>()
         val seenNames = mutableSetOf<String>()
 
-        for ((index, entry) in array.withIndex()) {
+        for ((index, entry) in toolEntries.withIndex()) {
             try {
                 val obj = entry.jsonObject
                 val name = obj["name"]?.jsonPrimitive?.content
@@ -249,7 +305,7 @@ class JsToolLoader(
             }
         }
 
-        return results
+        return Pair(results, groupDef)
     }
 
     /**

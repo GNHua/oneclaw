@@ -1,6 +1,7 @@
 package com.oneclaw.shadow.tool.engine
 
 import com.oneclaw.shadow.core.model.ToolDefinition
+import com.oneclaw.shadow.core.model.ToolGroupDefinition
 import com.oneclaw.shadow.core.model.ToolSourceInfo
 import com.oneclaw.shadow.core.model.ToolSourceType
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,8 @@ class ToolRegistry {
     @PublishedApi
     internal val _version = MutableStateFlow(0)
     val version: StateFlow<Int> = _version.asStateFlow()
+
+    private val groupDefinitions = mutableMapOf<String, ToolGroupDefinition>()
 
     /**
      * Register a tool with optional source info.
@@ -70,14 +73,40 @@ class ToolRegistry {
      */
     fun getAllToolSourceInfo(): Map<String, ToolSourceInfo> = sourceInfoMap.toMap()
 
+    /** Register group metadata. */
+    fun registerGroup(group: ToolGroupDefinition) {
+        groupDefinitions[group.name] = group
+    }
+
+    /** Get a single group definition by name. Returns null if not found. */
+    fun getGroupDefinition(name: String): ToolGroupDefinition? = groupDefinitions[name]
+
+    /** Get all registered group definitions. */
+    fun getAllGroupDefinitions(): List<ToolGroupDefinition> = groupDefinitions.values.toList()
+
+    /** Get tool definitions that are NOT in any group (core tools). */
+    fun getCoreToolDefinitions(): List<ToolDefinition> {
+        return tools.entries
+            .filter { (name, _) -> sourceInfoMap[name]?.groupName == null }
+            .map { (_, tool) -> tool.definition }
+    }
+
+    /** Get tool definitions belonging to a specific group. */
+    fun getGroupToolDefinitions(groupName: String): List<ToolDefinition> {
+        return tools.entries
+            .filter { (name, _) -> sourceInfoMap[name]?.groupName == groupName }
+            .map { (_, tool) -> tool.definition }
+    }
+
     /**
-     * Get all distinct tool group names (tools with TOOL_GROUP source type).
+     * Get all distinct tool group names.
      * Returns group name -> list of tool names in that group.
+     * Includes tools with any groupName set, regardless of source type.
      */
     fun getToolGroups(): Map<String, List<String>> {
         val groups = mutableMapOf<String, MutableList<String>>()
         for ((toolName, info) in sourceInfoMap) {
-            if (info.type == ToolSourceType.TOOL_GROUP && info.groupName != null) {
+            if (info.groupName != null) {
                 groups.getOrPut(info.groupName) { mutableListOf() }.add(toolName)
             }
         }

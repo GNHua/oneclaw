@@ -1,5 +1,10 @@
 [
   {
+    "_meta": true,
+    "display_name": "Google Contacts",
+    "description": "Contact management: search, list, create, update, and delete Google Contacts"
+  },
+  {
     "name": "contacts_list",
     "description": "List Google Contacts from the user's personal contacts.",
     "function": "contactsList",

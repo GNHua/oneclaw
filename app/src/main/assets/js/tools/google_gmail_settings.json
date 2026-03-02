@@ -1,5 +1,10 @@
 [
   {
+    "_meta": true,
+    "display_name": "Google Gmail Settings",
+    "description": "Gmail settings: manage filters, labels, forwarding, signatures, and vacation responders"
+  },
+  {
     "name": "gmail_settings_get_vacation",
     "description": "Get the Gmail vacation auto-reply settings.",
     "function": "gmailSettingsGetVacation",

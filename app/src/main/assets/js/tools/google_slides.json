@@ -1,5 +1,10 @@
 [
   {
+    "_meta": true,
+    "display_name": "Google Slides",
+    "description": "Presentation management: create, update, add slides, and manage Google Slides presentations"
+  },
+  {
     "name": "slides_get",
     "description": "Get the content and structure of a Google Slides presentation.",
     "function": "slidesGet",

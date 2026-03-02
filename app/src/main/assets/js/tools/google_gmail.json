@@ -1,5 +1,10 @@
 [
   {
+    "_meta": true,
+    "display_name": "Google Gmail",
+    "description": "Email management: search, read, send, draft, label, archive, and manage Gmail messages"
+  },
+  {
     "name": "gmail_search",
     "description": "Search Gmail messages using Gmail query syntax (e.g., 'from:user@example.com', 'is:unread', 'subject:hello'). Returns message list with id, snippet, from, subject, date.",
     "function": "gmailSearch",

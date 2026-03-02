@@ -44,4 +44,20 @@ class ProviderListViewModel(
             }
         }
     }
+
+    fun refresh() {
+        viewModelScope.launch {
+            val updated = _uiState.value.providers.map { item ->
+                val hasKey = apiKeyStorage.hasApiKey(item.id)
+                val models = providerRepository.getModelsForProvider(item.id)
+                item.copy(
+                    modelCount = models.size,
+                    hasApiKey = hasKey,
+                    connectionStatus = if (!hasKey) ConnectionStatus.NOT_CONFIGURED
+                                      else ConnectionStatus.DISCONNECTED
+                )
+            }
+            _uiState.update { it.copy(providers = updated) }
+        }
+    }
 }

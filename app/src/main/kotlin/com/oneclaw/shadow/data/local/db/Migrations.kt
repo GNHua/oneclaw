@@ -151,6 +151,17 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
     }
 }
 
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Set default max_iterations=100 on General Assistant agent
+        db.execSQL(
+            """UPDATE agents SET max_iterations = 100
+               WHERE id = '${com.oneclaw.shadow.core.model.AgentConstants.GENERAL_ASSISTANT_ID}'
+               AND (max_iterations IS NULL OR max_iterations = 0)"""
+        )
+    }
+}
+
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
         // Add context_window_size to models

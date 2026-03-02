@@ -136,7 +136,9 @@ class SendMessageUseCase(
         // 5. Build dynamic tool list: start with core tools, restore previously loaded groups (RFC-044)
         val existingMessages = messageRepository.getMessagesSnapshot(sessionId)
         val previouslyLoadedGroups = restoreLoadedGroups(existingMessages)
-        val loadedGroupNames = previouslyLoadedGroups.toMutableSet()
+        val loadedGroupNames = previouslyLoadedGroups.toMutableSet().apply {
+            add(ToolRegistry.CORE_GROUP)
+        }
         val activeToolDefs = toolRegistry.getCoreToolDefinitions().toMutableList()
         for (groupName in previouslyLoadedGroups) {
             val groupDefs = toolRegistry.getGroupToolDefinitions(groupName)
@@ -463,6 +465,7 @@ class SendMessageUseCase(
      */
     private fun buildSystemPromptWithToolGroups(basePrompt: String): String {
         val groups = toolRegistry.getAllGroupDefinitions()
+            .filter { it.name != ToolRegistry.CORE_GROUP }
         if (groups.isEmpty()) return basePrompt
 
         val registryPrompt = buildString {

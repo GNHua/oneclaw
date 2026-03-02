@@ -38,12 +38,30 @@ class ToolRegistryGroupTest {
         registry.register(makeTool("core_tool"), ToolSourceInfo.BUILTIN)
         registry.register(
             makeTool("grouped_tool"),
-            ToolSourceInfo(type = ToolSourceType.BUILTIN, groupName = "config")
+            ToolSourceInfo(type = ToolSourceType.BUILTIN, groupName = "web")
         )
 
         val core = registry.getCoreToolDefinitions()
         assertEquals(1, core.size)
         assertEquals("core_tool", core[0].name)
+    }
+
+    @Test
+    fun `getCoreToolDefinitions includes core group tools`() {
+        registry.register(makeTool("ungrouped_tool"), ToolSourceInfo.BUILTIN)
+        registry.register(
+            makeTool("core_group_tool"),
+            ToolSourceInfo(type = ToolSourceType.BUILTIN, groupName = ToolRegistry.CORE_GROUP)
+        )
+        registry.register(
+            makeTool("web_tool"),
+            ToolSourceInfo(type = ToolSourceType.BUILTIN, groupName = "web")
+        )
+
+        val core = registry.getCoreToolDefinitions()
+        assertEquals(2, core.size)
+        assertTrue(core.any { it.name == "ungrouped_tool" })
+        assertTrue(core.any { it.name == "core_group_tool" })
     }
 
     @Test

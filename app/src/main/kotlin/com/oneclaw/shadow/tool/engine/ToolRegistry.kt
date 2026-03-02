@@ -13,6 +13,10 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 class ToolRegistry {
 
+    companion object {
+        const val CORE_GROUP = "core"
+    }
+
     @PublishedApi
     internal val tools = mutableMapOf<String, Tool>()
 
@@ -84,10 +88,13 @@ class ToolRegistry {
     /** Get all registered group definitions. */
     fun getAllGroupDefinitions(): List<ToolGroupDefinition> = groupDefinitions.values.toList()
 
-    /** Get tool definitions that are NOT in any group (core tools). */
+    /** Get tool definitions that belong to the core group or have no group (always available). */
     fun getCoreToolDefinitions(): List<ToolDefinition> {
         return tools.entries
-            .filter { (name, _) -> sourceInfoMap[name]?.groupName == null }
+            .filter { (name, _) ->
+                val groupName = sourceInfoMap[name]?.groupName
+                groupName == null || groupName == CORE_GROUP
+            }
             .map { (_, tool) -> tool.definition }
     }
 

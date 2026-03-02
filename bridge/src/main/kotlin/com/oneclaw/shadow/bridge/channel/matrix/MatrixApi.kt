@@ -46,27 +46,32 @@ class MatrixApi(
             }
         }
 
-    suspend fun sendMessage(roomId: String, text: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val txnId = UUID.randomUUID().toString()
-            val body = buildJsonObject {
-                put("msgtype", "m.text")
-                put("body", text)
+    suspend fun sendMessage(roomId: String, text: String, htmlBody: String? = null): Boolean =
+        withContext(Dispatchers.IO) {
+            try {
+                val txnId = UUID.randomUUID().toString()
+                val body = buildJsonObject {
+                    put("msgtype", "m.text")
+                    put("body", text)
+                    if (htmlBody != null) {
+                        put("format", "org.matrix.custom.html")
+                        put("formatted_body", htmlBody)
+                    }
+                }
+                val encodedRoomId = java.net.URLEncoder.encode(roomId, "UTF-8")
+                val url = "$homeserverUrl/_matrix/client/v3/rooms/$encodedRoomId/send/m.room.message/$txnId"
+                val request = Request.Builder()
+                    .url(url)
+                    .addHeader("Authorization", "Bearer $accessToken")
+                    .put(body.toString().toRequestBody(JSON_MEDIA_TYPE))
+                    .build()
+                val response = okHttpClient.newCall(request).execute()
+                response.isSuccessful
+            } catch (e: Exception) {
+                Log.e(TAG, "sendMessage error: ${e.message}")
+                false
             }
-            val encodedRoomId = java.net.URLEncoder.encode(roomId, "UTF-8")
-            val url = "$homeserverUrl/_matrix/client/v3/rooms/$encodedRoomId/send/m.room.message/$txnId"
-            val request = Request.Builder()
-                .url(url)
-                .addHeader("Authorization", "Bearer $accessToken")
-                .put(body.toString().toRequestBody(JSON_MEDIA_TYPE))
-                .build()
-            val response = okHttpClient.newCall(request).execute()
-            response.isSuccessful
-        } catch (e: Exception) {
-            Log.e(TAG, "sendMessage error: ${e.message}")
-            false
         }
-    }
 
     suspend fun sendTyping(roomId: String, userId: String, typing: Boolean, timeout: Int = 5000): Boolean =
         withContext(Dispatchers.IO) {

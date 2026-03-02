@@ -13,6 +13,7 @@ import com.oneclaw.shadow.bridge.channel.ChannelType
 import com.oneclaw.shadow.bridge.channel.ConversationMapper
 import com.oneclaw.shadow.bridge.channel.MessagingChannel
 import com.oneclaw.shadow.bridge.image.BridgeImageStorage
+import com.oneclaw.shadow.bridge.util.MessageSplitter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -121,21 +122,38 @@ class DiscordChannel(
     override fun isRunning(): Boolean = running && gateway?.isConnected() == true
 
     override suspend fun sendResponse(externalChatId: String, message: BridgeMessage) {
+        val parts = MessageSplitter.split(message.content, DISCORD_MAX_MESSAGE_LENGTH)
+        for (part in parts) {
+            try {
+                val body = buildJsonObject { put("content", part) }
+                val request = Request.Builder()
+                    .url("https://discord.com/api/v10/channels/$externalChatId/messages")
+                    .addHeader("Authorization", "Bot $botToken")
+                    .post(body.toString().toRequestBody(JSON_MEDIA_TYPE))
+                    .build()
+                okHttpClient.newCall(request).execute()
+            } catch (e: Exception) {
+                Log.e(TAG, "sendResponse error: ${e.message}")
+            }
+        }
+    }
+
+    override suspend fun sendTypingIndicator(externalChatId: String) {
         try {
-            val body = buildJsonObject { put("content", message.content) }
             val request = Request.Builder()
-                .url("https://discord.com/api/v10/channels/$externalChatId/messages")
+                .url("https://discord.com/api/v10/channels/$externalChatId/typing")
                 .addHeader("Authorization", "Bot $botToken")
-                .post(body.toString().toRequestBody(JSON_MEDIA_TYPE))
+                .post("".toRequestBody(null))
                 .build()
             okHttpClient.newCall(request).execute()
         } catch (e: Exception) {
-            Log.e(TAG, "sendResponse error: ${e.message}")
+            Log.e(TAG, "sendTypingIndicator error: ${e.message}")
         }
     }
 
     companion object {
         private const val TAG = "DiscordChannel"
+        private const val DISCORD_MAX_MESSAGE_LENGTH = 2000
         private const val INITIAL_BACKOFF_MS = 3_000L
         private const val MAX_BACKOFF_MS = 60_000L
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()

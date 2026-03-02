@@ -120,10 +120,16 @@ class SlackChannel(
     override fun isRunning(): Boolean = running && socketMode?.isConnected() == true
 
     override suspend fun sendResponse(externalChatId: String, message: BridgeMessage) {
+        val mrkdwnText = try {
+            SlackMrkdwnRenderer.render(message.content)
+        } catch (e: Exception) {
+            Log.w(TAG, "mrkdwn rendering failed, sending plain text", e)
+            message.content
+        }
         try {
             val body = buildJsonObject {
                 put("channel", externalChatId)
-                put("text", message.content)
+                put("text", mrkdwnText)
             }
             val request = Request.Builder()
                 .url("https://slack.com/api/chat.postMessage")

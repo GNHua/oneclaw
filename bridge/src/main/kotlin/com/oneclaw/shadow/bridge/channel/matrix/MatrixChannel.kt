@@ -11,6 +11,7 @@ import com.oneclaw.shadow.bridge.channel.ChannelMessage
 import com.oneclaw.shadow.bridge.channel.ChannelType
 import com.oneclaw.shadow.bridge.channel.ConversationMapper
 import com.oneclaw.shadow.bridge.channel.MessagingChannel
+import com.oneclaw.shadow.bridge.channel.telegram.TelegramHtmlRenderer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -125,7 +126,13 @@ class MatrixChannel(
     override fun isRunning(): Boolean = running && syncJob?.isActive == true
 
     override suspend fun sendResponse(externalChatId: String, message: BridgeMessage) {
-        api.sendMessage(externalChatId, message.content)
+        val htmlBody = try {
+            TelegramHtmlRenderer.render(message.content)
+        } catch (e: Exception) {
+            Log.w(TAG, "HTML rendering failed, sending plain text", e)
+            null
+        }
+        api.sendMessage(roomId = externalChatId, text = message.content, htmlBody = htmlBody)
     }
 
     override suspend fun sendTypingIndicator(externalChatId: String) {

@@ -11,6 +11,7 @@ import com.oneclaw.shadow.bridge.channel.ChannelMessage
 import com.oneclaw.shadow.bridge.channel.ChannelType
 import com.oneclaw.shadow.bridge.channel.ConversationMapper
 import com.oneclaw.shadow.bridge.channel.MessagingChannel
+import com.oneclaw.shadow.bridge.util.MessageSplitter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -96,10 +97,14 @@ class LineChannel(
     override fun isRunning(): Boolean = running && webhookServer?.isAlive == true
 
     override suspend fun sendResponse(externalChatId: String, message: BridgeMessage) {
-        api.pushMessage(externalChatId, message.content)
+        val parts = MessageSplitter.split(message.content, LINE_MAX_MESSAGE_LENGTH)
+        for (part in parts) {
+            api.pushMessage(externalChatId, part)
+        }
     }
 
     companion object {
         private const val TAG = "LineChannel"
+        private const val LINE_MAX_MESSAGE_LENGTH = 5000
     }
 }

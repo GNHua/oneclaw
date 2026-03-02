@@ -1,13 +1,13 @@
 # Google OAuth Bugfix
 
 ## Feature Information
-- **Feature ID**: FEAT-042
+- **Feature ID**: FEAT-043
 - **Created**: 2026-03-01
 - **Last Updated**: 2026-03-01
 - **Status**: Completed
 - **Priority**: P0 (Must Have)
 - **Owner**: TBD
-- **Related RFC**: RFC-042
+- **Related RFC**: RFC-043
 
 ## User Story
 
@@ -25,7 +25,7 @@
 
 ### Overview
 
-FEAT-042 fixes three bugs in `GoogleAuthManager.kt` that were identified by comparing the current implementation against the working reference in `../oneclaw-1/OAuthGoogleAuthManager.kt`. All three bugs prevent the Google OAuth flow from completing successfully on real devices.
+FEAT-043 fixes three bugs in `GoogleAuthManager.kt` that were identified by comparing the current implementation against the working reference in `../oneclaw-1/OAuthGoogleAuthManager.kt`. All three bugs prevent the Google OAuth flow from completing successfully on real devices.
 
 ### Bug 1: Missing FLAG_ACTIVITY_NEW_TASK
 

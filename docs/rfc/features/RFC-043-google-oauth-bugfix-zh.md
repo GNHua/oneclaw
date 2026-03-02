@@ -1,8 +1,8 @@
-# RFC-042: Google OAuth 缺陷修复
+# RFC-043: Google OAuth 缺陷修复
 
 ## 文档信息
-- **RFC ID**: RFC-042
-- **关联 PRD**: [FEAT-042 (Google OAuth 缺陷修复)](../../prd/features/FEAT-042-google-oauth-bugfix.md)
+- **RFC ID**: RFC-043
+- **关联 PRD**: [FEAT-043 (Google OAuth 缺陷修复)](../../prd/features/FEAT-043-google-oauth-bugfix.md)
 - **创建日期**: 2026-03-01
 - **最后更新**: 2026-03-01
 - **状态**: 已完成

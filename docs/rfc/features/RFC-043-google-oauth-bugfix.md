@@ -1,8 +1,8 @@
-# RFC-042: Google OAuth Bugfix
+# RFC-043: Google OAuth Bugfix
 
 ## Document Information
-- **RFC ID**: RFC-042
-- **Related PRD**: [FEAT-042 (Google OAuth Bugfix)](../../prd/features/FEAT-042-google-oauth-bugfix.md)
+- **RFC ID**: RFC-043
+- **Related PRD**: [FEAT-043 (Google OAuth Bugfix)](../../prd/features/FEAT-043-google-oauth-bugfix.md)
 - **Created**: 2026-03-01
 - **Last Updated**: 2026-03-01
 - **Status**: Completed

@@ -1,13 +1,13 @@
 # Google OAuth 缺陷修复
 
 ## 功能信息
-- **功能 ID**: FEAT-042
+- **功能 ID**: FEAT-043
 - **创建日期**: 2026-03-01
 - **最后更新**: 2026-03-01
 - **状态**: 已完成
 - **优先级**: P0（必须）
 - **负责人**: TBD
-- **关联 RFC**: RFC-042
+- **关联 RFC**: RFC-043
 
 ## 用户故事
 
@@ -25,7 +25,7 @@
 
 ### 概述
 
-FEAT-042 修复了 `GoogleAuthManager.kt` 中的三个缺陷，这些缺陷通过对比当前实现与 `../oneclaw-1/OAuthGoogleAuthManager.kt` 中可正常工作的参考实现后发现。三个缺陷均会导致 Google OAuth 流程在真实设备上无法成功完成。
+FEAT-043 修复了 `GoogleAuthManager.kt` 中的三个缺陷，这些缺陷通过对比当前实现与 `../oneclaw-1/OAuthGoogleAuthManager.kt` 中可正常工作的参考实现后发现。三个缺陷均会导致 Google OAuth 流程在真实设备上无法成功完成。
 
 ### 缺陷 1：缺少 FLAG_ACTIVITY_NEW_TASK
 

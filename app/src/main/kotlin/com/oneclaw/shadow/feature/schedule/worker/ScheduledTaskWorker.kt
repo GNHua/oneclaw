@@ -13,6 +13,7 @@ import com.oneclaw.shadow.core.model.TaskExecutionRecord
 import com.oneclaw.shadow.core.notification.NotificationHelper
 import com.oneclaw.shadow.core.repository.ScheduledTaskRepository
 import com.oneclaw.shadow.core.repository.TaskExecutionRecordRepository
+import com.oneclaw.shadow.bridge.BridgeBroadcaster
 import com.oneclaw.shadow.feature.chat.ChatEvent
 import com.oneclaw.shadow.feature.schedule.alarm.AlarmScheduler
 import com.oneclaw.shadow.feature.schedule.alarm.NextTriggerCalculator
@@ -160,6 +161,11 @@ class ScheduledTaskWorker(
                 sessionId = sessionId,
                 errorMessage = responseText
             )
+        }
+
+        // Broadcast result to messaging bridge (no-op if bridge is not running)
+        if (isSuccess && responseText.isNotBlank()) {
+            BridgeBroadcaster.broadcast("[Scheduled] ${task.name}\n\n$responseText")
         }
 
         return Result.success()

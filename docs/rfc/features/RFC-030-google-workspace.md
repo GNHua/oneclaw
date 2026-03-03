@@ -14,7 +14,7 @@
 
 ### Background
 
-OneClawShadow's tool system supports JS tool groups (RFC-018) -- JSON array manifests paired with JS implementation files that expose multiple tools under a single file pair. The app also has an established bridge injection pattern for providing Kotlin-backed capabilities to JS tools (FetchBridge, FsBridge, ConsoleBridge, etc.).
+OneClaw's tool system supports JS tool groups (RFC-018) -- JSON array manifests paired with JS implementation files that expose multiple tools under a single file pair. The app also has an established bridge injection pattern for providing Kotlin-backed capabilities to JS tools (FetchBridge, FsBridge, ConsoleBridge, etc.).
 
 The predecessor project oneclaw-1 has a proven Google Workspace plugin system with ~89 tools across 10 Google services, using BYOK (Bring Your Own Key) OAuth authentication. These tools have been battle-tested and cover Gmail, Calendar, Tasks, Contacts, Drive, Docs, Sheets, Slides, Forms, and Gmail Settings.
 
@@ -939,7 +939,7 @@ Each Google service has a JSON manifest (array format) and a JS implementation f
 
 ```javascript
 /**
- * Google Gmail tool group for OneClawShadow.
+ * Google Gmail tool group for OneClaw.
  *
  * Uses:
  * - google.getAccessToken() -- from GoogleAuthBridge

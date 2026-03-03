@@ -92,7 +92,7 @@ JavaScript 工具引擎允许用户将自定义工具定义为 JavaScript 文件
 │  └────────────────────────────────────────────────────────┘  │
 │       │                      │                               │
 │       v                      v                               │
-│  /sdcard/OneClawShadow/   {app_internal}/                    │
+│  /sdcard/OneClaw/   {app_internal}/                    │
 │        tools/                 tools/                         │
 │  weather_lookup.js        temperature_convert.js             │
 │  weather_lookup.json      temperature_convert.json           │
@@ -221,7 +221,7 @@ class JsToolLoader(
 ) {
     companion object {
         private const val TAG = "JsToolLoader"
-        private const val EXTERNAL_TOOLS_DIR = "OneClawShadow/tools"
+        private const val EXTERNAL_TOOLS_DIR = "OneClaw/tools"
         private val TOOL_NAME_REGEX = Regex("^[a-z][a-z0-9_]*$")
     }
 
@@ -369,7 +369,7 @@ class JsToolLoader(
     private fun getToolDirectories(): List<File> {
         val dirs = mutableListOf<File>()
 
-        // 外部存储: /sdcard/OneClawShadow/tools/
+        // 外部存储: /sdcard/OneClaw/tools/
         val externalDir = File(
             Environment.getExternalStorageDirectory(),
             EXTERNAL_TOOLS_DIR
@@ -896,10 +896,10 @@ inline fun <reified T : Tool> unregisterByType() {
 ```
 1. 用户: "创建一个计算 BMI 的工具"
 
-2. AI 调用 write_file(path="/sdcard/OneClawShadow/tools/bmi_calculator.json", content=...)
+2. AI 调用 write_file(path="/sdcard/OneClaw/tools/bmi_calculator.json", content=...)
    -> JSON 元数据写入磁盘
 
-3. AI 调用 write_file(path="/sdcard/OneClawShadow/tools/bmi_calculator.js", content=...)
+3. AI 调用 write_file(path="/sdcard/OneClaw/tools/bmi_calculator.js", content=...)
    -> JS 代码写入磁盘
 
 4. AI 回复: "已创建 BMI 计算器工具。请在设置中点击'重新加载工具'来激活它。"
@@ -907,7 +907,7 @@ inline fun <reified T : Tool> unregisterByType() {
 5. 用户打开设置 -> JS 工具区域 -> 点击"重新加载"
 
 6. JsToolLoader.loadTools():
-   a. 扫描 /sdcard/OneClawShadow/tools/
+   a. 扫描 /sdcard/OneClaw/tools/
    b. 找到 bmi_calculator.json + bmi_calculator.js
    c. 解析元数据，创建 JsTool 实例
    d. 注册到 ToolRegistry
@@ -1106,9 +1106,9 @@ inline fun <reified T : Tool> unregisterByType() {
 
 **前置条件:** 推送测试工具文件到模拟器:
 ```bash
-adb shell mkdir -p /sdcard/OneClawShadow/tools
-adb push test_tool.json /sdcard/OneClawShadow/tools/
-adb push test_tool.js /sdcard/OneClawShadow/tools/
+adb shell mkdir -p /sdcard/OneClaw/tools
+adb push test_tool.json /sdcard/OneClaw/tools/
+adb push test_tool.js /sdcard/OneClaw/tools/
 ```
 
 ```
@@ -1192,7 +1192,7 @@ adb push test_tool.js /sdcard/OneClawShadow/tools/
 1. 通过 adb 推送新的 JS 工具: adb push new_tool.json + new_tool.js
 2. 在设置中点击"重新加载"按钮。
 3. 截图 -> 验证: new_tool 出现在列表中，有绿色圆点。
-4. 通过 adb 删除工具文件: adb shell rm /sdcard/OneClawShadow/tools/new_tool.*
+4. 通过 adb 删除工具文件: adb shell rm /sdcard/OneClaw/tools/new_tool.*
 5. 再次点击"重新加载"。
 6. 截图 -> 验证: new_tool 不再出现在列表中。
 ```

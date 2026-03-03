@@ -13,7 +13,7 @@
 ## Overview
 
 ### Background
-The Tool System is the framework that allows AI models to perform real actions beyond text generation -- reading files, making HTTP requests, checking the time, etc. This is what makes OneClawShadow an "AI Agent runtime" rather than just a chat app. The system defines a standard interface for tool registration, execution, and result formatting, along with Android permission handling and provider-specific format conversion.
+The Tool System is the framework that allows AI models to perform real actions beyond text generation -- reading files, making HTTP requests, checking the time, etc. This is what makes OneClaw an "AI Agent runtime" rather than just a chat app. The system defines a standard interface for tool registration, execution, and result formatting, along with Android permission handling and provider-specific format conversion.
 
 This RFC covers the tool infrastructure and all 4 built-in tools. The actual tool call loop within a streaming conversation (model requests tool -> execute -> send result back -> model continues) is covered in RFC-001 (Chat Interaction). Tool selection UI in Agent configuration is covered in RFC-002 (Agent Management).
 

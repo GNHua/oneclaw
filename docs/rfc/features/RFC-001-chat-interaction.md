@@ -15,7 +15,7 @@
 ## Overview
 
 ### Background
-Chat Interaction is the core user-facing feature of OneClawShadow. It orchestrates the full conversation loop: user sends a message, the app resolves the current Agent's configuration, sends the message to an AI model via streaming API, renders the response in real-time, handles tool calls (execute tools locally, send results back to the model), and repeats until the model produces a final text response. This RFC covers the complete chat flow including streaming SSE parsing, tool call loop, message persistence, Markdown rendering, thinking block display, agent switching, stop generation, copy, regenerate, and the chat screen layout integrating with the Navigation Drawer (RFC-005) and Agent Selector (RFC-002).
+Chat Interaction is the core user-facing feature of OneClaw. It orchestrates the full conversation loop: user sends a message, the app resolves the current Agent's configuration, sends the message to an AI model via streaming API, renders the response in real-time, handles tool calls (execute tools locally, send results back to the model), and repeats until the model produces a final text response. This RFC covers the complete chat flow including streaming SSE parsing, tool call loop, message persistence, Markdown rendering, thinking block display, agent switching, stop generation, copy, regenerate, and the chat screen layout integrating with the Navigation Drawer (RFC-005) and Agent Selector (RFC-002).
 
 ### Goals
 1. Implement the full send-message -> stream-response -> tool-call-loop -> render cycle

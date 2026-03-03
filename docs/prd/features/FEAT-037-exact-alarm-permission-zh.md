@@ -12,7 +12,7 @@
 
 ## 用户故事
 
-**作为** OneClawShadow 的用户，
+**作为** OneClaw 的用户，
 **我希望** 应用引导我完成精确闹钟权限的授权，
 **以便** 定时任务能在我设定的精确时间触发，并且应用符合 Google Play 政策要求。
 
@@ -30,7 +30,7 @@
 
 ### 概述
 
-从 Android 12（API 31）起，精确闹钟调度需要用户显式授权。Android 13+（API 33）进一步收紧了限制，不再默认授予 `SCHEDULE_EXACT_ALARM` 权限。替代方案 `USE_EXACT_ALARM` 虽可自动授权，但 Google Play 政策将其限制为仅适用于闹钟、计时器和日历类应用。由于 OneClawShadow 是 AI Agent 运行时，必须使用 `SCHEDULE_EXACT_ALARM` 并引导用户通过系统设置完成授权。
+从 Android 12（API 31）起，精确闹钟调度需要用户显式授权。Android 13+（API 33）进一步收紧了限制，不再默认授予 `SCHEDULE_EXACT_ALARM` 权限。替代方案 `USE_EXACT_ALARM` 虽可自动授权，但 Google Play 政策将其限制为仅适用于闹钟、计时器和日历类应用。由于 OneClaw 是 AI Agent 运行时，必须使用 `SCHEDULE_EXACT_ALARM` 并引导用户通过系统设置完成授权。
 
 ### 当前问题
 
@@ -108,7 +108,7 @@
 ### TEST-037-06: 工具上下文错误
 - **前提** 精确闹钟权限**未**授权
 - **操作** AI Agent 调用 `schedule_task`
-- **预期** 工具返回错误信息："Exact alarm permission is not granted. Please go to Settings > Apps > OneClawShadow > Alarms & reminders to enable it."
+- **预期** 工具返回错误信息："Exact alarm permission is not granted. Please go to Settings > Apps > OneClaw > Alarms & reminders to enable it."
 
 ### TEST-037-07: 启动接收器检查
 - **前提** 设备重启且精确闹钟权限**未**授权

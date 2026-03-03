@@ -19,7 +19,7 @@ The Settings screen currently has two flat entries: "Manage Agents" and "Manage 
 
 This RFC adds an Appearance section with theme control and reorganizes the Settings screen into labeled sections. Font size follows the Android system setting automatically (Compose `sp` units). Language is English only in V1.
 
-The existing `app_settings` table (key-value store via `SettingsDao`) is the persistence layer for theme preference. The existing `OneClawShadowTheme` composable already supports a `darkTheme` boolean parameter. The implementation bridges these two: read the stored preference at app start, apply it via `AppCompatDelegate.setDefaultNightMode()`, and provide a Compose-level `darkTheme` override so that `OneClawShadowTheme` responds immediately without requiring an Activity recreation.
+The existing `app_settings` table (key-value store via `SettingsDao`) is the persistence layer for theme preference. The existing `OneClawTheme` composable already supports a `darkTheme` boolean parameter. The implementation bridges these two: read the stored preference at app start, apply it via `AppCompatDelegate.setDefaultNightMode()`, and provide a Compose-level `darkTheme` override so that `OneClawTheme` responds immediately without requiring an Activity recreation.
 
 ### Goals
 
@@ -53,7 +53,7 @@ Theme preference flow:
 2. Compose Theme
    MainActivity.setContent
      -> ThemeManager.themeMode collected as State
-     -> OneClawShadowTheme(darkTheme = resolved from themeMode)
+     -> OneClawTheme(darkTheme = resolved from themeMode)
 
 3. User Changes Theme (SettingsScreen)
    User taps Theme -> AlertDialog with RadioButtons
@@ -176,7 +176,7 @@ class OneclawApplication : Application() {
 
 ### Change 3: Wire ThemeManager into Compose Theme
 
-Update `MainActivity` to collect the `ThemeManager.themeMode` flow and pass the resolved `darkTheme` value to `OneClawShadowTheme`:
+Update `MainActivity` to collect the `ThemeManager.themeMode` flow and pass the resolved `darkTheme` value to `OneClawTheme`:
 
 ```kotlin
 class MainActivity : ComponentActivity() {
@@ -197,7 +197,7 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
             }
-            OneClawShadowTheme(darkTheme = darkTheme) {
+            OneClawTheme(darkTheme = darkTheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     AppNavGraph(navController = navController)
@@ -496,7 +496,7 @@ Note: The `Route.UsageStatistics` route and its composable destination are defin
 - File: `app/src/main/kotlin/com/oneclaw/shadow/MainActivity.kt` (existing)
 - Inject `ThemeManager` via Koin
 - Collect `themeManager.themeMode` as Compose state
-- Resolve `darkTheme` boolean from `ThemeMode` and pass to `OneClawShadowTheme(darkTheme = ...)`
+- Resolve `darkTheme` boolean from `ThemeMode` and pass to `OneClawTheme(darkTheme = ...)`
 
 ### Step 5: Reorganize SettingsScreen with sections and theme dialog
 - File: `app/src/main/kotlin/com/oneclaw/shadow/feature/provider/SettingsScreen.kt` (existing)
@@ -607,7 +607,7 @@ User taps Theme in SettingsScreen
     -> AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_YES)
   -> showThemeDialog = false (dialog dismisses)
   -> MainActivity: themeMode collected as State -> darkTheme = true
-  -> OneClawShadowTheme(darkTheme = true) recomposes with darkScheme
+  -> OneClawTheme(darkTheme = true) recomposes with darkScheme
 ```
 
 ### Compose Theme Resolution
@@ -619,7 +619,7 @@ MainActivity.setContent
        SYSTEM -> isSystemInDarkTheme() (delegates to Android system)
        LIGHT  -> false
        DARK   -> true
-  -> OneClawShadowTheme(darkTheme = resolved)
+  -> OneClawTheme(darkTheme = resolved)
   -> MaterialTheme uses lightScheme or darkScheme accordingly
 ```
 

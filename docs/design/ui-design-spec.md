@@ -49,7 +49,7 @@ See `docs/design/material-theme/ui/theme/Type.kt` for definitions.
 
 ```
 +-----------------------------------------------+
-|  [hamburger]  OneClawShadow         [settings] |  <- Top App Bar
+|  [hamburger]  OneClaw         [settings] |  <- Top App Bar
 |-----------------------------------------------|
 |                                               |
 |              Main Content Area                |
@@ -622,7 +622,7 @@ Shown once on first app launch when no provider is configured. This screen is **
 +-----------------------------------------------+
 |                                               |
 |                                               |
-|          Welcome to OneClawShadow             |
+|          Welcome to OneClaw             |
 |                                               |
 |       Set up your AI provider to get          |
 |               started.                        |

@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** send text messages to an AI model and see its responses in real-time, including any tool calls it makes,
 **so that** I can interact with an AI agent on my phone that can take actions on my behalf.
 
@@ -25,7 +25,7 @@
 ## Feature Description
 
 ### Overview
-Chat Interaction is the core interface of OneClawShadow. It provides a chat-based conversation view where users send text messages to an AI model and receive streamed responses. When the AI model makes tool calls, the execution process and results are displayed inline in the conversation. This module handles the full request-response cycle including streaming, tool call orchestration display, and error states.
+Chat Interaction is the core interface of OneClaw. It provides a chat-based conversation view where users send text messages to an AI model and receive streamed responses. When the AI model makes tool calls, the execution process and results are displayed inline in the conversation. This module handles the full request-response cycle including streaming, tool call orchestration display, and error states.
 
 ### Message Types
 

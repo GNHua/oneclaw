@@ -1,11 +1,11 @@
 # 项目结构
 
-OneClawShadow 项目的目录结构注释说明。
+OneClaw 项目的目录结构注释说明。
 
 ## 顶层目录
 
 ```
-oneclaw-shadow-1/
+oneclaw-1/
 ├── app/                           # 主 Android 应用模块
 ├── bridge/                        # 消息桥接 Android 库模块
 ├── docs/                          # 所有文档（PRD、RFC、ADR、wiki）

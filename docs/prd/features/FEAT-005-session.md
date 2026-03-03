@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** manage multiple conversation sessions, each with its own history and context,
 **so that** I can organize my interactions with the AI and resume past conversations at any time.
 

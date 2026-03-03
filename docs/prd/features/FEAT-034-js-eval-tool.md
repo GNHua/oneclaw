@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** an AI agent using OneClawShadow,
+**As** an AI agent using OneClaw,
 **I want** a tool that executes arbitrary JavaScript code I write on the fly in a sandboxed QuickJS environment,
 **so that** I can perform computations, data transformations, algorithmic tasks, and general-purpose programming without relying on pre-defined tool files.
 

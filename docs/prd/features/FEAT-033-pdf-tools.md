@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** an AI agent using OneClawShadow,
+**As** an AI agent using OneClaw,
 **I want** tools to read PDF files -- extracting metadata, text content, and rendering pages as images,
 **so that** I can help users understand, summarize, and analyze PDF documents on their device.
 
@@ -26,7 +26,7 @@
 
 ### Overview
 
-FEAT-033 adds three PDF-related tools to OneClawShadow as Kotlin built-in tools, enabling AI agents to work with PDF files stored on the device. The tools are ported from the OneClaw 1.0 `lib-pdf` plugin and adapted to OneClawShadow's tool architecture.
+FEAT-033 adds three PDF-related tools to OneClaw as Kotlin built-in tools, enabling AI agents to work with PDF files stored on the device. The tools are ported from the OneClaw 1.0 `lib-pdf` plugin and adapted to OneClaw's tool architecture.
 
 The three tools are:
 - **`pdf_info`** -- Retrieve PDF metadata (page count, file size, title, author, etc.)

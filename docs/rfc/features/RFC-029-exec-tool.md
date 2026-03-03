@@ -14,7 +14,7 @@
 
 ### Background
 
-OneClawShadow's AI agent currently interacts with the device through a limited set of built-in tools (webfetch, browser, schedule_task, etc.) and JS-based tools (file read/write, HTTP, time). However, there is no general-purpose tool for executing arbitrary shell commands on the device. Shell access would enable the agent to perform a wide range of tasks: file system operations, system diagnostics, package management, network testing, text processing, and automation scripting.
+OneClaw's AI agent currently interacts with the device through a limited set of built-in tools (webfetch, browser, schedule_task, etc.) and JS-based tools (file read/write, HTTP, time). However, there is no general-purpose tool for executing arbitrary shell commands on the device. Shell access would enable the agent to perform a wide range of tasks: file system operations, system diagnostics, package management, network testing, text processing, and automation scripting.
 
 Android provides `Runtime.getRuntime().exec()` which allows apps to spawn shell processes within their sandbox. These processes run with the app's UID and have the same permissions as the app itself -- no root access, bounded by Android's security model.
 

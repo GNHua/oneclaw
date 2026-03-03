@@ -1,4 +1,4 @@
-# OneClawShadow - Product Requirements Document Overview
+# OneClaw - Product Requirements Document Overview
 
 ## Document Information
 - Created: 2026-02-26
@@ -8,11 +8,11 @@
 
 ## Product Vision
 
-OneClawShadow is a mobile AI Agent runtime environment for Android. It allows users to interact with AI models through a chat interface, where the AI can autonomously call tools to complete tasks. The core idea is that the user's phone itself becomes the execution environment for the AI agent -- no need to set up a server or rely on any backend service.
+OneClaw is a mobile AI Agent runtime environment for Android. It allows users to interact with AI models through a chat interface, where the AI can autonomously call tools to complete tasks. The core idea is that the user's phone itself becomes the execution environment for the AI agent -- no need to set up a server or rely on any backend service.
 
 The app is **zero backend dependency** by design: users bring their own API keys, their own cloud storage accounts, and all data stays under their control.
 
-OneClawShadow is NOT a coding tool or IDE. It is a general-purpose AI agent that runs on your phone.
+OneClaw is NOT a coding tool or IDE. It is a general-purpose AI agent that runs on your phone.
 
 ## Target Users
 

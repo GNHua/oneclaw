@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** an AI agent using OneClawShadow,
+**As** an AI agent using OneClaw,
 **I want** a reliable webfetch tool that accurately converts HTML pages to Markdown using a proper HTML parser,
 **so that** I can extract and summarize web content without the limitations of regex-based HTML-to-Markdown conversion.
 

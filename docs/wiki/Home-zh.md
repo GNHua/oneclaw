@@ -1,6 +1,6 @@
-# OneClawShadow Wiki
+# OneClaw Wiki
 
-欢迎阅读 OneClawShadow 文档。本 Wiki 涵盖从入门到深层架构细节的所有内容。
+欢迎阅读 OneClaw 文档。本 Wiki 涵盖从入门到深层架构细节的所有内容。
 
 ## 面向用户
 

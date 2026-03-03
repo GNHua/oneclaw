@@ -14,9 +14,9 @@
 
 ### Background
 
-AI agents frequently need to work with PDF documents -- summarizing reports, extracting data from invoices, reading research papers, or analyzing scanned forms. Currently, OneClawShadow has no built-in capability to read PDF files. Users can attach files (FEAT-026) and browse the file system (FEAT-025), but agents cannot extract content from PDFs.
+AI agents frequently need to work with PDF documents -- summarizing reports, extracting data from invoices, reading research papers, or analyzing scanned forms. Currently, OneClaw has no built-in capability to read PDF files. Users can attach files (FEAT-026) and browse the file system (FEAT-025), but agents cannot extract content from PDFs.
 
-OneClaw 1.0 has a mature PDF tools implementation in `lib-pdf` that provides three tools: `pdf_info`, `pdf_extract_text`, and `pdf_render_page`. This RFC ports that functionality to OneClawShadow's tool architecture as Kotlin built-in tools, adapting the code to use OneClawShadow's `Tool` interface, `ToolResult`, and `ToolDefinition` data types.
+OneClaw 1.0 has a mature PDF tools implementation in `lib-pdf` that provides three tools: `pdf_info`, `pdf_extract_text`, and `pdf_render_page`. This RFC ports that functionality to OneClaw's tool architecture as Kotlin built-in tools, adapting the code to use OneClaw's `Tool` interface, `ToolResult`, and `ToolDefinition` data types.
 
 ### Goals
 

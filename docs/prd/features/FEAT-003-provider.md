@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** configure my own AI model providers and API keys,
 **so that** I can use the AI models I have access to without depending on any third-party backend.
 
@@ -27,7 +27,7 @@
 ## Feature Description
 
 ### Overview
-Model/Provider Management allows users to configure the AI model providers they want to use. Since OneClawShadow has no backend, users bring their own API keys. The app comes with pre-configured templates for major providers (OpenAI, Anthropic, Google Gemini), and supports fully custom API endpoints. Model lists are dynamically fetched from provider APIs when possible, with pre-set fallback models for reliability. Users set a global default model that is used when an Agent does not specify a preferred model.
+Model/Provider Management allows users to configure the AI model providers they want to use. Since OneClaw has no backend, users bring their own API keys. The app comes with pre-configured templates for major providers (OpenAI, Anthropic, Google Gemini), and supports fully custom API endpoints. Model lists are dynamically fetched from provider APIs when possible, with pre-set fallback models for reliability. Users set a global default model that is used when an Agent does not specify a preferred model.
 
 ### Core Concepts
 

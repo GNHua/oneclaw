@@ -1,6 +1,6 @@
 # Memory System
 
-OneClawShadow provides a persistent memory system that allows the AI to remember information across conversations. Memory is automatically injected into system prompts, giving the AI context about the user's preferences, projects, and past interactions.
+OneClaw provides a persistent memory system that allows the AI to remember information across conversations. Memory is automatically injected into system prompts, giving the AI context about the user's preferences, projects, and past interactions.
 
 ## Memory Types
 
@@ -80,12 +80,43 @@ The memory quality system scores and manages memory entries to prevent bloat:
 - Automated cleanup of low-quality or duplicate entries
 - Ensures MEMORY.md stays concise and relevant
 
+## Git Versioning (FEAT-050)
+
+All text files under `filesDir` are automatically versioned in a git repository managed by JGit. Every write to `MEMORY.md`, daily logs, or AI-generated markdown triggers a commit. Binary files (images, videos, database files) are excluded via `.gitignore`.
+
+**Auto-commit triggers:**
+
+| Event | Commit message |
+|---|---|
+| First app launch | `init: initialize memory repository` |
+| MEMORY.md updated | `memory: update MEMORY.md` |
+| Daily log appended | `log: add daily log YYYY-MM-DD` |
+| AI writes a file | `file: write <path>` |
+| File deleted | `file: delete <path>` |
+| Monthly gc | `gc: repository maintenance` |
+
+The legacy rotating-backup mechanism has been replaced entirely by git history.
+
 ## Memory UI
 
 The Memory screen (`feature/memory/ui/MemoryScreen.kt`) provides:
 - View and browse daily logs by date
 - View and edit long-term memory
 - Memory statistics display
+- **Version History** — tap the history icon in the top bar to open the git commit browser (FEAT-051)
+
+### Version History Screen
+
+The Git History screen shows all commits in reverse chronological order with filter chips:
+
+| Filter | Shows |
+|---|---|
+| All | Every commit |
+| Memory | Changes to `MEMORY.md` only |
+| Daily Logs | Changes to `memory/daily/` files |
+| Files | AI-generated file changes |
+
+Tapping a commit opens a diff view in a bottom sheet showing exactly what text was added or removed.
 
 ## Related Tools
 
@@ -94,14 +125,23 @@ The Memory screen (`feature/memory/ui/MemoryScreen.kt`) provides:
 | `save_memory` | Add new entries to MEMORY.md |
 | `update_memory` | Edit or delete existing entries |
 | `search_history` | Search across memory, daily logs, and past sessions |
+| `git_log` | List commit history, optionally filtered by file path |
+| `git_show` | Show the diff for a specific commit |
+| `git_diff` | Compare two commits |
+| `git_restore` | Restore a file to a previous version |
+| `git_bundle` | Export the repository as a bundle file for backup |
 
 ## File Layout
 
 ```
-filesDir/memory/
-├── MEMORY.md           # Long-term memory (injected into system prompt)
-└── daily/
-    ├── 2026-02-28.md   # Daily log for Feb 28
-    ├── 2026-03-01.md   # Daily log for Mar 1
-    └── ...
+filesDir/
+├── .git/               # Git repository (hidden from Files UI)
+├── .gitignore          # Excludes binaries and DB files
+├── memory/
+│   ├── MEMORY.md       # Long-term memory (injected into system prompt)
+│   └── daily/
+│       ├── 2026-02-28.md
+│       ├── 2026-03-01.md
+│       └── ...
+└── attachments/        # Chat attachments (not versioned)
 ```

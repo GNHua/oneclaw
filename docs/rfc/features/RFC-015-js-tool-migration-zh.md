@@ -596,7 +596,7 @@ class JsToolLoader(
 ) {
     companion object {
         private const val TAG = "JsToolLoader"
-        private const val EXTERNAL_TOOLS_DIR = "OneClawShadow/tools"
+        private const val EXTERNAL_TOOLS_DIR = "OneClaw/tools"
         private const val ASSETS_TOOLS_DIR = "js/tools"
         private val TOOL_NAME_REGEX = Regex("^[a-z][a-z0-9_]*$")
     }
@@ -1107,7 +1107,7 @@ val toolModule = module {
 3. 第二步：loadBuiltinTools() -> assets/js/tools/
    - 注册：get_current_time、read_file、write_file、http_request、webfetch
    - allowOverride = false（此时不预期存在冲突）
-4. 第三步：loadTools() -> /sdcard/OneClawShadow/tools/ + {internal}/tools/
+4. 第三步：loadTools() -> /sdcard/OneClaw/tools/ + {internal}/tools/
    - 用户有一个自定义的 http_request.js，可自动附加 API 密钥头
    - registerTools(allowOverride = true)
    - "http_request" 已存在 -> 注销内置工具，注册用户版本

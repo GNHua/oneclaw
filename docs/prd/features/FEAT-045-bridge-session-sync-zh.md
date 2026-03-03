@@ -12,7 +12,7 @@
 
 ## 用户故事
 
-**作为**一名同时通过 Telegram Bridge 和 OneClawShadow 应用控制 AI 代理的用户，
+**作为**一名同时通过 Telegram Bridge 和 OneClaw 应用控制 AI 代理的用户，
 **我希望** ChatScreen 能够自动跟随 Bridge 当前使用的会话，
 **以便**始终保持一个共享的活跃会话，不会丢失正在进行的对话。
 

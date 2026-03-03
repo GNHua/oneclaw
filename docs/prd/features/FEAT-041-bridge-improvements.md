@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow's Messaging Bridge,
+**As** a user of OneClaw's Messaging Bridge,
 **I want** the bridge to work reliably with correct formatting, proper feedback, and seamless session integration,
 **so that** my experience chatting with AI agents through Telegram and other platforms feels natural and polished.
 

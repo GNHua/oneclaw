@@ -11,13 +11,13 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** interact with my AI agents through external messaging platforms (Telegram, Discord, Slack, Matrix, LINE, WebChat),
 **so that** I can send messages to and receive responses from my agents without opening the app directly, using whichever chat platform I already use daily.
 
 ### Typical Scenarios
 1. User sets up a Telegram bot token in the Bridge settings, enables the Telegram channel, and starts the bridge service. They can now chat with their AI agent by sending messages to the Telegram bot from any device.
-2. User runs a Discord server and adds their OneClawShadow bot. Team members can interact with the AI agent in a designated Discord channel.
+2. User runs a Discord server and adds their OneClaw bot. Team members can interact with the AI agent in a designated Discord channel.
 3. User enables the WebChat channel, which starts a local WebSocket server on the phone. A web browser on the same network can connect and chat with the agent via a simple web interface.
 4. User enables multiple channels simultaneously (Telegram + Slack). Messages from both platforms are routed to the same agent, and responses from the agent are sent back to the originating platform.
 5. User sends an image in Telegram to the bot. The image is downloaded, stored locally, and passed to the agent along with the text message for multimodal processing.
@@ -26,7 +26,7 @@
 ## Feature Description
 
 ### Overview
-The Messaging Bridge is a background service that connects external messaging platforms to the OneClawShadow AI agent runtime. It receives messages from supported platforms, routes them to the agent for processing, and sends the agent's responses back to the originating platform. This enables users to interact with their AI agents from any device or platform without opening the Android app directly.
+The Messaging Bridge is a background service that connects external messaging platforms to the OneClaw AI agent runtime. It receives messages from supported platforms, routes them to the agent for processing, and sends the agent's responses back to the originating platform. This enables users to interact with their AI agents from any device or platform without opening the Android app directly.
 
 The bridge runs as an Android foreground service with a persistent notification, ensuring reliable background operation. Each messaging platform is implemented as an independent channel with its own connection mechanism (polling, WebSocket, or webhook server).
 

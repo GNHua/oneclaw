@@ -1,6 +1,6 @@
 # 架构概览
 
-OneClawShadow 基于 Clean Architecture 原则构建，将关注点分离到多模块 Gradle 项目的不同层次中。
+OneClaw 基于 Clean Architecture 原则构建，将关注点分离到多模块 Gradle 项目的不同层次中。
 
 ## 模块结构
 

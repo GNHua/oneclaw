@@ -12,7 +12,7 @@
 
 ### 背景
 
-OneClawShadow 目前具备两个客户端网页工具：`webfetch`（HTTP 抓取 + HTML 转 Markdown）和 `browser`（基于 WebView 的渲染）。这些工具需要 AI 显式调用，且每次获取页面都要消耗一次工具调用往返。与此同时，三家受支持的提供商均提供了内置的服务端网页搜索能力：
+OneClaw 目前具备两个客户端网页工具：`webfetch`（HTTP 抓取 + HTML 转 Markdown）和 `browser`（基于 WebView 的渲染）。这些工具需要 AI 显式调用，且每次获取页面都要消耗一次工具调用往返。与此同时，三家受支持的提供商均提供了内置的服务端网页搜索能力：
 
 - **OpenAI**: Chat Completions API 中的 `web_search_options`（支持搜索的模型）
 - **Anthropic**: Messages API 中的 `web_search_20250305` 服务端工具

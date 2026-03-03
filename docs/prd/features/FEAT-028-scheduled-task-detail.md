@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** view detailed information about a scheduled task including its configuration, execution history, and next trigger time,
 **so that** I can monitor task performance, diagnose failures, review past results, and quickly navigate to execution sessions without needing to enter the edit screen.
 

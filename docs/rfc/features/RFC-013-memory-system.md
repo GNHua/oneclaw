@@ -14,7 +14,7 @@
 ## Overview
 
 ### Background
-OneClawShadow currently stores full message history in Room DB and sends the entire history to the model on each request. There is no mechanism for the agent to recall information from previous sessions, and no context management beyond raw message history. As conversations grow, this approach hits context window limits, and users must repeat preferences and context in every new session.
+OneClaw currently stores full message history in Room DB and sends the entire history to the model on each request. There is no mechanism for the agent to recall information from previous sessions, and no context management beyond raw message history. As conversations grow, this approach hits context window limits, and users must repeat preferences and context in every new session.
 
 This RFC introduces an OpenClaw-style memory system with two layers of persistent memory (Daily Logs and Long-term Memory stored as Markdown files), a hybrid search engine combining BM25 keyword search and vector semantic search, and a local on-device embedding model for vector computation. Retrieved memories are injected into the system prompt to give the agent cross-session awareness.
 

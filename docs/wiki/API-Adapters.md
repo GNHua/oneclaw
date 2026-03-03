@@ -1,6 +1,6 @@
 # AI Provider Integration
 
-OneClawShadow supports three AI providers through a unified adapter interface. Each provider has its own adapter that handles the differences in request format, streaming protocol, and tool definitions.
+OneClaw supports three AI providers through a unified adapter interface. Each provider has its own adapter that handles the differences in request format, streaming protocol, and tool definitions.
 
 ## Supported Providers
 

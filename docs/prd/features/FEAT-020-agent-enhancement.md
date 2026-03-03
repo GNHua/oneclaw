@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** have better control over agent management -- including a working model selector, clone/delete for all custom agents, and the ability to create agents from a prompt (both from the Agent screen and during chat via a tool),
 **so that** I can efficiently create, customize, and manage agents to fit my needs without leaving my current workflow.
 

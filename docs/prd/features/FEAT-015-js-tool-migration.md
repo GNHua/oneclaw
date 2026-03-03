@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a developer or power user of OneClawShadow,
+**As** a developer or power user of OneClaw,
 **I want** built-in tools to be implemented in JavaScript (backed by native bridges) and third-party JavaScript libraries to be available to all JS tools,
 **so that** the tool ecosystem is easy to extend with community JS libraries, and new tools like `webfetch` can leverage libraries like Turndown for rich processing without requiring app recompilation.
 
@@ -47,7 +47,7 @@ ToolRegistry  (Kotlin, unchanged)
     │     write_file.js
     │     http_request.js
     │     webfetch.js          ← new tool
-    └── User JS Tools  (FEAT-012 - from /sdcard/OneClawShadow/tools/)
+    └── User JS Tools  (FEAT-012 - from /sdcard/OneClaw/tools/)
 
 QuickJS Runtime  (FEAT-012 bridge)
     ├── Native Bridges: _time(), _readFile(), _writeFile(), _httpRequest()

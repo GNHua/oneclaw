@@ -1,6 +1,6 @@
 # Messaging Bridge
 
-The Messaging Bridge is a standalone Android library (`:bridge` module) that connects OneClawShadow to external messaging platforms. It runs as a foreground service, receiving messages from external channels and routing them through the AI agent.
+The Messaging Bridge is a standalone Android library (`:bridge` module) that connects OneClaw to external messaging platforms. It runs as a foreground service, receiving messages from external channels and routing them through the AI agent.
 
 ## Supported Channels
 

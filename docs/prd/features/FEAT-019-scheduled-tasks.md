@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** schedule AI agent tasks to run automatically at specified times,
 **so that** I can automate recurring tasks like morning briefings, daily summaries, or periodic data checks without manual intervention.
 

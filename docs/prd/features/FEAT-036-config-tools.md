@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** configure every aspect of the app through conversation with the AI agent,
 **so that** I never need to leave the chat to adjust providers, models, agents, themes, tool states, or environment variables.
 
@@ -36,7 +36,7 @@
 
 ### Overview
 
-OneClawShadow aims to be fully configurable via conversation. Currently, users must navigate to various Settings screens to manage providers, models, agents, themes, tool states, and environment variables. This feature adds a comprehensive set of built-in tools that enable the AI agent to read and modify all app configuration -- with the sole exception of API key/authentication credential management, which remains UI-only for security.
+OneClaw aims to be fully configurable via conversation. Currently, users must navigate to various Settings screens to manage providers, models, agents, themes, tool states, and environment variables. This feature adds a comprehensive set of built-in tools that enable the AI agent to read and modify all app configuration -- with the sole exception of API key/authentication credential management, which remains UI-only for security.
 
 ### Tool Suite
 

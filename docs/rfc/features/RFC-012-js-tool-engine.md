@@ -92,7 +92,7 @@ The JavaScript Tool Engine enables users to define custom tools as JavaScript fi
 │  └────────────────────────────────────────────────────────┘  │
 │       │                      │                               │
 │       v                      v                               │
-│  /sdcard/OneClawShadow/   {app_internal}/                    │
+│  /sdcard/OneClaw/   {app_internal}/                    │
 │        tools/                 tools/                         │
 │  weather_lookup.js        temperature_convert.js             │
 │  weather_lookup.json      temperature_convert.json           │
@@ -221,7 +221,7 @@ class JsToolLoader(
 ) {
     companion object {
         private const val TAG = "JsToolLoader"
-        private const val EXTERNAL_TOOLS_DIR = "OneClawShadow/tools"
+        private const val EXTERNAL_TOOLS_DIR = "OneClaw/tools"
         private val TOOL_NAME_REGEX = Regex("^[a-z][a-z0-9_]*$")
     }
 
@@ -369,7 +369,7 @@ class JsToolLoader(
     private fun getToolDirectories(): List<File> {
         val dirs = mutableListOf<File>()
 
-        // External storage: /sdcard/OneClawShadow/tools/
+        // External storage: /sdcard/OneClaw/tools/
         val externalDir = File(
             Environment.getExternalStorageDirectory(),
             EXTERNAL_TOOLS_DIR
@@ -1200,10 +1200,10 @@ inline fun <reified T : Tool> unregisterByType() {
 ```
 1. User: "Create a tool that calculates BMI"
 
-2. AI calls write_file(path="/sdcard/OneClawShadow/tools/bmi_calculator.json", content=...)
+2. AI calls write_file(path="/sdcard/OneClaw/tools/bmi_calculator.json", content=...)
    -> JSON metadata written to disk
 
-3. AI calls write_file(path="/sdcard/OneClawShadow/tools/bmi_calculator.js", content=...)
+3. AI calls write_file(path="/sdcard/OneClaw/tools/bmi_calculator.js", content=...)
    -> JS code written to disk
 
 4. AI responds: "I've created a BMI calculator tool. Tap 'Reload tools' in Settings to activate it."
@@ -1211,7 +1211,7 @@ inline fun <reified T : Tool> unregisterByType() {
 5. User opens Settings -> JS Tools section -> taps "Reload"
 
 6. JsToolLoader.loadTools():
-   a. Scans /sdcard/OneClawShadow/tools/
+   a. Scans /sdcard/OneClaw/tools/
    b. Finds bmi_calculator.json + bmi_calculator.js
    c. Parses metadata, creates JsTool instance
    d. Registers into ToolRegistry
@@ -1410,9 +1410,9 @@ inline fun <reified T : Tool> unregisterByType() {
 
 **Precondition:** Push test tool files to emulator:
 ```bash
-adb shell mkdir -p /sdcard/OneClawShadow/tools
-adb push test_tool.json /sdcard/OneClawShadow/tools/
-adb push test_tool.js /sdcard/OneClawShadow/tools/
+adb shell mkdir -p /sdcard/OneClaw/tools
+adb push test_tool.json /sdcard/OneClaw/tools/
+adb push test_tool.js /sdcard/OneClaw/tools/
 ```
 
 ```
@@ -1496,7 +1496,7 @@ Steps:
 1. Push a new JS tool via adb: adb push new_tool.json + new_tool.js
 2. In Settings, tap "Reload" button.
 3. Screenshot -> Verify: new_tool appears in the list with green dot.
-4. Remove the tool files via adb: adb shell rm /sdcard/OneClawShadow/tools/new_tool.*
+4. Remove the tool files via adb: adb shell rm /sdcard/OneClaw/tools/new_tool.*
 5. Tap "Reload" again.
 6. Screenshot -> Verify: new_tool no longer appears in the list.
 ```

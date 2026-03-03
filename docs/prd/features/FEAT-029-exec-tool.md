@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** an AI agent using OneClawShadow,
+**As** an AI agent using OneClaw,
 **I want** a tool that executes shell commands on the Android device,
 **so that** I can interact with the device's operating system -- listing files, checking system info, running scripts, managing packages, and performing automation tasks that require direct command-line access.
 

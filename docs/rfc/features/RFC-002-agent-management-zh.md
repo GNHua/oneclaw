@@ -15,7 +15,7 @@
 ## 概述
 
 ### 背景
-Agent 管理定义了用户如何在 OneClawShadow 中创建、配置和管理 AI Agent。Agent 是一个预配置的 AI 角色，具有名称、描述、system prompt、工具集和可选的首选模型/provider。应用内置一个"通用助手"Agent 作为所有新会话的默认值。用户可以克隆内置 Agent 并创建完全自定义的 Agent。Agent 可以在对话中途切换。
+Agent 管理定义了用户如何在 OneClaw 中创建、配置和管理 AI Agent。Agent 是一个预配置的 AI 角色，具有名称、描述、system prompt、工具集和可选的首选模型/provider。应用内置一个"通用助手"Agent 作为所有新会话的默认值。用户可以克隆内置 Agent 并创建完全自定义的 Agent。Agent 可以在对话中途切换。
 
 本 RFC 涵盖 Agent 数据持久化、CRUD 操作、内置 Agent 种子数据机制、克隆操作、模型解析逻辑以及 Agent 管理 UI。在活跃聊天会话中的实际 Agent 切换（更新会话状态、插入系统消息）推迟到 RFC-005（会话管理）和 RFC-001（对话交互）。工具选择 UI 引用 RFC-004 中定义的 `ToolRegistry` 的工具。
 

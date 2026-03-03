@@ -1,11 +1,11 @@
 # Project Structure
 
-Annotated directory layout of the OneClawShadow project.
+Annotated directory layout of the OneClaw project.
 
 ## Top Level
 
 ```
-oneclaw-shadow-1/
+oneclaw-1/
 ├── app/                           # Main Android application module
 ├── bridge/                        # Messaging bridge Android library module
 ├── docs/                          # All documentation (PRDs, RFCs, ADRs, wiki)

@@ -14,7 +14,7 @@
 
 ### Background
 
-OneClawShadow has a mature JavaScript tool system powered by QuickJS (RFC-004). Users can extend the agent's capabilities by placing `.json` manifest and `.js` source files in the tools directory. However, this requires users to manually create files with correct formats outside the app -- a barrier for non-technical users.
+OneClaw has a mature JavaScript tool system powered by QuickJS (RFC-004). Users can extend the agent's capabilities by placing `.json` manifest and `.js` source files in the tools directory. However, this requires users to manually create files with correct formats outside the app -- a barrier for non-technical users.
 
 This RFC adds the ability to create, update, list, and delete custom JS tools directly from the chat screen. The AI generates the tool code based on the user's natural language description, and a set of built-in Kotlin tools handle the file I/O and registry operations. A companion skill (`create-tool`) guides the AI through the creation workflow with user confirmation before saving.
 
@@ -801,7 +801,7 @@ parameters:
 
 # Create Tool
 
-You are helping the user create a custom JavaScript tool for the OneClawShadow AI agent.
+You are helping the user create a custom JavaScript tool for the OneClaw AI agent.
 
 ## Your Workflow
 

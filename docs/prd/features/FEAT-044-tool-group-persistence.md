@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want** tool groups that I loaded earlier in a conversation to remain available in subsequent messages,
 **so that** I can use tools like Gmail, Drive, and Calendar across multiple messages without re-loading them each time.
 

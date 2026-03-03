@@ -19,7 +19,7 @@ Settings 页面目前只有两个扁平的入口："Manage Agents" 和 "Manage P
 
 本 RFC 为 Settings 页面添加"外观"区域（含主题控制），并将所有条目重新组织为带标签的分区。字体大小跟随 Android 系统设置（Compose 的 `sp` 单位自动处理）。V1 阶段仅支持英文。
 
-现有的 `app_settings` 表（通过 `SettingsDao` 实现的键值存储）作为主题偏好的持久化层。现有的 `OneClawShadowTheme` composable 已经支持 `darkTheme` 布尔参数。实现方案是在两者之间建立桥梁：在应用启动时读取存储的偏好，通过 `AppCompatDelegate.setDefaultNightMode()` 应用主题，同时提供 Compose 层面的 `darkTheme` 覆盖，使 `OneClawShadowTheme` 无需 Activity 重建即可立即响应。
+现有的 `app_settings` 表（通过 `SettingsDao` 实现的键值存储）作为主题偏好的持久化层。现有的 `OneClawTheme` composable 已经支持 `darkTheme` 布尔参数。实现方案是在两者之间建立桥梁：在应用启动时读取存储的偏好，通过 `AppCompatDelegate.setDefaultNightMode()` 应用主题，同时提供 Compose 层面的 `darkTheme` 覆盖，使 `OneClawTheme` 无需 Activity 重建即可立即响应。
 
 ### 目标
 
@@ -53,7 +53,7 @@ Settings 页面目前只有两个扁平的入口："Manage Agents" 和 "Manage P
 2. Compose 主题
    MainActivity.setContent
      -> 收集 ThemeManager.themeMode 作为 State
-     -> OneClawShadowTheme(darkTheme = 从 themeMode 解析)
+     -> OneClawTheme(darkTheme = 从 themeMode 解析)
 
 3. 用户切换主题 (SettingsScreen)
    用户点击 Theme -> AlertDialog 展示 RadioButtons
@@ -176,7 +176,7 @@ class OneclawApplication : Application() {
 
 ### 变更 3：将 ThemeManager 接入 Compose 主题
 
-更新 `MainActivity`，收集 `ThemeManager.themeMode` flow，并将解析后的 `darkTheme` 值传递给 `OneClawShadowTheme`：
+更新 `MainActivity`，收集 `ThemeManager.themeMode` flow，并将解析后的 `darkTheme` 值传递给 `OneClawTheme`：
 
 ```kotlin
 class MainActivity : ComponentActivity() {
@@ -197,7 +197,7 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
             }
-            OneClawShadowTheme(darkTheme = darkTheme) {
+            OneClawTheme(darkTheme = darkTheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     AppNavGraph(navController = navController)
@@ -496,7 +496,7 @@ composable(Route.Settings.path) {
 - 文件：`app/src/main/kotlin/com/oneclaw/shadow/MainActivity.kt`（已有）
 - 通过 Koin 注入 `ThemeManager`
 - 将 `themeManager.themeMode` 作为 Compose State 收集
-- 从 `ThemeMode` 解析 `darkTheme` 布尔值，传递给 `OneClawShadowTheme(darkTheme = ...)`
+- 从 `ThemeMode` 解析 `darkTheme` 布尔值，传递给 `OneClawTheme(darkTheme = ...)`
 
 ### 步骤 5：重组 SettingsScreen，添加分区和主题对话框
 - 文件：`app/src/main/kotlin/com/oneclaw/shadow/feature/provider/SettingsScreen.kt`（已有）
@@ -607,7 +607,7 @@ OneclawApplication.onCreate()
     -> AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_YES)
   -> showThemeDialog = false（对话框关闭）
   -> MainActivity: themeMode 作为 State 收集 -> darkTheme = true
-  -> OneClawShadowTheme(darkTheme = true) 使用 darkScheme 重组
+  -> OneClawTheme(darkTheme = true) 使用 darkScheme 重组
 ```
 
 ### Compose 主题解析
@@ -619,7 +619,7 @@ MainActivity.setContent
        SYSTEM -> isSystemInDarkTheme()（委托给 Android 系统）
        LIGHT  -> false
        DARK   -> true
-  -> OneClawShadowTheme(darkTheme = 解析后的值)
+  -> OneClawTheme(darkTheme = 解析后的值)
   -> MaterialTheme 相应地使用 lightScheme 或 darkScheme
 ```
 

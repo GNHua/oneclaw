@@ -1,6 +1,6 @@
 # Architecture Overview
 
-OneClawShadow is built with Clean Architecture principles, separating concerns into distinct layers within a multi-module Gradle project.
+OneClaw is built with Clean Architecture principles, separating concerns into distinct layers within a multi-module Gradle project.
 
 ## Module Structure
 

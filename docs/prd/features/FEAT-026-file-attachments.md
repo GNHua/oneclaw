@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want** to attach images, videos, and files to my chat messages,
 **so that** I can send visual and document context to AI models for analysis, and view attached media inline within the conversation.
 

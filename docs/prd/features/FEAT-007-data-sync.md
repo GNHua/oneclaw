@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** back up my data to Google Drive and export it locally,
 **so that** I can restore my conversations and settings on a new device or recover from data loss.
 

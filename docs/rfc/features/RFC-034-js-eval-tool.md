@@ -14,7 +14,7 @@
 
 ### Background
 
-OneClawShadow's AI agent has access to pre-defined JS tools (file read/write, HTTP, time) and Kotlin built-in tools (webfetch, browser, exec, etc.). However, the agent lacks the ability to write and execute arbitrary code on the fly. When the agent needs to perform a calculation, data transformation, or algorithmic task, it currently has no way to run custom logic beyond what pre-defined tools offer.
+OneClaw's AI agent has access to pre-defined JS tools (file read/write, HTTP, time) and Kotlin built-in tools (webfetch, browser, exec, etc.). However, the agent lacks the ability to write and execute arbitrary code on the fly. When the agent needs to perform a calculation, data transformation, or algorithmic task, it currently has no way to run custom logic beyond what pre-defined tools offer.
 
 The project already includes QuickJS as a dependency and has a mature `JsExecutionEngine` that manages QuickJS lifecycle, bridge injection, memory limits, and timeout enforcement. Adding a `js_eval` tool simply wraps this engine in a new built-in tool that accepts raw JS source code as a parameter.
 

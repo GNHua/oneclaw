@@ -15,7 +15,7 @@
 
 ### Background
 
-When a user sends a message to the AI agent and switches to another app, there is currently no way to know when the task completes or fails. The user must manually switch back to OneClawShadow to check. This is especially problematic for long-running tasks that involve multiple tool calls, where the agent loop may take several minutes.
+When a user sends a message to the AI agent and switches to another app, there is currently no way to know when the task completes or fails. The user must manually switch back to OneClaw to check. This is especially problematic for long-running tasks that involve multiple tool calls, where the agent loop may take several minutes.
 
 The chat infrastructure already emits `ChatEvent.ResponseComplete` and `ChatEvent.Error` events at the end of every agent loop. What is missing is a mechanism to detect that the user is not looking at the app and to surface the result as an Android system notification.
 
@@ -355,7 +355,7 @@ class MainActivity : ComponentActivity() {
         )
 
         setContent {
-            OneClawShadowTheme {
+            OneClawTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     AppNavGraph(

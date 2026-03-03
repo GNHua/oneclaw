@@ -1,6 +1,6 @@
 # Built-in Tool Reference
 
-OneClawShadow provides 39+ built-in tools that the AI can call during conversations. Tools are organized by category.
+OneClaw provides 39+ built-in tools that the AI can call during conversations. Tools are organized by category.
 
 ## Web and Content
 
@@ -389,3 +389,48 @@ Load all tools in a tool group. A group must be loaded before its tools can be u
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `group_name` | string | yes | Tool group name |
+
+## Git Versioning
+
+### `git_log`
+
+List commit history for the app's file repository. Optionally filter to a specific file or directory.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | no | Relative file path to filter commits by (e.g., `memory/MEMORY.md`) |
+| `max_count` | integer | no | Maximum number of commits to return (default: 20) |
+
+### `git_show`
+
+Show the full diff and metadata for a specific commit.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `sha` | string | yes | Full or abbreviated commit SHA |
+
+### `git_diff`
+
+Show the diff between two commits. If `to_sha` is omitted, compares against the current working tree.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `from_sha` | string | yes | Base commit SHA |
+| `to_sha` | string | no | Target commit SHA (omit to diff against HEAD) |
+
+### `git_restore`
+
+Restore a specific file to its state at a given commit. Automatically commits the restoration.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | yes | Relative file path to restore |
+| `sha` | string | yes | Commit SHA to restore from |
+
+### `git_bundle`
+
+Export the entire git repository as a single bundle file for offline backup (e.g., upload to Google Drive).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `output_path` | string | yes | Relative path for the bundle file (e.g., `exports/oneclaw.bundle`) |

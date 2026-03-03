@@ -11,13 +11,13 @@
 
 ## 用户故事
 
-**作为** OneClawShadow 的用户，
+**作为** OneClaw 的用户，
 **我希望** 通过外部消息平台（Telegram、Discord、Slack、Matrix、LINE、WebChat）与我的 AI Agent 进行交互，
 **以便** 无需直接打开应用，就能向 Agent 发送消息并接收回复，使用我日常已在使用的任意聊天平台。
 
 ### 典型场景
 1. 用户在 Bridge 设置中填写 Telegram 机器人 Token，启用 Telegram 频道并启动桥接服务。此后，用户可以在任意设备上向该 Telegram 机器人发送消息，与 AI Agent 进行对话。
-2. 用户运营一个 Discord 服务器，并将 OneClawShadow 机器人添加进去。团队成员可以在指定的 Discord 频道中与 AI Agent 交互。
+2. 用户运营一个 Discord 服务器，并将 OneClaw 机器人添加进去。团队成员可以在指定的 Discord 频道中与 AI Agent 交互。
 3. 用户启用 WebChat 频道，手机上随即启动一个本地 WebSocket 服务器。同一网络下的浏览器可以连接该服务器，通过简洁的网页界面与 Agent 聊天。
 4. 用户同时启用多个频道（Telegram + Slack）。来自两个平台的消息均路由至同一 Agent，Agent 的回复则发回各自的来源平台。
 5. 用户在 Telegram 中向机器人发送一张图片。图片被下载并存储到本地，连同文本消息一起传递给 Agent 进行多模态处理。
@@ -26,7 +26,7 @@
 ## 功能描述
 
 ### 概述
-消息桥接是一个后台服务，负责将外部消息平台连接到 OneClawShadow AI Agent 运行时。它接收来自支持平台的消息，将其路由至 Agent 进行处理，并将 Agent 的回复发回原始平台。用户无需直接打开 Android 应用，即可在任意设备或平台上与 AI Agent 交互。
+消息桥接是一个后台服务，负责将外部消息平台连接到 OneClaw AI Agent 运行时。它接收来自支持平台的消息，将其路由至 Agent 进行处理，并将 Agent 的回复发回原始平台。用户无需直接打开 Android 应用，即可在任意设备或平台上与 AI Agent 交互。
 
 桥接以带有持久通知的 Android 前台服务方式运行，确保可靠的后台操作。每个消息平台以独立频道的形式实现，各自采用不同的连接机制（轮询、WebSocket 或 Webhook 服务器）。
 

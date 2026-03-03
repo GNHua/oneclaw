@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want** to extend the AI agent's capabilities by adding custom tools written in JavaScript,
 **so that** I can add new tools without modifying the app's Kotlin source code, enabling rapid prototyping, community sharing, and AI-assisted tool creation.
 
@@ -44,7 +44,7 @@ This feature bridges the gap between the current "built-in tools only" model and
 Tools live in a designated directory on the device:
 
 ```
-/sdcard/OneClawShadow/tools/
+/sdcard/OneClaw/tools/
   weather_lookup.js        -- tool logic
   weather_lookup.json      -- tool metadata
   csv_parser.js
@@ -202,8 +202,8 @@ When the AI model calls a JS tool:
 #### Adding a tool via AI
 ```
 1. User: "Create a tool that converts temperature between Celsius and Fahrenheit"
-2. AI calls write_file to create /sdcard/OneClawShadow/tools/temperature_convert.json
-3. AI calls write_file to create /sdcard/OneClawShadow/tools/temperature_convert.js
+2. AI calls write_file to create /sdcard/OneClaw/tools/temperature_convert.json
+3. AI calls write_file to create /sdcard/OneClaw/tools/temperature_convert.js
 4. AI informs the user the tool has been created
 5. User taps "Reload tools" in Settings (or restarts app)
 6. The tool appears in the tool list and can be assigned to Agents
@@ -213,7 +213,7 @@ When the AI model calls a JS tool:
 #### Adding a tool via file import
 ```
 1. User downloads tool files from an external source
-2. User places them in /sdcard/OneClawShadow/tools/
+2. User places them in /sdcard/OneClaw/tools/
 3. User taps "Reload tools" in Settings (or restarts app)
 4. The tool appears in the tool list
 ```

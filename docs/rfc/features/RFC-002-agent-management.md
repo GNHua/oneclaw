@@ -15,7 +15,7 @@
 ## Overview
 
 ### Background
-Agent Management defines how users create, configure, and manage AI agents in OneClawShadow. An Agent is a pre-configured AI persona with a name, description, system prompt, tool set, and optional preferred model/provider. The app ships with a built-in "General Assistant" agent that is the default for all new sessions. Users can clone built-in agents and create fully custom agents. Agents can be switched mid-conversation.
+Agent Management defines how users create, configure, and manage AI agents in OneClaw. An Agent is a pre-configured AI persona with a name, description, system prompt, tool set, and optional preferred model/provider. The app ships with a built-in "General Assistant" agent that is the default for all new sessions. Users can clone built-in agents and create fully custom agents. Agents can be switched mid-conversation.
 
 This RFC covers agent data persistence, CRUD operations, the built-in agent seeding mechanism, the clone operation, model resolution logic, and the agent management UI. The actual agent switching within an active chat session (updating session state, inserting system messages) is deferred to RFC-005 (Session Management) and RFC-001 (Chat Interaction). The tool selection UI references tools from the `ToolRegistry` defined in RFC-004.
 

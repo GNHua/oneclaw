@@ -11,7 +11,7 @@
 
 ## 用户故事
 
-**作为** OneClawShadow 的开发者或高级用户，
+**作为** OneClaw 的开发者或高级用户，
 **我希望** 内置工具以 JavaScript 实现（由原生桥接支撑），并且第三方 JavaScript 库对所有 JS 工具可用，
 **以便** 工具生态系统可以轻松通过社区 JS 库进行扩展，`webfetch` 等新工具可以使用 Turndown 等库进行富内容处理，无需重新编译应用。
 
@@ -47,7 +47,7 @@ ToolRegistry  (Kotlin，不变)
     │     write_file.js
     │     http_request.js
     │     webfetch.js          ← 新工具
-    └── User JS Tools  (FEAT-012 - 来自 /sdcard/OneClawShadow/tools/)
+    └── User JS Tools  (FEAT-012 - 来自 /sdcard/OneClaw/tools/)
 
 QuickJS Runtime  (FEAT-012 桥接)
     ├── Native Bridges: _time(), _readFile(), _writeFile(), _httpRequest()

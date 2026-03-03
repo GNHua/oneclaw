@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** customize the app's appearance (theme and font size),
 **so that** the app matches my visual preferences and is comfortable to use.
 

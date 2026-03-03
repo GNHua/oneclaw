@@ -8,7 +8,7 @@
 
 ```bash
 # 1. 进入项目目录
-cd oneclaw-shadow
+cd oneclaw
 
 # 2. 阅读项目设计文档
 cat docs/00-project-design.md

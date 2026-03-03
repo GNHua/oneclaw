@@ -11,7 +11,7 @@
 
 ## 用户故事
 
-**作为** 使用 OneClawShadow 的 AI 智能体，
+**作为** 使用 OneClaw 的 AI 智能体，
 **我希望** 拥有一个可靠的 webfetch 工具，能够使用真正的 HTML 解析器将网页准确转换为 Markdown，
 **以便** 我可以提取和摘要网页内容，而不受基于正则表达式的 HTML 转 Markdown 转换方式的限制。
 

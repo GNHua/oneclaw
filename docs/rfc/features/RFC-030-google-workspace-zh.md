@@ -14,7 +14,7 @@
 
 ### 背景
 
-OneClawShadow 的工具系统支持 JS 工具组（RFC-018）——以 JSON 数组清单文件配合 JS 实现文件的形式，通过单一文件对暴露多个工具。该应用还具备成熟的桥接注入模式，可为 JS 工具提供 Kotlin 支撑的能力（FetchBridge、FsBridge、ConsoleBridge 等）。
+OneClaw 的工具系统支持 JS 工具组（RFC-018）——以 JSON 数组清单文件配合 JS 实现文件的形式，通过单一文件对暴露多个工具。该应用还具备成熟的桥接注入模式，可为 JS 工具提供 Kotlin 支撑的能力（FetchBridge、FsBridge、ConsoleBridge 等）。
 
 前身项目 oneclaw-1 拥有经过验证的 Google Workspace 插件系统，涵盖 10 项 Google 服务、约 89 个工具，采用 BYOK（自带密钥）OAuth 认证方式。这些工具久经考验，覆盖 Gmail、日历、任务、联系人、云端硬盘、文档、表格、幻灯片、表单以及 Gmail 设置。
 
@@ -939,7 +939,7 @@ class JsExecutionEngine(
 
 ```javascript
 /**
- * OneClawShadow 的 Google Gmail 工具组。
+ * OneClaw 的 Google Gmail 工具组。
  *
  * 使用：
  * - google.getAccessToken() —— 来自 GoogleAuthBridge

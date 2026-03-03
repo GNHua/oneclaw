@@ -8,7 +8,7 @@
 
 ## Overview
 
-This RFC describes the technical design for scheduled task functionality in OneClawShadow. Users can create tasks that automatically run an AI agent at specified times using three schedule types: one-time, daily, and weekly.
+This RFC describes the technical design for scheduled task functionality in OneClaw. Users can create tasks that automatically run an AI agent at specified times using three schedule types: one-time, daily, and weekly.
 
 ## Architecture
 

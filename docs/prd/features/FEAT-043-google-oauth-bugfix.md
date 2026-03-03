@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a OneClawShadow user,
+**As** a OneClaw user,
 **I want** the "Authorize with Google" flow to complete without crashing or silently failing,
 **so that** I can use Google Workspace tools (Gmail, Calendar, Drive, etc.) reliably.
 

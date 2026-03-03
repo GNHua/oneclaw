@@ -11,7 +11,7 @@
 
 ## 用户故事
 
-**作为** OneClawShadow 的用户，
+**作为** OneClaw 的用户，
 **我想要** 通过编写 JavaScript 脚本来扩展 AI Agent 的工具能力，
 **以便** 无需修改应用 Kotlin 源码就能添加新工具，实现快速原型开发、社区共享和 AI 辅助工具创建。
 
@@ -44,7 +44,7 @@ JavaScript 工具引擎扩展了 FEAT-004（工具系统），允许通过嵌入
 工具存放在设备上的指定目录中：
 
 ```
-/sdcard/OneClawShadow/tools/
+/sdcard/OneClaw/tools/
   weather_lookup.js        -- 工具逻辑
   weather_lookup.json      -- 工具元数据
   csv_parser.js
@@ -202,8 +202,8 @@ const apiKey = params._env?.MY_API_KEY || "";
 #### 通过 AI 添加工具
 ```
 1. 用户："创建一个摄氏度和华氏度之间转换温度的工具"
-2. AI 调用 write_file 创建 /sdcard/OneClawShadow/tools/temperature_convert.json
-3. AI 调用 write_file 创建 /sdcard/OneClawShadow/tools/temperature_convert.js
+2. AI 调用 write_file 创建 /sdcard/OneClaw/tools/temperature_convert.json
+3. AI 调用 write_file 创建 /sdcard/OneClaw/tools/temperature_convert.js
 4. AI 通知用户工具已创建
 5. 用户在设置中点击"重新加载工具"（或重启应用）
 6. 工具出现在工具列表中，可以分配给 Agent
@@ -213,7 +213,7 @@ const apiKey = params._env?.MY_API_KEY || "";
 #### 通过文件导入添加工具
 ```
 1. 用户从外部来源下载工具文件
-2. 用户将文件放入 /sdcard/OneClawShadow/tools/
+2. 用户将文件放入 /sdcard/OneClaw/tools/
 3. 用户在设置中点击"重新加载工具"（或重启应用）
 4. 工具出现在工具列表中
 ```

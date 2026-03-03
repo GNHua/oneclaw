@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** have my AI agent remember important context, preferences, and past decisions across sessions,
 **so that** I don't have to repeat myself and the agent becomes more helpful over time.
 
@@ -24,7 +24,7 @@
 ## Feature Description
 
 ### Overview
-The Agent Memory System gives OneClawShadow persistent, cross-session memory. Currently, the app stores full message history in Room DB and sends everything to the model each session -- there is no mechanism for the agent to recall information from prior sessions, and no context management beyond raw message history.
+The Agent Memory System gives OneClaw persistent, cross-session memory. Currently, the app stores full message history in Room DB and sends everything to the model each session -- there is no mechanism for the agent to recall information from prior sessions, and no context management beyond raw message history.
 
 This feature introduces two layers of memory (Daily Logs and Long-term Memory), stored as Markdown files on device, with a hybrid search engine (BM25 keyword + vector semantic) that retrieves relevant memories and injects them into the system prompt. A small local embedding model runs on-device for vector search, requiring no API calls.
 

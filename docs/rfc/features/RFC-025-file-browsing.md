@@ -12,7 +12,7 @@
 
 ### Background
 
-OneClawShadow's AI agents can generate and save files via the `write_file` tool (currently only available through the JavaScript FsBridge). However, there is no way for users to browse, preview, or manage these files within the app. Users cannot see what files the AI has created, preview their contents, or share them with other apps.
+OneClaw's AI agents can generate and save files via the `write_file` tool (currently only available through the JavaScript FsBridge). However, there is no way for users to browse, preview, or manage these files within the app. Users cannot see what files the AI has created, preview their contents, or share them with other apps.
 
 Additionally, the current `FsBridge.writeFile()` writes to arbitrary paths with only a restricted-path blocklist. There is no standard "user files" directory that the app manages, making it difficult to present a coherent file browsing experience.
 

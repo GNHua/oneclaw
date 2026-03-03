@@ -1,6 +1,6 @@
 # Feature Overview
 
-OneClawShadow has 49 features, each documented with a PRD and RFC. Features are organized by category below.
+OneClaw has 51 features, each documented with a PRD and RFC. Features are organized by category below.
 
 ## Core (P0)
 
@@ -60,6 +60,8 @@ OneClawShadow has 49 features, each documented with a PRD and RFC. Features are 
 | FEAT-023 | Memory Enhancement | Hybrid search with BM25 + vector embeddings and time decay | [PRD](../prd/features/FEAT-023-memory-enhancement.md) | [RFC](../rfc/features/RFC-023-memory-enhancement.md) |
 | FEAT-032 | Search History | Unified search across sessions, memory, and daily logs | [PRD](../prd/features/FEAT-032-search-history.md) | [RFC](../rfc/features/RFC-032-search-history.md) |
 | FEAT-049 | Memory Quality | Memory quality scoring and automated cleanup | [PRD](../prd/features/FEAT-049-memory-quality.md) | [RFC](../rfc/features/RFC-049-memory-quality.md) |
+| FEAT-050 | Git Versioning | Git-based versioning of all text files in app storage with auto-commit | [PRD](../prd/features/FEAT-050-git-versioning.md) | [RFC](../rfc/features/RFC-050-git-versioning.md) |
+| FEAT-051 | Git History UI | In-app browser for git commit history with filter and diff view | [PRD](../prd/features/FEAT-051-git-history-ui.md) | [RFC](../rfc/features/RFC-051-git-history-ui.md) |
 
 ## Web and Content
 

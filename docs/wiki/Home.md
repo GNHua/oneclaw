@@ -1,6 +1,6 @@
-# OneClawShadow Wiki
+# OneClaw Wiki
 
-Welcome to the OneClawShadow documentation. This wiki covers everything from getting started to deep architectural details.
+Welcome to the OneClaw documentation. This wiki covers everything from getting started to deep architectural details.
 
 ## For Users
 

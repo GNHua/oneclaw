@@ -15,7 +15,7 @@
 
 ### Background
 
-OneClawShadow stores all user data locally in a Room database (`oneclaw.db`). This includes sessions, messages, agent configurations, provider configurations, model preferences, and app settings. API keys are stored separately in `EncryptedSharedPreferences` via `ApiKeyStorage` and are never part of the Room database.
+OneClaw stores all user data locally in a Room database (`oneclaw.db`). This includes sessions, messages, agent configurations, provider configurations, model preferences, and app settings. API keys are stored separately in `EncryptedSharedPreferences` via `ApiKeyStorage` and are never part of the Room database.
 
 Currently, there is no way for users to back up their data or transfer it to another device. If the user clears app data, uninstalls the app, or switches to a new phone, all sessions, agent configurations, and settings are lost. The only data that is trivially recoverable is the API keys themselves (by re-entering them).
 
@@ -161,7 +161,7 @@ class SyncManager(
             GsonFactory.getDefaultInstance(),
             credential
         )
-            .setApplicationName("OneClawShadow")
+            .setApplicationName("OneClaw")
             .build()
     }
 

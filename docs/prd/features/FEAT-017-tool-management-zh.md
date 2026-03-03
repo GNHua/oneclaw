@@ -11,7 +11,7 @@
 
 ## 用户故事
 
-**作为** OneClawShadow 的用户，
+**作为** OneClaw 的用户，
 **我希望** 在一个地方查看所有可用工具并全局启用或禁用它们，
 **以便** 我可以控制哪些工具对所有 Agent 可用，而无需逐个配置每个 Agent。
 
@@ -601,7 +601,7 @@ Data & Backup
 2. 如果工具被重新加载（例如 FEAT-012 的 JS 工具重载），工具列表在下次访问界面时更新。
 3. 工具名称按注册时的原样显示（遵循 FEAT-004 的 snake_case 命名规范）。
 4. 工具描述按 ToolDefinition 中的原样显示。
-5. 来源类型从工具的加载来源派生：从应用 assets（`js/tools/`）加载或以 Kotlin 实现的工具（如 `LoadSkillTool`）为 "Built-in"；从数组清单文件（RFC-018）加载的工具为 "Tool Group"；从设备文件系统（`/sdcard/OneClawShadow/tools/` 或 `{app_files}/tools/`）加载的不属于任何工具组的单文件工具为 "JS Extension"（独立工具）。RFC-015 之后，除 `LoadSkillTool` 外的所有内置工具均为 JavaScript 实现，因此仅凭类类型无法区分内置工具和用户自定义 JS 工具。
+5. 来源类型从工具的加载来源派生：从应用 assets（`js/tools/`）加载或以 Kotlin 实现的工具（如 `LoadSkillTool`）为 "Built-in"；从数组清单文件（RFC-018）加载的工具为 "Tool Group"；从设备文件系统（`/sdcard/OneClaw/tools/` 或 `{app_files}/tools/`）加载的不属于任何工具组的单文件工具为 "JS Extension"（独立工具）。RFC-015 之后，除 `LoadSkillTool` 外的所有内置工具均为 JavaScript 实现，因此仅凭类类型无法区分内置工具和用户自定义 JS 工具。
 6. 工具组按组名称字母顺序排列。每个组内的工具按工具名称字母顺序排列。
 7. 如果没有工具组存在，"TOOL GROUPS" 区域标题不显示。
 8. 如果没有独立 JS 扩展工具存在，"STANDALONE" 区域标题不显示。

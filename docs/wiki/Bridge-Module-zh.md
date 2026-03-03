@@ -1,6 +1,6 @@
 # 消息桥接模块
 
-消息桥接模块是一个独立的 Android 库（`:bridge` 模块），用于将 OneClawShadow 与外部消息平台连接。它作为 foreground service 运行，接收来自外部渠道的消息并将其路由至 AI 智能体处理。
+消息桥接模块是一个独立的 Android 库（`:bridge` 模块），用于将 OneClaw 与外部消息平台连接。它作为 foreground service 运行，接收来自外部渠道的消息并将其路由至 AI 智能体处理。
 
 ## 支持的渠道
 

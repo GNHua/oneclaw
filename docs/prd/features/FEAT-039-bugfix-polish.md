@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a OneClawShadow user,
+**As** a OneClaw user,
 **I want** the app to be stable, polished, and free of the issues I reported during testing,
 **so that** I can reliably use Google OAuth, manage agents, browse files, search history, send attachments, and manage scheduled tasks without friction.
 

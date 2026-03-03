@@ -8,7 +8,7 @@ This document provides detailed workflow guidance to help you develop the OneCla
 
 ```bash
 # 1. Enter the project directory
-cd oneclaw-shadow
+cd oneclaw
 
 # 2. Read the project design document
 cat docs/00-project-design.md

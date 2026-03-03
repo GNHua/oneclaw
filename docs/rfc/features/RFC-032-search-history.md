@@ -14,7 +14,7 @@
 
 ### Background
 
-OneClawShadow's AI agent accumulates knowledge about the user across conversations through the memory system (MEMORY.md, daily logs) and through raw message history. However, the agent currently has no way to proactively search this accumulated knowledge at the user's request. When a user asks "what was that restaurant I mentioned last week?", the agent cannot look it up.
+OneClaw's AI agent accumulates knowledge about the user across conversations through the memory system (MEMORY.md, daily logs) and through raw message history. However, the agent currently has no way to proactively search this accumulated knowledge at the user's request. When a user asks "what was that restaurant I mentioned last week?", the agent cannot look it up.
 
 The memory system already has a `HybridSearchEngine` that combines BM25 keyword search and vector similarity search with time decay over indexed memory chunks. This RFC extends that capability by adding a `search_history` tool that the AI model can invoke to search across memory, message content, and session metadata.
 

@@ -14,9 +14,9 @@
 
 ### 背景
 
-AI 智能体经常需要处理 PDF 文档——总结报告、从发票中提取数据、阅读研究论文或分析扫描表单。目前，OneClawShadow 没有内置的 PDF 文件读取能力。用户可以附加文件（FEAT-026）并浏览文件系统（FEAT-025），但智能体无法从 PDF 中提取内容。
+AI 智能体经常需要处理 PDF 文档——总结报告、从发票中提取数据、阅读研究论文或分析扫描表单。目前，OneClaw 没有内置的 PDF 文件读取能力。用户可以附加文件（FEAT-026）并浏览文件系统（FEAT-025），但智能体无法从 PDF 中提取内容。
 
-OneClaw 1.0 在 `lib-pdf` 中拥有成熟的 PDF 工具实现，提供三个工具：`pdf_info`、`pdf_extract_text` 和 `pdf_render_page`。本 RFC 将该功能移植到 OneClawShadow 的工具架构中，作为 Kotlin 内置工具，并对代码进行适配，使其使用 OneClawShadow 的 `Tool` 接口、`ToolResult` 和 `ToolDefinition` 数据类型。
+OneClaw 1.0 在 `lib-pdf` 中拥有成熟的 PDF 工具实现，提供三个工具：`pdf_info`、`pdf_extract_text` 和 `pdf_render_page`。本 RFC 将该功能移植到 OneClaw 的工具架构中，作为 Kotlin 内置工具，并对代码进行适配，使其使用 OneClaw 的 `Tool` 接口、`ToolResult` 和 `ToolDefinition` 数据类型。
 
 ### 目标
 

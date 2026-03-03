@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want** a comprehensive set of Google Workspace tools comparable to other AI agent platforms,
 **so that** I can perform advanced operations like batch email management, calendar RSVP, document editing, and file copying without switching to a browser.
 

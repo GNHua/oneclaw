@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user who controls the AI agent through both the Telegram bridge and the OneClawShadow app,
+**As** a user who controls the AI agent through both the Telegram bridge and the OneClaw app,
 **I want** the ChatScreen to automatically follow whichever session the bridge is currently using,
 **so that** there is always a single shared active session and I never lose track of the ongoing conversation.
 

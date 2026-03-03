@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want** the app to automatically manage conversation context length so that long conversations never fail due to exceeding the model's context window,
 **so that** I can have extended conversations without worrying about technical limits or losing important context.
 

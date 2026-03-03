@@ -14,7 +14,7 @@
 
 ### 背景
 
-OneClawShadow 的 AI agent 目前通过一组有限的内置工具（webfetch、browser、schedule_task 等）和基于 JS 的工具（文件读写、HTTP、时间）与设备进行交互。然而，目前没有通用工具可以在设备上执行任意 shell 命令。Shell 访问能力将使 agent 执行更广泛的任务：文件系统操作、系统诊断、包管理、网络测试、文本处理和自动化脚本。
+OneClaw 的 AI agent 目前通过一组有限的内置工具（webfetch、browser、schedule_task 等）和基于 JS 的工具（文件读写、HTTP、时间）与设备进行交互。然而，目前没有通用工具可以在设备上执行任意 shell 命令。Shell 访问能力将使 agent 执行更广泛的任务：文件系统操作、系统诊断、包管理、网络测试、文本处理和自动化脚本。
 
 Android 提供了 `Runtime.getRuntime().exec()`，允许应用在其沙箱内启动 shell 进程。这些进程以应用的 UID 运行，拥有与应用本身相同的权限——没有 root 访问权限，受 Android 安全模型约束。
 

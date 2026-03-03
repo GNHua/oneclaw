@@ -11,7 +11,7 @@
 
 ## 用户故事
 
-**作为** OneClawShadow 的用户，
+**作为** OneClaw 的用户，
 **我希望** AI Agent 只加载每个任务实际需要的工具，
 **以便** 对话消耗更少的 token、响应更快，并且不会被无关的工具 schema 所干扰。
 
@@ -29,7 +29,7 @@
 
 ### 概述
 
-OneClawShadow 目前在每次消息轮次中将所有已注册的工具 schema 发送给 LLM。随着 37 个以上的 Kotlin 工具、60 个以上的 JS Google Workspace 工具，以及潜在的大量用户自定义 JS 工具，这将浪费大量 token（每个工具 schema 消耗约 200-500 个 token）。工具 schema 的总负载每轮可能超过 20,000 个 token。
+OneClaw 目前在每次消息轮次中将所有已注册的工具 schema 发送给 LLM。随着 37 个以上的 Kotlin 工具、60 个以上的 JS Google Workspace 工具，以及潜在的大量用户自定义 JS 工具，这将浪费大量 token（每个工具 schema 消耗约 200-500 个 token）。工具 schema 的总负载每轮可能超过 20,000 个 token。
 
 Skill 系统（FEAT-014）已经展示了一种懒加载模式：系统提示词中只出现 skill 的名称和描述，完整的 skill 内容通过 `load_skill` 按需加载。本功能将相同的模式应用于工具：按领域将工具分组，在系统提示词中列出各组的摘要，通过 `load_tool_group` 元工具按需加载完整的工具 schema。
 

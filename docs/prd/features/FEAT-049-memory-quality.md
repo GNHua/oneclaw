@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want** the AI to save only meaningful, non-redundant information to long-term memory,
 **so that** MEMORY.md remains a concise, high-signal knowledge base rather than accumulating noise like repeated model-switch records, duplicate entries, and trivial observations.
 

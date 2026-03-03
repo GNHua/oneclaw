@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** view all available tools in one place and enable or disable them globally,
 **so that** I can control which tools are available across all my agents without having to configure each agent individually.
 
@@ -601,7 +601,7 @@ For tools that belong to a group, the detail view includes a "Group" field showi
 2. If tools are reloaded (e.g., JS tool reload from FEAT-012), the tool list updates on next screen visit.
 3. Tool names are displayed exactly as registered (snake_case convention from FEAT-004).
 4. Tool descriptions are displayed as-is from the ToolDefinition.
-5. Source type is derived from the tool's loading origin: tools loaded from app assets (`js/tools/`) or implemented in Kotlin (e.g., `LoadSkillTool`) are "Built-in"; tools loaded from array manifest files (RFC-018) are "Tool Group"; single-file tools loaded from device file system (`/sdcard/OneClawShadow/tools/` or `{app_files}/tools/`) that are not part of a group are "JS Extension" (Standalone). After RFC-015, all built-in tools except `LoadSkillTool` are JavaScript-based, so class type alone cannot distinguish built-in from user-defined JS tools.
+5. Source type is derived from the tool's loading origin: tools loaded from app assets (`js/tools/`) or implemented in Kotlin (e.g., `LoadSkillTool`) are "Built-in"; tools loaded from array manifest files (RFC-018) are "Tool Group"; single-file tools loaded from device file system (`/sdcard/OneClaw/tools/` or `{app_files}/tools/`) that are not part of a group are "JS Extension" (Standalone). After RFC-015, all built-in tools except `LoadSkillTool` are JavaScript-based, so class type alone cannot distinguish built-in from user-defined JS tools.
 6. Tool groups are sorted alphabetically by group name. Tools within each group are sorted alphabetically by tool name.
 7. If no tool groups exist, the "TOOL GROUPS" section header is hidden.
 8. If no standalone JS extension tools exist, the "STANDALONE" section header is hidden.

@@ -1,4 +1,4 @@
-# 测试策略：OneClawShadow
+# 测试策略：OneClaw
 
 ## 文档信息
 - **关联架构**: [RFC-000 (总体架构)](../rfc/architecture/RFC-000-overall-architecture-zh.md)
@@ -10,7 +10,7 @@
 ## 概述
 
 ### 背景
-OneClawShadow 采用文档驱动开发方式，AI 从 RFC 生成代码。自动化测试对于验证生成的代码是否符合规范至关重要。本文档定义了两层测试策略：第一层（全自动，无需人工交互）和第二层（AI 控制模拟器进行视觉验证）。
+OneClaw 采用文档驱动开发方式，AI 从 RFC 生成代码。自动化测试对于验证生成的代码是否符合规范至关重要。本文档定义了两层测试策略：第一层（全自动，无需人工交互）和第二层（AI 控制模拟器进行视觉验证）。
 
 ### 目标
 1. 定义 AI 可以自主执行的全面测试策略
@@ -794,7 +794,7 @@ class ChatComponentScreenshotTest {
     @Test
     fun emptyState() {
         composeTestRule.setContent {
-            OneClawShadowTheme {
+            OneClawTheme {
                 EmptyChatState()
             }
         }
@@ -804,7 +804,7 @@ class ChatComponentScreenshotTest {
     @Test
     fun userMessageBubble_shortText() {
         composeTestRule.setContent {
-            OneClawShadowTheme {
+            OneClawTheme {
                 UserMessageBubble(
                     content = "Hello!",
                     onCopy = {}

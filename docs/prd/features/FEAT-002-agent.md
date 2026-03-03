@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** create and manage AI agents with different system prompts and tool configurations,
 **so that** I can customize the AI's behavior for different tasks and use cases.
 

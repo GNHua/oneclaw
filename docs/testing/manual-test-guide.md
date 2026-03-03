@@ -1,6 +1,6 @@
-# Manual Test Guide — OneClawShadow
+# Manual Test Guide — OneClaw
 
-This document is the cumulative, always-up-to-date guide for manually testing the OneClawShadow app. It describes every user-facing flow that exists in the current implementation, and how to verify it on a real device or emulator.
+This document is the cumulative, always-up-to-date guide for manually testing the OneClaw app. It describes every user-facing flow that exists in the current implementation, and how to verify it on a real device or emulator.
 
 **How to use this guide:**
 - Before any release, execute all flows in this guide from a fresh install.

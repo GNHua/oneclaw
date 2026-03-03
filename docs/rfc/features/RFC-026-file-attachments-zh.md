@@ -14,7 +14,7 @@
 
 ### 背景
 
-OneClawShadow 目前仅支持纯文本聊天消息。三个受支持的 AI 服务商（OpenAI、Anthropic、Gemini）都支持多模态输入——至少支持图片，其中 Gemini 还支持视频。用户需要能够在发送文本消息的同时附带图片、视频和文件，以充分利用这些服务商的能力。
+OneClaw 目前仅支持纯文本聊天消息。三个受支持的 AI 服务商（OpenAI、Anthropic、Gemini）都支持多模态输入——至少支持图片，其中 Gemini 还支持视频。用户需要能够在发送文本消息的同时附带图片、视频和文件，以充分利用这些服务商的能力。
 
 当前的 `ApiMessage.User` 类只保存 `content: String`，`Message` 领域模型也没有附件字段。本 RFC 设计了所需的完整技术栈变更：数据模型、文件存储、UI 组件、API 适配器扩展以及媒体查看。
 

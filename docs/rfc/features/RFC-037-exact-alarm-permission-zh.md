@@ -13,7 +13,7 @@
 
 ### 背景
 
-Android 12（API 31）将 `SCHEDULE_EXACT_ALARM` 引入为精确闹钟调度的特殊权限。在 Android 13+（API 33）上，该权限默认**不**授予。替代方案 `USE_EXACT_ALARM` 虽可自动授权，但 Google Play 将其限制为仅适用于闹钟、计时器和日历类应用。由于 OneClawShadow 是使用精确闹钟执行定时任务的 AI Agent 运行时，它必须：
+Android 12（API 31）将 `SCHEDULE_EXACT_ALARM` 引入为精确闹钟调度的特殊权限。在 Android 13+（API 33）上，该权限默认**不**授予。替代方案 `USE_EXACT_ALARM` 虽可自动授权，但 Google Play 将其限制为仅适用于闹钟、计时器和日历类应用。由于 OneClaw 是使用精确闹钟执行定时任务的 AI Agent 运行时，它必须：
 
 1. 使用 `SCHEDULE_EXACT_ALARM`（而非 `USE_EXACT_ALARM`）以符合 Play Store 政策
 2. 在调度前于运行时检查 `AlarmManager.canScheduleExactAlarms()`
@@ -451,7 +451,7 @@ when (result) {
         val warning = if (!result.data.alarmRegistered) {
             "\n\nWarning: Exact alarm permission is not granted. " +
                 "The task has been saved but will not trigger at the scheduled time. " +
-                "Please ask the user to go to Settings > Apps > OneClawShadow > " +
+                "Please ask the user to go to Settings > Apps > OneClaw > " +
                 "Alarms & reminders to enable the permission."
         } else ""
 

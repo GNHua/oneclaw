@@ -15,7 +15,7 @@
 
 ### Background
 
-OneClawShadow users provide their own API keys, which means they bear the direct cost of every API call. Currently, there is no visibility into how many tokens each message, session, or model consumes. Users have no way to understand their usage patterns or manage their API spending without leaving the app and checking provider dashboards.
+OneClaw users provide their own API keys, which means they bear the direct cost of every API call. Currently, there is no visibility into how many tokens each message, session, or model consumes. Users have no way to understand their usage patterns or manage their API spending without leaving the app and checking provider dashboards.
 
 The data layer already supports token tracking. `MessageEntity` has `token_count_input` and `token_count_output` columns, and the `Message` domain model exposes `tokenCountInput` and `tokenCountOutput` fields. These values are populated from `StreamEvent.Usage` events emitted during streaming. What is missing is the UI to surface this data to users at three levels: per-message, per-session, and globally.
 

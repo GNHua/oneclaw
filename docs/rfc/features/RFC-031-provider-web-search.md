@@ -12,7 +12,7 @@
 
 ### Background
 
-OneClawShadow currently has two client-side web tools: `webfetch` (HTTP fetch + HTML-to-Markdown) and `browser` (WebView-based rendering). These require the AI to explicitly call tools and consume a tool-call round-trip per page. Meanwhile, all three supported providers offer built-in server-side web search capabilities:
+OneClaw currently has two client-side web tools: `webfetch` (HTTP fetch + HTML-to-Markdown) and `browser` (WebView-based rendering). These require the AI to explicitly call tools and consume a tool-call round-trip per page. Meanwhile, all three supported providers offer built-in server-side web search capabilities:
 
 - **OpenAI**: `web_search_options` in Chat Completions API (search-capable models)
 - **Anthropic**: `web_search_20250305` server-side tool in Messages API

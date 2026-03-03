@@ -8,7 +8,7 @@
 
 ## Background
 
-OneClawShadow stores user-facing files — memory logs, daily conversation summaries, AI-generated reports, and markdown documents — in the app's internal `filesDir`. Currently, the only versioning mechanism is a simple rotating backup of `MEMORY.md` (up to 5 timestamped copies). This approach:
+OneClaw stores user-facing files — memory logs, daily conversation summaries, AI-generated reports, and markdown documents — in the app's internal `filesDir`. Currently, the only versioning mechanism is a simple rotating backup of `MEMORY.md` (up to 5 timestamped copies). This approach:
 
 - Covers only `MEMORY.md`, not daily logs or AI-generated files
 - Retains at most 5 snapshots with no granular change history

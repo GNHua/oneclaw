@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide covers setting up the development environment, building, and testing OneClawShadow.
+This guide covers setting up the development environment, building, and testing OneClaw.
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ This guide covers setting up the development environment, building, and testing 
 
 ```bash
 git clone <repository-url>
-cd oneclaw-shadow-1
+cd oneclaw-1
 
 # Build debug APK
 ./gradlew assembleDebug
@@ -25,7 +25,7 @@ The debug APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
 ## Project Setup in Android Studio
 
 1. Open Android Studio
-2. File > Open > select the `oneclaw-shadow-1` directory
+2. File > Open > select the `oneclaw-1` directory
 3. Wait for Gradle sync to complete
 4. Select the `app` run configuration
 5. Run on an emulator or connected device

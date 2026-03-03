@@ -139,7 +139,7 @@ Visual check: Black background, white text, "Anthropic" row with purple "Connect
 
 <img src="screenshots/Layer2_Flow1_step1_fresh_launch_setup.png" width="250">
 
-Visual check: "Welcome to OneClawShadow" title in gold/amber primary color, "Step 1 of 3: Choose a provider" step header also in primary color. Background is warm cream (`surfaceLight`). Three provider cards (OpenAI, Anthropic, Google Gemini) with correct outlined style. "Skip for now" in gold/amber at the bottom.
+Visual check: "Welcome to OneClaw" title in gold/amber primary color, "Step 1 of 3: Choose a provider" step header also in primary color. Background is warm cream (`surfaceLight`). Three provider cards (OpenAI, Anthropic, Google Gemini) with correct outlined style. "Skip for now" in gold/amber at the bottom.
 
 ### Flow 1 — Setup Step 2: Enter API Key (empty)
 
@@ -191,7 +191,7 @@ Visual check: Full AI response rendered with markdown (bold title, paragraph tex
 | 2 | `compose.ui.test.junit4` missing from `testImplementation`, causing Roborazzi test compile failure | Medium | Fixed in `4dbe9c3` |
 | 3 | `OneclawApplication.startKoin()` called for each Robolectric test, causing `KoinAppAlreadyStartedException` | Medium | Fixed via `@Config(application = Application::class)` in `4dbe9c3` |
 | 4 | `SetupScreen` title and step headers had no color (rendered black); should use `primary` (gold/amber) | Low | Fixed post-RFC-001/002 |
-| 5 | `OneClawShadowTheme` defaulted to `dynamicColor = true`, overriding gold/amber palette on Android 12+ with system wallpaper color | High | Fixed post-RFC-001/002: default changed to `false` |
+| 5 | `OneClawTheme` defaulted to `dynamicColor = true`, overriding gold/amber palette on Android 12+ with system wallpaper color | High | Fixed post-RFC-001/002: default changed to `false` |
 | 6 | `BuildConfig.DEBUG` not generated — `buildFeatures { buildConfig = true }` missing from `app/build.gradle.kts` | Medium | Fixed: added `buildConfig = true` |
 | 7 | Tool definition JSON serialization: `formatToolDefinitions()` used `v.toString()` producing Kotlin map syntax `{key=value}` instead of JSON | Critical | Fixed: added `anyToJsonElement()` helper in all 3 adapters |
 | 8 | Message and Session IDs not generated: `MessageRepositoryImpl.addMessage()` and `SessionRepositoryImpl.createSession()` received `id = ""` and didn't generate UUIDs, causing all records to overwrite each other | Critical | Fixed: added `UUID.randomUUID()` fallback in both Impl classes |

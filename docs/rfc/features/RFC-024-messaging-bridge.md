@@ -11,9 +11,9 @@
 ## Overview
 
 ### Background
-OneClawShadow currently requires users to open the Android app to interact with AI agents. Many users spend their day in messaging platforms like Telegram, Discord, or Slack. A messaging bridge would allow them to chat with their agents from any platform, on any device, without switching apps.
+OneClaw currently requires users to open the Android app to interact with AI agents. Many users spend their day in messaging platforms like Telegram, Discord, or Slack. A messaging bridge would allow them to chat with their agents from any platform, on any device, without switching apps.
 
-The reference implementation (`oneclaw-1/lib-messaging-bridge`) provides a proven architecture supporting 6 channels with a channel abstraction layer, foreground service, and comprehensive state management. This RFC adapts that architecture to OneClawShadow as an independent `:bridge` Gradle module.
+The reference implementation (`oneclaw-1/lib-messaging-bridge`) provides a proven architecture supporting 6 channels with a channel abstraction layer, foreground service, and comprehensive state management. This RFC adapts that architecture to OneClaw as an independent `:bridge` Gradle module.
 
 ### Goals
 1. Implement an independent `:bridge` Gradle module containing all messaging bridge logic
@@ -1224,7 +1224,7 @@ while (isActive) {
 ### Alternative B: Firebase Cloud Messaging relay (rejected)
 - **Pro**: No foreground service needed; better battery life
 - **Con**: Requires server infrastructure; adds latency; not self-hosted
-- **Why rejected**: Contradicts OneClawShadow's local-first, self-hosted philosophy
+- **Why rejected**: Contradicts OneClaw's local-first, self-hosted philosophy
 
 ### Alternative C: Single unified WebSocket gateway (rejected)
 - **Pro**: Simpler architecture; all platforms connect through one point

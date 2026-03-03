@@ -12,7 +12,7 @@
 
 ## 用户故事
 
-**作为** OneClawShadow 的用户，
+**作为** OneClaw 的用户，
 **我想要** 创建和管理具有不同 system prompt 和工具配置的 AI Agent，
 **以便** 我可以针对不同的任务和使用场景定制 AI 的行为。
 

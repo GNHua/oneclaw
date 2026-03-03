@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a developer or power user of OneClawShadow,
+**As** a developer or power user of OneClaw,
 **I want to** define multiple related tools in a single JavaScript file with a shared JSON manifest,
 **so that** I can group tools by service or domain (e.g., Google Drive, Gmail), share helper code within the group, and reduce file proliferation as the tool ecosystem grows.
 

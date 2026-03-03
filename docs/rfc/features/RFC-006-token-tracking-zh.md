@@ -15,7 +15,7 @@
 
 ### 背景
 
-OneClawShadow 的用户使用自己的 API key，这意味着每次 API 调用的费用由用户直接承担。目前应用中没有任何界面展示每条消息、每个会话或每个模型的 token 消耗情况。用户若想了解自己的用量模式或管理 API 开支，只能离开应用去查看各 provider 的后台面板。
+OneClaw 的用户使用自己的 API key，这意味着每次 API 调用的费用由用户直接承担。目前应用中没有任何界面展示每条消息、每个会话或每个模型的 token 消耗情况。用户若想了解自己的用量模式或管理 API 开支，只能离开应用去查看各 provider 的后台面板。
 
 数据层已经支持 token 追踪。`MessageEntity` 有 `token_count_input` 和 `token_count_output` 列，域模型 `Message` 也暴露了 `tokenCountInput` 和 `tokenCountOutput` 字段。这些值在 streaming 过程中从 `StreamEvent.Usage` 事件写入。目前缺少的是将这些数据在三个层面呈现给用户的 UI：单条消息、单个会话、全局统计。
 

@@ -14,7 +14,7 @@
 
 ### Background
 
-OneClawShadow currently requires users to navigate to various Settings screens to configure providers, models, agents, themes, tool states, and environment variables. The app already has tools for creating agents (`create_agent`) and managing scheduled tasks (RFC-027), but lacks tools for managing the rest of the configuration. This means users must constantly switch between the chat and Settings UI to adjust configuration.
+OneClaw currently requires users to navigate to various Settings screens to configure providers, models, agents, themes, tool states, and environment variables. The app already has tools for creating agents (`create_agent`) and managing scheduled tasks (RFC-027), but lacks tools for managing the rest of the configuration. This means users must constantly switch between the chat and Settings UI to adjust configuration.
 
 This RFC adds 17 built-in tools that enable the AI agent to read and modify all app configuration through conversation, with the sole exception of API key/authentication credential management which remains UI-only for security.
 

@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** an AI agent using OneClawShadow,
+**As** an AI agent using OneClaw,
 **I want** to access Google Workspace services (Gmail, Calendar, Tasks, Contacts, Drive, Docs, Sheets, Slides, Forms) through authenticated API tools,
 **so that** I can manage the user's email, calendar events, tasks, contacts, files, documents, spreadsheets, presentations, and forms on their behalf.
 
@@ -32,7 +32,7 @@
 
 ### Overview
 
-FEAT-030 adds Google Workspace integration to OneClawShadow, providing ~89 tools across 10 Google services. This is a port from the proven oneclaw-1 plugin system, adapted to shadow-4's architecture (JS tool groups with QuickJS execution engine).
+FEAT-030 adds Google Workspace integration to OneClaw, providing ~89 tools across 10 Google services. This is a port from the proven oneclaw-1 plugin system, adapted to shadow-4's architecture (JS tool groups with QuickJS execution engine).
 
 The feature includes:
 1. **BYOK OAuth Authentication** -- Users bring their own GCP OAuth Client ID and Secret for secure, self-managed authentication
@@ -225,7 +225,7 @@ Results returned to AI Model
 
 ### BYOK OAuth Authentication
 
-OneClawShadow uses a BYOK (Bring Your Own Key) OAuth flow. The user provides their own GCP Desktop OAuth Client ID and Client Secret, giving them full control over their credentials and API access.
+OneClaw uses a BYOK (Bring Your Own Key) OAuth flow. The user provides their own GCP Desktop OAuth Client ID and Client Secret, giving them full control over their credentials and API access.
 
 #### OAuth Flow
 

@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** manage my scheduled tasks through conversation with the AI agent,
 **so that** I can list, run, update, and delete scheduled tasks without navigating to the Scheduled Tasks UI.
 

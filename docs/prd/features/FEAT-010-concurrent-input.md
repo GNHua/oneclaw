@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** send additional messages while the AI is still responding or executing tools,
 **so that** I can add context, follow up, or redirect the AI without waiting for the current response to finish.
 

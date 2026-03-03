@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want** to configure the model temperature and maximum iteration count per agent,
 **so that** I can fine-tune each agent's creativity level and control how many tool-use rounds it performs before stopping.
 

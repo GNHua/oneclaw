@@ -13,7 +13,7 @@
 ## Overview
 
 ### Background
-Model/Provider Management is the foundational feature that enables all AI interactions in OneClawShadow. Before the user can send any message, they must have at least one provider configured with a valid API key. This RFC specifies the technical implementation for provider CRUD operations, API key secure storage, model list fetching, connection testing, the first-time setup flow, and the global default model selection.
+Model/Provider Management is the foundational feature that enables all AI interactions in OneClaw. Before the user can send any message, they must have at least one provider configured with a valid API key. This RFC specifies the technical implementation for provider CRUD operations, API key secure storage, model list fetching, connection testing, the first-time setup flow, and the global default model selection.
 
 This RFC covers the **provider management infrastructure only** -- it defines the `ModelApiAdapter` interface in full but only implements `listModels()` and `testConnection()`. The `sendMessageStream()` implementation is deferred to RFC-001 (Chat Interaction).
 

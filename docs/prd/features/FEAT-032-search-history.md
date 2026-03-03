@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** an AI agent using OneClawShadow,
+**As** an AI agent using OneClaw,
 **I want** a tool that searches past conversation history, memory files, and daily logs,
 **so that** I can find information the user has previously mentioned -- such as a restaurant name, a place they visited, a code snippet they discussed, or any other detail from prior interactions.
 

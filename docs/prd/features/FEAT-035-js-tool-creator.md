@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want** to describe a custom tool in natural language in the chat screen and have the AI generate, register, and manage it for me,
 **so that** I can extend the agent's capabilities with new JavaScript tools without manually writing manifest and source files.
 

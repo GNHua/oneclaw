@@ -15,7 +15,7 @@
 
 ### 背景
 
-当用户向 AI agent 发送消息后切换到其他应用，目前没有任何方式通知用户任务已完成或失败。用户必须手动切回 OneClawShadow 来查看结果。这在涉及多次工具调用的长时间任务中尤其不便，因为 agent 循环可能持续数分钟。
+当用户向 AI agent 发送消息后切换到其他应用，目前没有任何方式通知用户任务已完成或失败。用户必须手动切回 OneClaw 来查看结果。这在涉及多次工具调用的长时间任务中尤其不便，因为 agent 循环可能持续数分钟。
 
 聊天基础设施已经在每次 agent 循环结束时发出 `ChatEvent.ResponseComplete` 和 `ChatEvent.Error` 事件。目前缺少的是一个检测用户不在查看应用的机制，以及将结果以 Android 系统通知的形式呈现的功能。
 
@@ -355,7 +355,7 @@ class MainActivity : ComponentActivity() {
         )
 
         setContent {
-            OneClawShadowTheme {
+            OneClawTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     AppNavGraph(

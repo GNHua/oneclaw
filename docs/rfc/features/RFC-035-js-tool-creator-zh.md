@@ -14,7 +14,7 @@
 
 ### 背景
 
-OneClawShadow 拥有一套基于 QuickJS 的成熟 JavaScript 工具系统（RFC-004）。用户可以通过在工具目录中放置 `.json` 清单文件和 `.js` 源文件来扩展 Agent 的能力。然而，这要求用户在应用外部手动创建格式正确的文件——对非技术用户存在一定门槛。
+OneClaw 拥有一套基于 QuickJS 的成熟 JavaScript 工具系统（RFC-004）。用户可以通过在工具目录中放置 `.json` 清单文件和 `.js` 源文件来扩展 Agent 的能力。然而，这要求用户在应用外部手动创建格式正确的文件——对非技术用户存在一定门槛。
 
 本 RFC 新增了直接在聊天界面中创建、更新、列出和删除自定义 JS 工具的能力。AI 根据用户的自然语言描述生成工具代码，一组内置 Kotlin 工具负责处理文件 I/O 和注册表操作。配套技能（`create-tool`）会引导 AI 完成创建工作流，并在保存前要求用户确认。
 
@@ -802,7 +802,7 @@ parameters:
 
 # Create Tool
 
-你正在帮助用户为 OneClawShadow AI Agent 创建一个自定义 JavaScript 工具。
+你正在帮助用户为 OneClaw AI Agent 创建一个自定义 JavaScript 工具。
 
 ## 工作流程
 

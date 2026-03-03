@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** an AI agent using OneClawShadow,
+**As** an AI agent using OneClaw,
 **I want** a browser tool that can render web pages in a real browser environment, take screenshots, and extract content from dynamically-rendered pages (SPAs),
 **so that** I can interact with modern web applications that rely on JavaScript for content rendering, and visually inspect pages when text extraction is insufficient.
 

@@ -14,7 +14,7 @@
 
 ### Background
 
-OneClawShadow currently supports text-only chat messages. All three supported AI providers (OpenAI, Anthropic, Gemini) support multimodal input -- at minimum images, with Gemini also supporting video. Users need the ability to send images, videos, and files alongside text messages to take full advantage of these provider capabilities.
+OneClaw currently supports text-only chat messages. All three supported AI providers (OpenAI, Anthropic, Gemini) support multimodal input -- at minimum images, with Gemini also supporting video. Users need the ability to send images, videos, and files alongside text messages to take full advantage of these provider capabilities.
 
 The current `ApiMessage.User` class only holds a `content: String`, and the `Message` domain model has no attachment fields. This RFC designs the full stack of changes needed: data model, file storage, UI components, API adapter extensions, and media viewing.
 

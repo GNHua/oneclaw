@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** trigger pre-defined skill workflows that guide the AI through structured, multi-step tasks,
 **so that** I can accomplish complex or repetitive tasks consistently and efficiently without writing detailed instructions each time.
 
@@ -237,7 +237,7 @@ The skill load is displayed as a regular tool call (`load_skill`), keeping the U
 #### Importing a Shared Skill
 ```
 1. User receives a SKILL.md file (via email, messaging, etc.)
-2. User opens the file with OneClawShadow (Android intent filter)
+2. User opens the file with OneClaw (Android intent filter)
    OR: User uses "Import Skill" in Skill Management screen and picks the file
 3. System parses and validates the file
 4. If valid: shows skill preview (name, description, content)

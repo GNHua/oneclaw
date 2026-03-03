@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want** the app to guide me through granting the exact alarm permission,
 **so that** scheduled tasks fire at the exact times I configured, and the app complies with Google Play policies.
 
@@ -30,7 +30,7 @@
 
 ### Overview
 
-Starting with Android 12 (API 31), exact alarm scheduling requires explicit user permission. Android 13+ (API 33) further tightened this by not granting `SCHEDULE_EXACT_ALARM` by default. Google Play policy restricts the `USE_EXACT_ALARM` permission to alarm clock, timer, and calendar apps. Since OneClawShadow is an AI Agent runtime, it must use `SCHEDULE_EXACT_ALARM` and guide users to grant it through system settings.
+Starting with Android 12 (API 31), exact alarm scheduling requires explicit user permission. Android 13+ (API 33) further tightened this by not granting `SCHEDULE_EXACT_ALARM` by default. Google Play policy restricts the `USE_EXACT_ALARM` permission to alarm clock, timer, and calendar apps. Since OneClaw is an AI Agent runtime, it must use `SCHEDULE_EXACT_ALARM` and guide users to grant it through system settings.
 
 ### Current Problem
 
@@ -108,7 +108,7 @@ User saves task / tool creates task
 ### TEST-037-06: Tool Context Error
 - **Given** the exact alarm permission is NOT granted
 - **When** the AI agent calls `schedule_task`
-- **Then** the tool returns an error message: "Exact alarm permission is not granted. Please go to Settings > Apps > OneClawShadow > Alarms & reminders to enable it."
+- **Then** the tool returns an error message: "Exact alarm permission is not granted. Please go to Settings > Apps > OneClaw > Alarms & reminders to enable it."
 
 ### TEST-037-07: Boot Receiver Check
 - **Given** the device reboots and the exact alarm permission is NOT granted

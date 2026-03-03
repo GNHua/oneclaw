@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want** the AI agent to only load the tools it actually needs for each task,
 **so that** conversations use fewer tokens, respond faster, and are not cluttered with irrelevant tool schemas.
 
@@ -29,7 +29,7 @@
 
 ### Overview
 
-OneClawShadow currently sends ALL registered tool schemas to the LLM on every message turn. With 37+ Kotlin tools, 60+ JS Google Workspace tools, and potentially many user-created JS tools, this wastes significant tokens (each tool schema consumes ~200-500 tokens). The total tool schema payload can exceed 20,000 tokens per turn.
+OneClaw currently sends ALL registered tool schemas to the LLM on every message turn. With 37+ Kotlin tools, 60+ JS Google Workspace tools, and potentially many user-created JS tools, this wastes significant tokens (each tool schema consumes ~200-500 tokens). The total tool schema payload can exceed 20,000 tokens per turn.
 
 The Skill system (FEAT-014) already demonstrates a lazy-loading pattern: only skill names and descriptions appear in the system prompt, and the full skill content is loaded on demand via `load_skill`. This feature applies the same pattern to tools: group them by domain, list group summaries in the system prompt, and load full tool schemas on demand via a `load_tool_group` meta-tool.
 

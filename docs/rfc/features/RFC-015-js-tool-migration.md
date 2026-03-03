@@ -596,7 +596,7 @@ class JsToolLoader(
 ) {
     companion object {
         private const val TAG = "JsToolLoader"
-        private const val EXTERNAL_TOOLS_DIR = "OneClawShadow/tools"
+        private const val EXTERNAL_TOOLS_DIR = "OneClaw/tools"
         private const val ASSETS_TOOLS_DIR = "js/tools"
         private val TOOL_NAME_REGEX = Regex("^[a-z][a-z0-9_]*$")
     }
@@ -1107,7 +1107,7 @@ These are replaced by `BuiltinJsToolMigrationTest.kt` which tests the JS equival
 3. Step 2: loadBuiltinTools() -> assets/js/tools/
    - Registers: get_current_time, read_file, write_file, http_request, webfetch
    - allowOverride = false (no conflicts expected at this point)
-4. Step 3: loadTools() -> /sdcard/OneClawShadow/tools/ + {internal}/tools/
+4. Step 3: loadTools() -> /sdcard/OneClaw/tools/ + {internal}/tools/
    - User has a custom http_request.js that adds API key headers automatically
    - registerTools(allowOverride = true)
    - "http_request" already exists -> unregister built-in, register user version

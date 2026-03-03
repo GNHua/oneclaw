@@ -12,7 +12,7 @@
 ## Overview
 
 ### Background
-OneClawShadow currently has no centralized screen to view, inspect, or control tools. Tools are only visible through per-agent configuration (FEAT-002), and there is no way to globally disable a tool or inspect its full definition (parameters, permissions, timeout). As the tool ecosystem grows -- with built-in Kotlin tools, built-in JS tools (RFC-015), user JS extensions (RFC-012), and tool groups (RFC-018) -- a management UI becomes essential.
+OneClaw currently has no centralized screen to view, inspect, or control tools. Tools are only visible through per-agent configuration (FEAT-002), and there is no way to globally disable a tool or inspect its full definition (parameters, permissions, timeout). As the tool ecosystem grows -- with built-in Kotlin tools, built-in JS tools (RFC-015), user JS extensions (RFC-012), and tool groups (RFC-018) -- a management UI becomes essential.
 
 ### Goals
 1. Add a "Manage Tools" entry in Settings that opens a Tool Management screen

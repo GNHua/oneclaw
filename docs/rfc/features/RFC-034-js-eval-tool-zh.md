@@ -14,7 +14,7 @@
 
 ### 背景
 
-OneClawShadow 的 AI Agent 已经可以访问预定义的 JS 工具（文件读写、HTTP、时间）以及 Kotlin 内置工具（webfetch、browser、exec 等）。然而，Agent 缺乏即时编写并执行任意代码的能力。当 Agent 需要进行计算、数据转换或算法任务时，目前除了预定义工具所提供的功能外，没有任何方式可以运行自定义逻辑。
+OneClaw 的 AI Agent 已经可以访问预定义的 JS 工具（文件读写、HTTP、时间）以及 Kotlin 内置工具（webfetch、browser、exec 等）。然而，Agent 缺乏即时编写并执行任意代码的能力。当 Agent 需要进行计算、数据转换或算法任务时，目前除了预定义工具所提供的功能外，没有任何方式可以运行自定义逻辑。
 
 项目已将 QuickJS 作为依赖项引入，并拥有一个成熟的 `JsExecutionEngine`，负责管理 QuickJS 生命周期、桥接注入、内存限制和超时强制执行。添加 `js_eval` 工具，只需将该引擎封装为一个新的内置工具，接受原始 JS 源代码作为参数即可。
 

@@ -11,7 +11,7 @@
 
 ## 用户故事
 
-**作为** 使用 OneClawShadow 的 AI agent，
+**作为** 使用 OneClaw 的 AI agent，
 **我希望** 通过经过身份验证的 API 工具访问 Google Workspace 服务（Gmail、Calendar、Tasks、Contacts、Drive、Docs、Sheets、Slides、Forms），
 **以便** 我可以代表用户管理其电子邮件、日历事件、任务、联系人、文件、文档、电子表格、演示文稿和表单。
 
@@ -32,7 +32,7 @@
 
 ### 概述
 
-FEAT-030 为 OneClawShadow 新增 Google Workspace 集成，跨 10 个 Google 服务提供约 89 个工具。这是从经过验证的 oneclaw-1 插件系统移植而来，并适配了 shadow-4 的架构（使用 QuickJS 执行引擎的 JS 工具组）。
+FEAT-030 为 OneClaw 新增 Google Workspace 集成，跨 10 个 Google 服务提供约 89 个工具。这是从经过验证的 oneclaw-1 插件系统移植而来，并适配了 shadow-4 的架构（使用 QuickJS 执行引擎的 JS 工具组）。
 
 该功能包含：
 1. **BYOK OAuth 认证** -- 用户自带 GCP OAuth Client ID 和 Client Secret，实现安全、自主管理的身份验证
@@ -225,7 +225,7 @@ Google Workspace API
 
 ### BYOK OAuth 认证
 
-OneClawShadow 采用 BYOK（自带密钥）OAuth 流程。用户提供自己的 GCP 桌面版 OAuth Client ID 和 Client Secret，从而完全掌控自己的凭据和 API 访问权限。
+OneClaw 采用 BYOK（自带密钥）OAuth 流程。用户提供自己的 GCP 桌面版 OAuth Client ID 和 Client Secret，从而完全掌控自己的凭据和 API 访问权限。
 
 #### OAuth 流程
 

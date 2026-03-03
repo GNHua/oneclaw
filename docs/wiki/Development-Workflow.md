@@ -1,6 +1,6 @@
 # Development Workflow
 
-OneClawShadow follows a documentation-driven development approach. Documentation is the single source of truth -- code is generated from RFCs and can be fully regenerated at any time.
+OneClaw follows a documentation-driven development approach. Documentation is the single source of truth -- code is generated from RFCs and can be fully regenerated at any time.
 
 ## Core Philosophy
 

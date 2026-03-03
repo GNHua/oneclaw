@@ -14,7 +14,7 @@
 
 ### 背景
 
-目前，OneClawShadow 的 Agent 无法控制模型采样参数或工具调用的迭代次数上限：
+目前，OneClaw 的 Agent 无法控制模型采样参数或工具调用的迭代次数上限：
 
 1. **温度（Temperature）** 不可配置——每个 Provider 使用其自身的默认值（通常约为 1.0）。无论 Agent 的用途如何，所有 Agent 生成的输出随机程度相同。
 2. **最大迭代次数（Max iterations）** 在 `SendMessageUseCase` 中硬编码为 `MAX_TOOL_ROUNDS = 100`。每个 Agent 都受限于同一上限，即使一个简单的问答 Agent 本应更早停止。

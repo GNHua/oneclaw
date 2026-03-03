@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want** the AI agent to be able to call tools to perform actions (read files, make HTTP requests, check the time, etc.),
 **so that** the AI can do more than just chat -- it can take real actions on my behalf.
 

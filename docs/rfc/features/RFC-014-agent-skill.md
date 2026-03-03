@@ -11,7 +11,7 @@
 ## Overview
 
 ### Background
-OneClawShadow currently has a Tool System (RFC-004) that provides atomic operations (read file, HTTP request, etc.) and an Agent System (RFC-002) that configures AI personas with system prompts and tool sets. However, there is no layer for reusable, structured workflows -- the kind of multi-step prompt templates that guide the AI through a specific task pattern.
+OneClaw currently has a Tool System (RFC-004) that provides atomic operations (read file, HTTP request, etc.) and an Agent System (RFC-002) that configures AI personas with system prompts and tool sets. However, there is no layer for reusable, structured workflows -- the kind of multi-step prompt templates that guide the AI through a specific task pattern.
 
 Claude Code demonstrates this pattern effectively with its "Skill" system: lightweight prompt templates that orchestrate existing tools into repeatable workflows, triggered via `/` commands or AI self-invocation, with skills registered in the system prompt for discoverability.
 

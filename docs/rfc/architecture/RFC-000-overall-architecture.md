@@ -11,7 +11,7 @@
 ## Overview
 
 ### Background
-OneClawShadow is an Android app that serves as a mobile AI Agent runtime environment. Before implementing individual features, we need to establish the foundational technical decisions: technology stack, architecture pattern, module structure, core data models, and project directory layout. All subsequent feature RFCs will build on top of these decisions.
+OneClaw is an Android app that serves as a mobile AI Agent runtime environment. Before implementing individual features, we need to establish the foundational technical decisions: technology stack, architecture pattern, module structure, core data models, and project directory layout. All subsequent feature RFCs will build on top of these decisions.
 
 ### Goals
 1. Define the technology stack for the entire project

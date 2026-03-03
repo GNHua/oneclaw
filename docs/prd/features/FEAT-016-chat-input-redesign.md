@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** have a modern, visually polished chat input area that matches the style of the Google Gemini app,
 **so that** the experience of composing and sending messages feels premium, intuitive, and consistent with contemporary mobile AI chat interfaces.
 

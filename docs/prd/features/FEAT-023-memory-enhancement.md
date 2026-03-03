@@ -12,7 +12,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** have the memory system trigger correctly when I switch sessions or return to the app on a new day, and I want the AI to proactively save important information to long-term memory during conversations,
 **so that** my conversation context is reliably captured and I can build a persistent knowledge base without relying solely on automatic daily log summarization.
 

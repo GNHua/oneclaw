@@ -12,7 +12,7 @@
 
 ## 用户故事
 
-**作为** OneClawShadow 的用户，
+**作为** OneClaw 的用户，
 **我想要** 配置自己的 AI 模型 provider 和 API key，
 **以便** 我可以使用我有权限访问的 AI 模型，而不依赖任何第三方后端。
 
@@ -27,7 +27,7 @@
 ## 功能描述
 
 ### 概述
-模型/Provider 管理允许用户配置他们要使用的 AI 模型 provider。由于 OneClawShadow 没有后端，用户需要自带 API key。应用为主流 provider（OpenAI、Anthropic、Google Gemini）预置了配置模板，同时支持完全自定义的 API endpoint。模型列表尽可能通过 provider API 动态获取，预设常见模型作为可靠的兜底方案。用户设置一个全局默认模型，当 Agent 未指定首选模型时使用。
+模型/Provider 管理允许用户配置他们要使用的 AI 模型 provider。由于 OneClaw 没有后端，用户需要自带 API key。应用为主流 provider（OpenAI、Anthropic、Google Gemini）预置了配置模板，同时支持完全自定义的 API endpoint。模型列表尽可能通过 provider API 动态获取，预设常见模型作为可靠的兜底方案。用户设置一个全局默认模型，当 Agent 未指定首选模型时使用。
 
 ### 核心概念
 

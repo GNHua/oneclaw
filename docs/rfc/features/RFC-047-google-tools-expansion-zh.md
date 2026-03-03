@@ -13,7 +13,7 @@
 
 ### 背景
 
-OneClawShadow 目前支持 8 个工具组的 Google Workspace 工具（Gmail、Gmail Settings、Calendar、Docs、Drive、Sheets、Slides、Tasks）。参考实现（oneclaw-1）中另有 24 个工具尚未在 shadow 中实现。本 RFC 新增其中 20 个工具，并增强 1 个已有工具，以实现接近功能对等。
+OneClaw 目前支持 8 个工具组的 Google Workspace 工具（Gmail、Gmail Settings、Calendar、Docs、Drive、Sheets、Slides、Tasks）。参考实现（oneclaw-1）中另有 24 个工具尚未在 shadow 中实现。本 RFC 新增其中 20 个工具，并增强 1 个已有工具，以实现接近功能对等。
 
 三个 Google Places 工具不在本 RFC 范围内，因为它们需要 shadow 中尚不存在的 API key 桥接机制（推迟至 FEAT-048）。
 

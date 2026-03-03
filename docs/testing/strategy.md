@@ -1,4 +1,4 @@
-# Test Strategy: OneClawShadow
+# Test Strategy: OneClaw
 
 ## Document Information
 - **Related Architecture**: [RFC-000 (Overall Architecture)](../rfc/architecture/RFC-000-overall-architecture.md)
@@ -10,7 +10,7 @@
 ## Overview
 
 ### Background
-OneClawShadow uses a documentation-driven development approach where AI generates code from RFCs. Automated testing is essential to verify that generated code matches the specifications. This document defines a two-layer testing strategy: Layer 1 (fully automated, no human interaction) and Layer 2 (AI-controlled emulator with visual verification).
+OneClaw uses a documentation-driven development approach where AI generates code from RFCs. Automated testing is essential to verify that generated code matches the specifications. This document defines a two-layer testing strategy: Layer 1 (fully automated, no human interaction) and Layer 2 (AI-controlled emulator with visual verification).
 
 ### Goals
 1. Define a comprehensive test strategy that AI can execute autonomously
@@ -794,7 +794,7 @@ class ChatComponentScreenshotTest {
     @Test
     fun emptyState() {
         composeTestRule.setContent {
-            OneClawShadowTheme {
+            OneClawTheme {
                 EmptyChatState()
             }
         }
@@ -804,7 +804,7 @@ class ChatComponentScreenshotTest {
     @Test
     fun userMessageBubble_shortText() {
         composeTestRule.setContent {
-            OneClawShadowTheme {
+            OneClawTheme {
                 UserMessageBubble(
                     content = "Hello!",
                     onCopy = {}

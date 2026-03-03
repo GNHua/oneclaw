@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** browse, preview, and manage files that the AI agent has saved within the app,
 **so that** I can review generated content, share files with other apps, and keep my file storage organized.
 

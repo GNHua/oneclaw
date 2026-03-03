@@ -11,7 +11,7 @@
 
 ## User Story
 
-**As** a user of OneClawShadow,
+**As** a user of OneClaw,
 **I want to** enable AI agents to search the web using their provider's built-in search capabilities,
 **so that** I can get responses grounded in real-time, up-to-date information with verifiable source citations.
 

@@ -139,7 +139,7 @@
 
 <img src="screenshots/Layer2_Flow1_step1_fresh_launch_setup.png" width="250">
 
-视觉检查："Welcome to OneClawShadow"标题显示为 gold/amber 主色，"Step 1 of 3: Choose a provider"步骤标题同样为主色。背景为暖米色（`surfaceLight`）。三个 Provider 卡片（OpenAI、Anthropic、Google Gemini）样式正确。底部"Skip for now"为 gold/amber 色。
+视觉检查："Welcome to OneClaw"标题显示为 gold/amber 主色，"Step 1 of 3: Choose a provider"步骤标题同样为主色。背景为暖米色（`surfaceLight`）。三个 Provider 卡片（OpenAI、Anthropic、Google Gemini）样式正确。底部"Skip for now"为 gold/amber 色。
 
 ### Flow 1 — Setup 第 2 步：输入 API Key（空状态）
 
@@ -191,7 +191,7 @@
 | 2 | `compose.ui.test.junit4` 未加入 `testImplementation`，导致 Roborazzi 测试编译失败 | 中 | 已在 `4dbe9c3` 修复 |
 | 3 | Robolectric 每个测试方法都触发 `OneclawApplication.startKoin()`，引发 `KoinAppAlreadyStartedException` | 中 | 已通过 `@Config(application = Application::class)` 在 `4dbe9c3` 修复 |
 | 4 | `SetupScreen` 标题和步骤标题没有颜色（渲染为黑色）；应使用 `primary`（gold/amber） | 低 | 已在 RFC-001/002 实现后修复 |
-| 5 | `OneClawShadowTheme` 默认 `dynamicColor = true`，在 Android 12+ 设备上用系统壁纸颜色覆盖 gold/amber 调色板 | 高 | 已修复：默认值改为 `false` |
+| 5 | `OneClawTheme` 默认 `dynamicColor = true`，在 Android 12+ 设备上用系统壁纸颜色覆盖 gold/amber 调色板 | 高 | 已修复：默认值改为 `false` |
 | 6 | `BuildConfig.DEBUG` 未生成 — `app/build.gradle.kts` 缺少 `buildFeatures { buildConfig = true }` | 中 | 已修复：添加 `buildConfig = true` |
 | 7 | Tool 定义 JSON 序列化错误：`formatToolDefinitions()` 使用 `v.toString()` 生成 Kotlin Map 语法 `{key=value}` 而非 JSON | 严重 | 已修复：在三个适配器中添加 `anyToJsonElement()` 辅助函数 |
 | 8 | Message 和 Session ID 未生成：`MessageRepositoryImpl.addMessage()` 和 `SessionRepositoryImpl.createSession()` 收到 `id = ""` 时未生成 UUID，导致所有记录互相覆盖 | 严重 | 已修复：在两个 Impl 类中添加 `UUID.randomUUID()` 回退逻辑 |

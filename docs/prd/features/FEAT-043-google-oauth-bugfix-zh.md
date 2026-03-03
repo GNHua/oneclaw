@@ -11,7 +11,7 @@
 
 ## 用户故事
 
-**作为** OneClawShadow 的用户，
+**作为** OneClaw 的用户，
 **我希望** "使用 Google 授权"流程能够顺利完成，而不崩溃或静默失败，
 **以便** 我能可靠地使用 Google Workspace 工具（Gmail、Calendar、Drive 等）。
 

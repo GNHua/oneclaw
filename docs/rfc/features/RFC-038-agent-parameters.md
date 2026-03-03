@@ -14,7 +14,7 @@
 
 ### Background
 
-Currently, OneClawShadow agents have no control over model sampling parameters or tool-use iteration limits:
+Currently, OneClaw agents have no control over model sampling parameters or tool-use iteration limits:
 
 1. **Temperature** is not configurable -- each provider uses its own default (typically ~1.0). All agents produce output with the same level of randomness regardless of their purpose.
 2. **Max iterations** is hardcoded to `MAX_TOOL_ROUNDS = 100` in `SendMessageUseCase`. Every agent gets the same cap, even if a simple Q&A agent should stop much sooner.

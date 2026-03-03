@@ -15,7 +15,7 @@
 
 ### 背景
 
-OneClawShadow 将所有用户数据存储在本地 Room 数据库（`oneclaw.db`）中，包括会话、消息、Agent 配置、Provider 配置、模型偏好和应用设置。API key 单独存储在 `EncryptedSharedPreferences` 中（通过 `ApiKeyStorage`），不属于 Room 数据库的一部分。
+OneClaw 将所有用户数据存储在本地 Room 数据库（`oneclaw.db`）中，包括会话、消息、Agent 配置、Provider 配置、模型偏好和应用设置。API key 单独存储在 `EncryptedSharedPreferences` 中（通过 `ApiKeyStorage`），不属于 Room 数据库的一部分。
 
 目前用户无法备份数据或将数据迁移到另一台设备。如果用户清除应用数据、卸载应用或更换手机，所有会话、Agent 配置和设置都会丢失。唯一容易恢复的数据是 API key 本身（通过重新输入）。
 
@@ -161,7 +161,7 @@ class SyncManager(
             GsonFactory.getDefaultInstance(),
             credential
         )
-            .setApplicationName("OneClawShadow")
+            .setApplicationName("OneClaw")
             .build()
     }
 

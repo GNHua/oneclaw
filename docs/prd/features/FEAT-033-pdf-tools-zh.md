@@ -11,7 +11,7 @@
 
 ## 用户故事
 
-**作为** 使用 OneClawShadow 的 AI 智能体，
+**作为** 使用 OneClaw 的 AI 智能体，
 **我希望** 拥有能够读取 PDF 文件的工具——包括提取元数据、文本内容以及将页面渲染为图片，
 **以便** 帮助用户理解、摘要和分析设备上存储的 PDF 文档。
 
@@ -26,7 +26,7 @@
 
 ### 概述
 
-FEAT-033 以 Kotlin 内置工具的形式为 OneClawShadow 新增三个 PDF 相关工具，使 AI 智能体能够处理设备上存储的 PDF 文件。这三个工具移植自 OneClaw 1.0 的 `lib-pdf` 插件，并适配到 OneClawShadow 的工具架构中。
+FEAT-033 以 Kotlin 内置工具的形式为 OneClaw 新增三个 PDF 相关工具，使 AI 智能体能够处理设备上存储的 PDF 文件。这三个工具移植自 OneClaw 1.0 的 `lib-pdf` 插件，并适配到 OneClaw 的工具架构中。
 
 三个工具分别为：
 - **`pdf_info`** -- 获取 PDF 元数据（页数、文件大小、标题、作者等）

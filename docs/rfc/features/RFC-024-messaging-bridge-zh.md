@@ -11,9 +11,9 @@
 ## 概述
 
 ### 背景
-OneClawShadow 目前需要用户打开 Android 应用才能与 AI Agent 交互。许多用户每天在 Telegram、Discord 或 Slack 等消息平台上度过大部分时间。消息桥接功能可以让他们在任何平台、任何设备上直接与 Agent 对话，无需切换应用。
+OneClaw 目前需要用户打开 Android 应用才能与 AI Agent 交互。许多用户每天在 Telegram、Discord 或 Slack 等消息平台上度过大部分时间。消息桥接功能可以让他们在任何平台、任何设备上直接与 Agent 对话，无需切换应用。
 
-参考实现（`oneclaw-1/lib-messaging-bridge`）提供了一套经过验证的架构，支持 6 个频道，包含频道抽象层、前台服务和完善的状态管理。本 RFC 将该架构适配至 OneClawShadow，作为独立的 `:bridge` Gradle 模块实现。
+参考实现（`oneclaw-1/lib-messaging-bridge`）提供了一套经过验证的架构，支持 6 个频道，包含频道抽象层、前台服务和完善的状态管理。本 RFC 将该架构适配至 OneClaw，作为独立的 `:bridge` Gradle 模块实现。
 
 ### 目标
 1. 实现独立的 `:bridge` Gradle 模块，包含所有消息桥接逻辑
@@ -1224,7 +1224,7 @@ while (isActive) {
 ### 备选方案 B：Firebase Cloud Messaging 中继（已拒绝）
 - **优点**: 无需前台服务；电量消耗更低
 - **缺点**: 需要服务器基础设施；增加延迟；非自托管
-- **拒绝原因**: 与 OneClawShadow 本地优先、自托管的理念相悖
+- **拒绝原因**: 与 OneClaw 本地优先、自托管的理念相悖
 
 ### 备选方案 C：统一的单一 WebSocket 网关（已拒绝）
 - **优点**: 架构更简单；所有平台通过同一个接入点连接

@@ -37,6 +37,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -430,24 +432,26 @@ class SendMessageUseCase(
         if (argumentsJson.isBlank()) return emptyMap()
         return try {
             val jsonObj = json.parseToJsonElement(argumentsJson) as? JsonObject ?: return emptyMap()
-            jsonObj.entries.associate { (k, v) ->
-                k to when {
-                    v is kotlinx.serialization.json.JsonPrimitive -> {
-                        when {
-                            v.isString -> v.content
-                            v.content == "true" -> true
-                            v.content == "false" -> false
-                            v.content.toIntOrNull() != null -> v.content.toInt()
-                            v.content.toLongOrNull() != null -> v.content.toLong()
-                            v.content.toDoubleOrNull() != null -> v.content.toDouble()
-                            else -> v.content
-                        }
-                    }
-                    else -> v.toString()
-                }
-            }
+            jsonObj.entries.associate { (k, v) -> k to parseJsonElement(v) }
         } catch (e: Exception) {
             emptyMap()
+        }
+    }
+
+    private fun parseJsonElement(element: kotlinx.serialization.json.JsonElement): Any? {
+        return when (element) {
+            is kotlinx.serialization.json.JsonPrimitive -> when {
+                element.isString -> element.content
+                element.content == "true" -> true
+                element.content == "false" -> false
+                element.content.toIntOrNull() != null -> element.content.toInt()
+                element.content.toLongOrNull() != null -> element.content.toLong()
+                element.content.toDoubleOrNull() != null -> element.content.toDouble()
+                else -> element.content
+            }
+            is JsonArray -> element.map { parseJsonElement(it) }
+            is JsonObject -> element.entries.associate { (k, v) -> k to parseJsonElement(v) }
+            is JsonNull -> null
         }
     }
 

@@ -19,7 +19,7 @@ class ListModelsTool(
             properties = mapOf(
                 "provider_id" to ToolParameter(
                     type = "string",
-                    description = "ID of the provider whose models to list"
+                    description = "ID of the provider whose models to list. Must be obtained from list_providers (e.g. 'provider-anthropic', 'provider-openai', 'provider-gemini')"
                 )
             ),
             required = listOf("provider_id")

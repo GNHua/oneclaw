@@ -26,7 +26,12 @@ async function gmailFetch(method, path, body) {
         var errorText = await resp.text();
         throw new Error("Gmail API error (" + resp.status + "): " + errorText);
     }
-    return await resp.json();
+    if (resp.status === 204) {
+        return { success: true };
+    }
+    var text = await resp.text();
+    if (!text) return { success: true };
+    return JSON.parse(text);
 }
 
 async function gmailSearch(params) {

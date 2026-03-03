@@ -6,7 +6,7 @@
   },
   {
     "name": "gmail_search",
-    "description": "Search Gmail messages using Gmail query syntax (e.g., 'from:user@example.com', 'is:unread', 'subject:hello'). Returns message list with id, snippet, from, subject, date.",
+    "description": "Search Gmail messages using Gmail query syntax (e.g., 'from:user@example.com', 'is:unread', 'subject:hello'). Returns message list with id, snippet, from, subject, date. When the user asks to check, look at, or go through their Gmail without specifying a folder, default to query 'in:inbox'.",
     "function": "gmailSearch",
     "parameters": {
       "properties": {

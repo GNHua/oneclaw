@@ -1,0 +1,12 @@
+title: OneClaw
+description: A local-first AI agent platform for Android
+theme: minima
+baseurl: "/oneclaw"
+url: "https://gnhua.github.io"
+
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge

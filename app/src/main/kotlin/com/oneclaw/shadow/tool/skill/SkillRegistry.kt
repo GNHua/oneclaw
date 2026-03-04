@@ -66,13 +66,16 @@ class SkillRegistry(
                 code = ErrorCode.VALIDATION_ERROR
             )
 
-        // Return cached content (no substitution in cache; substitute on return)
-        val cached = promptCache[name]
-        if (cached != null) {
-            val content = if (parameterValues.isNotEmpty()) {
-                parser.substituteParameters(cached, parameterValues)
-            } else cached
-            return AppResult.Success(content)
+        // Built-in skills: use cache (assets are immutable).
+        // User skills: always read from disk to reflect any file changes.
+        if (definition.isBuiltIn) {
+            val cached = promptCache[name]
+            if (cached != null) {
+                val content = if (parameterValues.isNotEmpty()) {
+                    parser.substituteParameters(cached, parameterValues)
+                } else cached
+                return AppResult.Success(content)
+            }
         }
 
         // Load from source
@@ -85,7 +88,9 @@ class SkillRegistry(
 
             when (rawContent) {
                 is AppResult.Success -> {
-                    promptCache[name] = rawContent.data
+                    if (definition.isBuiltIn) {
+                        promptCache[name] = rawContent.data
+                    }
                     val finalContent = if (parameterValues.isNotEmpty()) {
                         parser.substituteParameters(rawContent.data, parameterValues)
                     } else rawContent.data

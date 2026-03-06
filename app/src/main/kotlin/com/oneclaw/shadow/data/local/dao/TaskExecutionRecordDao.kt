@@ -41,6 +41,9 @@ interface TaskExecutionRecordDao {
     @Query("DELETE FROM task_execution_records WHERE started_at < :cutoffMillis")
     suspend fun deleteOlderThan(cutoffMillis: Long)
 
+    @Query("SELECT * FROM task_execution_records WHERE id = :id LIMIT 1")
+    suspend fun getRecordById(id: String): TaskExecutionRecordEntity?
+
     @Query("SELECT COUNT(*) FROM task_execution_records WHERE task_id = :taskId")
     suspend fun countByTaskId(taskId: String): Int
 }

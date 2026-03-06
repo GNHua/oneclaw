@@ -137,6 +137,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun ChatScreen(
     onNavigateToSettings: () -> Unit,
+    initialSessionId: String? = null,
     viewModel: ChatViewModel = koinViewModel(),
     sessionListViewModel: SessionListViewModel = koinViewModel()
 ) {
@@ -150,6 +151,12 @@ fun ChatScreen(
     val inputFocusRequester = remember { FocusRequester() }
     val context = LocalContext.current
     val exactAlarmHelper: ExactAlarmHelper = koinInject()
+
+    LaunchedEffect(initialSessionId) {
+        if (initialSessionId != null) {
+            viewModel.initialize(initialSessionId)
+        }
+    }
 
     // Attachment picker launchers
     val photoPickerLauncher = rememberLauncherForActivityResult(

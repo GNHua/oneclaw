@@ -41,6 +41,7 @@ import com.oneclaw.shadow.feature.skill.usecase.GetAllSkillsUseCase
 import com.oneclaw.shadow.feature.skill.usecase.ImportSkillUseCase
 import com.oneclaw.shadow.feature.skill.usecase.LoadSkillContentUseCase
 import com.oneclaw.shadow.feature.skill.usecase.UpdateSkillUseCase
+import com.oneclaw.shadow.feature.schedule.ExecutionLogViewModel
 import com.oneclaw.shadow.feature.schedule.ScheduledTaskDetailViewModel
 import com.oneclaw.shadow.feature.schedule.ScheduledTaskEditViewModel
 import com.oneclaw.shadow.feature.schedule.ScheduledTaskListViewModel
@@ -199,6 +200,7 @@ val featureModule = module {
     factory { RunScheduledTaskNowUseCase(get(), get(), get(), get(), get()) }
     factory { CleanupExecutionHistoryUseCase(get()) }
     viewModelOf(::ScheduledTaskDetailViewModel)
+    viewModelOf(::ExecutionLogViewModel)
 
     // RFC-025: File browsing
     factory { ListFilesUseCase(get()) }

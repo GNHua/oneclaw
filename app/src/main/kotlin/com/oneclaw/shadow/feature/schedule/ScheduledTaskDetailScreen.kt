@@ -58,6 +58,7 @@ import java.util.Locale
 fun ScheduledTaskDetailScreen(
     onNavigateBack: () -> Unit,
     onEditTask: (String) -> Unit,
+    onNavigateToExecutionLog: (String) -> Unit,
     onNavigateToSession: (String) -> Unit,
     viewModel: ScheduledTaskDetailViewModel = koinViewModel()
 ) {
@@ -294,9 +295,7 @@ fun ScheduledTaskDetailScreen(
                 items(uiState.executionHistory, key = { it.id }) { record ->
                     ExecutionHistoryItem(
                         record = record,
-                        onClick = {
-                            record.sessionId?.let { onNavigateToSession(it) }
-                        }
+                        onClick = { onNavigateToExecutionLog(record.id) }
                     )
                     HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
                 }
@@ -369,7 +368,7 @@ private fun ExecutionHistoryItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = record.sessionId != null, onClick = onClick)
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -387,15 +386,13 @@ private fun ExecutionHistoryItem(
             style = MaterialTheme.typography.labelMedium,
             color = statusColor(record.status)
         )
-        if (record.sessionId != null) {
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "View session",
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = "View log",
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

@@ -51,6 +51,12 @@ sealed class Route(val path: String) {
             fun create(taskId: String) = "schedules/$taskId/detail"
         }
     }
+    data class ExecutionLog(val recordId: String) : Route("schedules/execution/{recordId}") {
+        companion object {
+            const val PATH = "schedules/execution/{recordId}"
+            fun create(recordId: String) = "schedules/execution/$recordId"
+        }
+    }
     data object FileBrowser : Route("files")
     data class FilePreview(val filePath: String) : Route("files/preview/{path}") {
         companion object {

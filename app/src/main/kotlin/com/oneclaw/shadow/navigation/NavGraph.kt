@@ -20,6 +20,7 @@ import com.oneclaw.shadow.feature.settings.DataBackupScreen
 import com.oneclaw.shadow.feature.settings.GoogleAuthScreen
 import com.oneclaw.shadow.feature.skill.ui.SkillEditorScreen
 import com.oneclaw.shadow.feature.skill.ui.SkillManagementScreen
+import com.oneclaw.shadow.feature.schedule.ExecutionLogScreen
 import com.oneclaw.shadow.feature.schedule.ScheduledTaskDetailScreen
 import com.oneclaw.shadow.feature.schedule.ScheduledTaskEditScreen
 import com.oneclaw.shadow.feature.schedule.ScheduledTaskListScreen
@@ -89,7 +90,8 @@ fun AppNavGraph(
         composable(Route.ChatSession.PATH) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
             ChatScreen(
-                onNavigateToSettings = { navController.safeNavigate(Route.Settings.path) }
+                onNavigateToSettings = { navController.safeNavigate(Route.Settings.path) },
+                initialSessionId = sessionId
             )
         }
 
@@ -253,6 +255,18 @@ fun AppNavGraph(
             ScheduledTaskDetailScreen(
                 onNavigateBack = { navController.safePopBackStack() },
                 onEditTask = { id -> navController.safeNavigate(Route.ScheduleEdit.create(id)) },
+                onNavigateToExecutionLog = { recordId ->
+                    navController.safeNavigate(Route.ExecutionLog.create(recordId))
+                },
+                onNavigateToSession = { sessionId ->
+                    navController.safeNavigate(Route.ChatSession.create(sessionId))
+                }
+            )
+        }
+
+        composable(Route.ExecutionLog.PATH) {
+            ExecutionLogScreen(
+                onNavigateBack = { navController.safePopBackStack() },
                 onNavigateToSession = { sessionId ->
                     navController.safeNavigate(Route.ChatSession.create(sessionId))
                 }

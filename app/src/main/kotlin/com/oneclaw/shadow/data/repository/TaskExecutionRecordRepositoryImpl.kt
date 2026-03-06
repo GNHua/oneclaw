@@ -16,6 +16,9 @@ class TaskExecutionRecordRepositoryImpl(
     override fun getRecordsByTaskId(taskId: String, limit: Int): Flow<List<TaskExecutionRecord>> =
         dao.getRecordsByTaskId(taskId, limit).map { entities -> entities.map { it.toDomain() } }
 
+    override suspend fun getRecordById(id: String): TaskExecutionRecord? =
+        dao.getRecordById(id)?.toDomain()
+
     override suspend fun createRecord(record: TaskExecutionRecord) {
         dao.insert(record.toEntity())
     }

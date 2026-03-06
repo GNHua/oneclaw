@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface TaskExecutionRecordRepository {
     fun getRecordsByTaskId(taskId: String, limit: Int = 50): Flow<List<TaskExecutionRecord>>
+    suspend fun getRecordById(id: String): TaskExecutionRecord?
     suspend fun createRecord(record: TaskExecutionRecord)
     suspend fun updateResult(
         id: String,

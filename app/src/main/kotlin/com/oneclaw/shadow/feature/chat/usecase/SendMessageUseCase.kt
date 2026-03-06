@@ -252,7 +252,12 @@ class SendMessageUseCase(
                                 ?.arguments?.append(event.argumentsDelta)
                             send(ChatEvent.ToolCallArgumentsDelta(event.toolCallId, event.argumentsDelta))
                         }
-                        is StreamEvent.ToolCallEnd -> { /* handled after stream completes */ }
+                        is StreamEvent.ToolCallEnd -> {
+                            if (event.thoughtSignature != null) {
+                                pendingToolCalls.find { it.id == event.toolCallId }
+                                    ?.thoughtSignature = event.thoughtSignature
+                            }
+                        }
                         is StreamEvent.Usage -> {
                             usage = ChatEvent.TokenUsage(event.inputTokens, event.outputTokens)
                         }
@@ -343,11 +348,12 @@ class SendMessageUseCase(
                 for (tr in toolResponses) {
                     val isSuccess = tr.result.status == ToolResultStatus.SUCCESS
                     val finalStatus = if (isSuccess) ToolCallStatus.SUCCESS else ToolCallStatus.ERROR
+                    val pendingTc = pendingToolCalls.find { it.id == tr.toolCallId }
                     messageRepository.addMessage(Message(
                         id = "", sessionId = sessionId, type = MessageType.TOOL_CALL,
-                        content = "", thinkingContent = null,
+                        content = "", thinkingContent = pendingTc?.thoughtSignature,
                         toolCallId = tr.toolCallId, toolName = tr.toolName,
-                        toolInput = pendingToolCalls.find { it.id == tr.toolCallId }?.arguments?.toString(),
+                        toolInput = pendingTc?.arguments?.toString(),
                         toolOutput = null,
                         toolStatus = finalStatus, toolDurationMs = null,
                         tokenCountInput = null, tokenCountOutput = null,
@@ -539,7 +545,8 @@ class SendMessageUseCase(
     private data class PendingToolCall(
         val id: String,
         val name: String,
-        val arguments: StringBuilder
+        val arguments: StringBuilder,
+        var thoughtSignature: String? = null
     )
 }
 

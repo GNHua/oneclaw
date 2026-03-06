@@ -158,9 +158,10 @@ class GeminiAdapter(
                         val name = fc["name"]?.jsonPrimitive?.content ?: return@let
                         val callId = "call_${name}_${System.currentTimeMillis()}"
                         val argsJson = fc["args"]?.toString() ?: "{}"
+                        val thoughtSignature = part["thoughtSignature"]?.jsonPrimitive?.content
                         emit(StreamEvent.ToolCallStart(toolCallId = callId, toolName = name))
                         emit(StreamEvent.ToolCallDelta(toolCallId = callId, argumentsDelta = argsJson))
-                        emit(StreamEvent.ToolCallEnd(toolCallId = callId))
+                        emit(StreamEvent.ToolCallEnd(toolCallId = callId, thoughtSignature = thoughtSignature))
                     }
                 }
 
@@ -293,6 +294,9 @@ class GeminiAdapter(
                                 }
                                 msg.toolCalls?.forEach { tc ->
                                     add(buildJsonObject {
+                                        if (!tc.thoughtSignature.isNullOrEmpty()) {
+                                            put("thoughtSignature", tc.thoughtSignature)
+                                        }
                                         put("functionCall", buildJsonObject {
                                             put("name", tc.name)
                                             put("args", json.parseToJsonElement(tc.arguments.ifBlank { "{}" }))

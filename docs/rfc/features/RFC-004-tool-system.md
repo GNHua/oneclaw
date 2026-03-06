@@ -135,8 +135,21 @@ data class ToolParameter(
     val type: String,                  // "string", "integer", "number", "boolean", "object", "array"
     val description: String,           // Human-readable description
     val enum: List<String>? = null,    // Allowed values (if restricted)
-    val default: Any? = null           // Default value (if optional)
+    val default: Any? = null,          // Default value (if optional)
+    val items: ToolParameter? = null   // Element type for array parameters (required by Gemini)
 )
+
+This is a simplified subset of JSON Schema that covers all V1 tool parameter needs. When serialized for API calls, it produces standard JSON Schema format:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "path": { "type": "string", "description": "The absolute file path to read" },
+    "tags": { "type": "array", "description": "List of tags", "items": { "type": "string" } }
+  },
+  "required": ["path"]
+}
 ```
 
 This is a simplified subset of JSON Schema that covers all V1 tool parameter needs. When serialized for API calls, it produces standard JSON Schema format:
@@ -977,6 +990,13 @@ object ToolSchemaSerializer {
                 "description" to param.description
             )
             param.enum?.let { paramMap["enum"] = it }
+            if (param.type == "array") {
+                paramMap["items"] = if (param.items != null) {
+                    mapOf("type" to param.items.type)
+                } else {
+                    mapOf("type" to "string")
+                }
+            }
             name to paramMap
         }.toMap()
 
@@ -1167,6 +1187,13 @@ private fun toGeminiSchemaMap(schema: ToolParametersSchema): Map<String, Any> {
             "description" to param.description
         )
         param.enum?.let { paramMap["enum"] = it }
+        if (param.type == "array") {
+            paramMap["items"] = if (param.items != null) {
+                mapOf("type" to param.items.type.uppercase())
+            } else {
+                mapOf("type" to "STRING")
+            }
+        }
         name to paramMap
     }.toMap()
 

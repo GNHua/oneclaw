@@ -22,7 +22,8 @@ sealed class ApiMessage {
 data class ApiToolCall(
     val id: String,
     val name: String,
-    val arguments: String
+    val arguments: String,
+    val thoughtSignature: String? = null
 )
 
 data class ApiAttachment(

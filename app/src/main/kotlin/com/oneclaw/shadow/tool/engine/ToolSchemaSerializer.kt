@@ -15,6 +15,14 @@ object ToolSchemaSerializer {
                 "description" to param.description
             )
             param.enum?.let { paramMap["enum"] = it }
+            if (param.type == "array") {
+                val itemsParam = param.items
+                paramMap["items"] = if (itemsParam != null) {
+                    mapOf("type" to itemsParam.type)
+                } else {
+                    mapOf("type" to "string")
+                }
+            }
             name to paramMap
         }.toMap()
 
@@ -38,6 +46,14 @@ object ToolSchemaSerializer {
                 "description" to param.description
             )
             param.enum?.let { paramMap["enum"] = it }
+            if (param.type == "array") {
+                val itemsParam = param.items
+                paramMap["items"] = if (itemsParam != null) {
+                    mapOf("type" to itemsParam.type.uppercase())
+                } else {
+                    mapOf("type" to "STRING")
+                }
+            }
             name to paramMap
         }.toMap()
 

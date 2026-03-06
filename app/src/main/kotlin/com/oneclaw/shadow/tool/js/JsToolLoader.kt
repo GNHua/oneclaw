@@ -365,11 +365,19 @@ class JsToolLoader(
 
         val properties = propertiesObj.entries.associate { (name, value) ->
             val paramObj = value.jsonObject
+            val itemsObj = paramObj["items"]?.jsonObject
+            val itemsParam = if (itemsObj != null) {
+                ToolParameter(
+                    type = itemsObj["type"]?.jsonPrimitive?.content ?: "string",
+                    description = itemsObj["description"]?.jsonPrimitive?.content ?: ""
+                )
+            } else null
             name to ToolParameter(
                 type = paramObj["type"]?.jsonPrimitive?.content ?: "string",
                 description = paramObj["description"]?.jsonPrimitive?.content ?: "",
                 enum = paramObj["enum"]?.jsonArray?.map { it.jsonPrimitive.content },
-                default = paramObj["default"]?.let { extractDefault(it) }
+                default = paramObj["default"]?.let { extractDefault(it) },
+                items = itemsParam
             )
         }
 

@@ -31,7 +31,8 @@ fun List<Message>.toApiMessages(): List<ApiMessage> {
                     toolCalls.add(ApiToolCall(
                         id = tc.toolCallId ?: "",
                         name = tc.toolName ?: "",
-                        arguments = tc.toolInput ?: "{}"
+                        arguments = tc.toolInput ?: "{}",
+                        thoughtSignature = tc.thinkingContent
                     ))
                     j++
                 }

@@ -17,5 +17,6 @@ data class ToolParameter(
     val type: String,
     val description: String,
     val enum: List<String>? = null,
-    val default: Any? = null
+    val default: Any? = null,
+    val items: ToolParameter? = null
 )

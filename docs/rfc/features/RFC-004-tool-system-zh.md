@@ -135,8 +135,21 @@ data class ToolParameter(
     val type: String,                  // "string", "integer", "number", "boolean", "object", "array"
     val description: String,           // 人类可读描述
     val enum: List<String>? = null,    // 允许的值（如果有限制）
-    val default: Any? = null           // 默认值（如果可选）
+    val default: Any? = null,          // 默认值（如果可选）
+    val items: ToolParameter? = null   // array 类型参数的元素类型（Gemini 必须提供）
 )
+
+这是覆盖 V1 所有工具参数需求的 JSON Schema 简化子集。序列化用于 API 调用时，生成标准 JSON Schema 格式：
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "path": { "type": "string", "description": "The absolute file path to read" },
+    "tags": { "type": "array", "description": "标签列表", "items": { "type": "string" } }
+  },
+  "required": ["path"]
+}
 ```
 
 这是覆盖 V1 所有工具参数需求的 JSON Schema 简化子集。序列化用于 API 调用时，生成标准 JSON Schema 格式：
@@ -945,6 +958,13 @@ object ToolSchemaSerializer {
                 "description" to param.description
             )
             param.enum?.let { paramMap["enum"] = it }
+            if (param.type == "array") {
+                paramMap["items"] = if (param.items != null) {
+                    mapOf("type" to param.items.type)
+                } else {
+                    mapOf("type" to "string")
+                }
+            }
             name to paramMap
         }.toMap()
 
@@ -1112,6 +1132,13 @@ private fun toGeminiSchemaMap(schema: ToolParametersSchema): Map<String, Any> {
             "description" to param.description
         )
         param.enum?.let { paramMap["enum"] = it }
+        if (param.type == "array") {
+            paramMap["items"] = if (param.items != null) {
+                mapOf("type" to param.items.type.uppercase())
+            } else {
+                mapOf("type" to "STRING")
+            }
+        }
         name to paramMap
     }.toMap()
 

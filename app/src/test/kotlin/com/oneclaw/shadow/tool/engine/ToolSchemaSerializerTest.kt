@@ -88,4 +88,99 @@ class ToolSchemaSerializerTest {
         val pathProp = properties["path"] as Map<String, Any>
         assertEquals("STRING", pathProp["type"])
     }
+
+    @Test
+    fun `toJsonSchemaMap includes items for array type with explicit items`() {
+        val arraySchema = ToolParametersSchema(
+            properties = mapOf(
+                "ids" to ToolParameter(
+                    type = "array",
+                    description = "List of IDs",
+                    items = ToolParameter(type = "string", description = "")
+                )
+            )
+        )
+        val result = ToolSchemaSerializer.toJsonSchemaMap(arraySchema)
+
+        @Suppress("UNCHECKED_CAST")
+        val properties = result["properties"] as Map<String, Any>
+        @Suppress("UNCHECKED_CAST")
+        val idsProp = properties["ids"] as Map<String, Any>
+
+        assertEquals("array", idsProp["type"])
+        @Suppress("UNCHECKED_CAST")
+        val items = idsProp["items"] as Map<String, Any>
+        assertEquals("string", items["type"])
+    }
+
+    @Test
+    fun `toJsonSchemaMap defaults items to string when array type has no items`() {
+        val arraySchema = ToolParametersSchema(
+            properties = mapOf(
+                "tags" to ToolParameter(type = "array", description = "Tags", items = null)
+            )
+        )
+        val result = ToolSchemaSerializer.toJsonSchemaMap(arraySchema)
+
+        @Suppress("UNCHECKED_CAST")
+        val properties = result["properties"] as Map<String, Any>
+        @Suppress("UNCHECKED_CAST")
+        val tagsProp = properties["tags"] as Map<String, Any>
+        @Suppress("UNCHECKED_CAST")
+        val items = tagsProp["items"] as Map<String, Any>
+        assertEquals("string", items["type"])
+    }
+
+    @Test
+    fun `toJsonSchemaMap does not include items for non-array types`() {
+        val result = ToolSchemaSerializer.toJsonSchemaMap(schema)
+
+        @Suppress("UNCHECKED_CAST")
+        val properties = result["properties"] as Map<String, Any>
+        @Suppress("UNCHECKED_CAST")
+        val pathProp = properties["path"] as Map<String, Any>
+        assertFalse(pathProp.containsKey("items"))
+    }
+
+    @Test
+    fun `toGeminiSchemaMap includes items with uppercase type for array`() {
+        val arraySchema = ToolParametersSchema(
+            properties = mapOf(
+                "message_ids" to ToolParameter(
+                    type = "array",
+                    description = "List of message IDs",
+                    items = ToolParameter(type = "string", description = "")
+                )
+            )
+        )
+        val result = ToolSchemaSerializer.toGeminiSchemaMap(arraySchema)
+
+        @Suppress("UNCHECKED_CAST")
+        val properties = result["properties"] as Map<String, Any>
+        @Suppress("UNCHECKED_CAST")
+        val prop = properties["message_ids"] as Map<String, Any>
+
+        assertEquals("ARRAY", prop["type"])
+        @Suppress("UNCHECKED_CAST")
+        val items = prop["items"] as Map<String, Any>
+        assertEquals("STRING", items["type"])
+    }
+
+    @Test
+    fun `toGeminiSchemaMap defaults items to STRING when array has no items`() {
+        val arraySchema = ToolParametersSchema(
+            properties = mapOf(
+                "labels" to ToolParameter(type = "array", description = "Labels", items = null)
+            )
+        )
+        val result = ToolSchemaSerializer.toGeminiSchemaMap(arraySchema)
+
+        @Suppress("UNCHECKED_CAST")
+        val properties = result["properties"] as Map<String, Any>
+        @Suppress("UNCHECKED_CAST")
+        val prop = properties["labels"] as Map<String, Any>
+        @Suppress("UNCHECKED_CAST")
+        val items = prop["items"] as Map<String, Any>
+        assertEquals("STRING", items["type"])
+    }
 }

@@ -1,7 +1,6 @@
 package com.oneclaw.shadow.tool.browser
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -24,15 +23,8 @@ import kotlin.coroutines.resumeWithException
 /**
  * Located in: tool/browser/WebViewManager.kt
  *
- * Manages an off-screen WebView instance for page rendering,
- * screenshot capture, and content extraction.
- *
- * Key design decisions:
- * - WebView is created lazily on first use
- * - WebView is reused across tool calls within the same session
- * - WebView state is cleaned between uses (cookies, cache, history)
- * - WebView is destroyed after 5 minutes of inactivity
- * - All WebView operations happen on the main thread (Android requirement)
+ * DULU: Manages WebView for screenshot (Bitmap PNG)
+ * SEKARANG: Manages WebView for screen record (Video MP4)
  */
 class WebViewManager(
     private val context: Context,
@@ -41,8 +33,8 @@ class WebViewManager(
 ) {
     companion object {
         private const val TAG = "WebViewManager"
-        private const val IDLE_TIMEOUT_MS = 5 * 60 * 1000L  // 5 minutes
-        private const val MAX_FULL_PAGE_HEIGHT = 10_000  // pixels
+        private const val IDLE_TIMEOUT_MS = 5 * 60 * 1000L
+        private const val MAX_FULL_PAGE_HEIGHT = 10_000
         private const val DEFAULT_WIDTH = 412
         private const val DEFAULT_HEIGHT = 915
     }
@@ -52,8 +44,8 @@ class WebViewManager(
     private var idleCleanupRunnable: Runnable? = null
 
     /**
-     * Load a URL, wait for rendering, and capture a screenshot.
-     * Returns the file path to the saved PNG.
+     * DULU: captureScreenshot -> PNG
+     * SEKARANG: captureScreenshot -> MP4 (screen record)
      */
     suspend fun captureScreenshot(
         url: String,
@@ -64,37 +56,24 @@ class WebViewManager(
     ): String {
         val wv = getOrCreateWebView(width, height)
 
-        // Load URL and wait for page load
         loadUrlAndWait(wv, url)
-
-        // Wait for JavaScript rendering
         delay((waitSeconds * 1000).toLong())
 
-        // Capture screenshot
-        val bitmap = if (fullPage) {
-            screenshotCapture.captureFullPage(wv, MAX_FULL_PAGE_HEIGHT)
+        // output jadi mp4, bukan png
+        val outputFile = File(context.cacheDir, "browser_record_${System.currentTimeMillis()}.mp4")
+
+        val videoFile = if (fullPage) {
+            screenshotCapture.captureFullPage(wv, outputFile, MAX_FULL_PAGE_HEIGHT)
         } else {
-            screenshotCapture.captureViewport(wv)
+            screenshotCapture.captureViewport(wv, outputFile)
         }
 
-        // Save to file
-        val file = File(context.cacheDir, "browser_screenshot_${System.currentTimeMillis()}.png")
-        file.outputStream().use { out ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-        }
-        bitmap.recycle()
-
-        // Schedule cleanup
         scheduleIdleCleanup()
         resetWebView(wv)
 
-        return file.absolutePath
+        return videoFile.absolutePath
     }
 
-    /**
-     * Load a URL, wait for rendering, and extract page content.
-     * Returns the extracted text (Markdown or custom JS result).
-     */
     suspend fun extractContent(
         url: String,
         waitSeconds: Double,
@@ -102,21 +81,15 @@ class WebViewManager(
         maxLength: Int
     ): String {
         val wv = getOrCreateWebView(DEFAULT_WIDTH, DEFAULT_HEIGHT)
-
-        // Load URL and wait for page load
         loadUrlAndWait(wv, url)
-
-        // Wait for JavaScript rendering
         delay((waitSeconds * 1000).toLong())
 
-        // Extract content
         val content = if (customJavascript != null) {
             contentExtractor.executeCustomJs(wv, customJavascript)
         } else {
             contentExtractor.extractAsMarkdown(wv)
         }
 
-        // Truncate if needed
         val result = if (maxLength > 0 && content.length > maxLength) {
             val truncateAt = content.lastIndexOf("\n\n", maxLength)
             val cutoff = if (truncateAt > maxLength / 2) truncateAt else maxLength
@@ -125,16 +98,12 @@ class WebViewManager(
             content
         }
 
-        // Schedule cleanup
         scheduleIdleCleanup()
         resetWebView(wv)
 
         return result
     }
 
-    /**
-     * Get or create the off-screen WebView on the main thread.
-     */
     private suspend fun getOrCreateWebView(width: Int, height: Int): WebView {
         return withContext(Dispatchers.Main) {
             webView?.also {
@@ -150,18 +119,14 @@ class WebViewManager(
                         domStorageEnabled = true
                         loadWithOverviewMode = true
                         useWideViewPort = true
-                        // Disable zoom controls for clean rendering
                         builtInZoomControls = false
                         displayZoomControls = false
-                        // Allow mixed content for pages with mixed HTTP/HTTPS resources
                         mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-                        // Set a reasonable user agent
                         userAgentString = "Mozilla/5.0 (Linux; Android 14) " +
                             "AppleWebKit/537.36 (KHTML, like Gecko) " +
                             "Chrome/120.0.0.0 Mobile Safari/537.36"
                     }
 
-                    // Block navigation to non-HTTP schemes
                     webViewClient = object : WebViewClient() {
                         override fun shouldOverrideUrlLoading(
                             view: WebView?,
@@ -178,9 +143,6 @@ class WebViewManager(
         }
     }
 
-    /**
-     * Load a URL and suspend until onPageFinished fires.
-     */
     private suspend fun loadUrlAndWait(wv: WebView, url: String) {
         suspendCancellableCoroutine<Unit> { continuation ->
             mainHandler.post {
@@ -196,7 +158,6 @@ class WebViewManager(
                         request: WebResourceRequest?,
                         error: WebResourceError?
                     ) {
-                        // Only handle main frame errors
                         if (request?.isForMainFrame == true && continuation.isActive) {
                             continuation.resumeWithException(
                                 IOException("Page load error: ${error?.description}")
@@ -217,9 +178,6 @@ class WebViewManager(
         }
     }
 
-    /**
-     * Reset WebView state between uses.
-     */
     private suspend fun resetWebView(wv: WebView) {
         withContext(Dispatchers.Main) {
             wv.loadUrl("about:blank")
@@ -229,9 +187,6 @@ class WebViewManager(
         }
     }
 
-    /**
-     * Schedule WebView destruction after idle timeout.
-     */
     private fun scheduleIdleCleanup() {
         idleCleanupRunnable?.let { mainHandler.removeCallbacks(it) }
         idleCleanupRunnable = Runnable { destroyWebView() }.also {
@@ -239,9 +194,6 @@ class WebViewManager(
         }
     }
 
-    /**
-     * Destroy the WebView and free memory.
-     */
     fun destroyWebView() {
         mainHandler.post {
             webView?.let { wv ->

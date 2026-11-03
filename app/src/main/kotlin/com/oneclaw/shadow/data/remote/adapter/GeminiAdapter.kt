@@ -52,47 +52,60 @@ class GeminiAdapter(
             when {
                 response.isSuccessful -> {
                     val body = response.body?.string()
-                        ?: return@withContext AppResult.Error(message = "Empty response body", code = ErrorCode.PROVIDER_ERROR)
+                        ?: return@withContext AppResult.Error(
+                            message = "Empty response body",
+                            code = ErrorCode.PROVIDER_ERROR
+                        )
                     val parsed = json.decodeFromString<GeminiModelListResponse>(body)
-                    val models = parsed.models
+                    val apiModels = parsed.models
                         .filter { "generateContent" in it.supportedGenerationMethods }
                         .map { dto ->
-                            val modelId = dto.name.removePrefix("models/")
-                            AiModel(id = modelId, displayName = dto.displayName, providerId = "", isDefault = false, source = ModelSource.DYNAMIC)
+                            AiModel(
+                                id = dto.name.removePrefix("models/"),
+                                displayName = dto.displayName,
+                                providerId = "",
+                                isDefault = false,
+                                source = ModelSource.DYNAMIC
+                            )
                         }
-                    AppResult.Success(models)
-                }
-                response.code == 400 || response.code == 401 || response.code == 403 -> AppResult.Error(
-                    message = "Authentication failed. Please check your API key.", code = ErrorCode.AUTH_ERROR
-                )
-                else -> AppResult.Error(message = "API error: ${response.code} ${response.message}", code = ErrorCode.PROVIDER_ERROR)
-            }
-        } catch (e: java.net.UnknownHostException) {
-            AppResult.Error(message = "Cannot reach the server.", code = ErrorCode.NETWORK_ERROR, exception = e)
-        } catch (e: java.net.SocketTimeoutException) {
-            AppResult.Error(message = "Connection timed out.", code = ErrorCode.TIMEOUT_ERROR, exception = e)
-        } catch (e: Exception) {
-            AppResult.Error(message = "Unexpected error: ${e.message}", code = ErrorCode.UNKNOWN, exception = e)
-        }
-    }
+                        .toMutableList()
 
-    override suspend fun testConnection(
-        apiBaseUrl: String,
-        apiKey: String
-    ): AppResult<ConnectionTestResult> {
-        return when (val result = listModels(apiBaseUrl, apiKey)) {
-            is AppResult.Success -> AppResult.Success(
-                ConnectionTestResult(success = true, modelCount = result.data.size, errorType = null, errorMessage = null)
-            )
-            is AppResult.Error -> {
-                val errorType = when (result.code) {
-                    ErrorCode.AUTH_ERROR -> ConnectionErrorType.AUTH_FAILURE
-                    ErrorCode.NETWORK_ERROR -> ConnectionErrorType.NETWORK_FAILURE
-                    ErrorCode.TIMEOUT_ERROR -> ConnectionErrorType.TIMEOUT
-                    else -> ConnectionErrorType.UNKNOWN
+                    // Tambahan manual agar model tetap tersedia di daftar.
+                    if (apiModels.none { it.id == "gemini-3.5-flash-lite" }) {
+                        apiModels.add(
+                            AiModel(
+                                id = "gemini-3.5-flash-lite",
+                                displayName = "Gemini 3.5 Flash Lite",
+                                providerId = "",
+                                isDefault = false,
+                                source = ModelSource.DYNAMIC
+                            )
+                        )
+                    }
+
+                    AppResult.Success(apiModels.distinctBy { it.id })
                 }
-                AppResult.Success(ConnectionTestResult(success = false, modelCount = null, errorType = errorType, errorMessage = result.message))
+
+                response.code == 401 || response.code == 403 -> {
+                    AppResult.Error(
+                        message = "Invalid API key or access denied",
+                        code = ErrorCode.AUTH_ERROR
+                    )
+                }
+
+                else -> {
+                    AppResult.Error(
+                        message = "API error ${response.code}: ${response.message}",
+                        code = ErrorCode.PROVIDER_ERROR
+                    )
+                }
             }
+        } catch (e: Exception) {
+            AppResult.Error(
+                message = "Error: ${e.message}",
+                code = ErrorCode.UNKNOWN,
+                exception = e
+            )
         }
     }
 
@@ -137,7 +150,6 @@ class GeminiAdapter(
             try {
                 val jsonObj = json.parseToJsonElement(sseEvent.data).jsonObject
 
-                // Usage metadata
                 jsonObj["usageMetadata"]?.jsonObject?.let { usage ->
                     inputTokens = usage["promptTokenCount"]?.jsonPrimitive?.content?.toIntOrNull() ?: inputTokens
                     outputTokens = usage["candidatesTokenCount"]?.jsonPrimitive?.content?.toIntOrNull() ?: outputTokens
@@ -149,11 +161,9 @@ class GeminiAdapter(
 
                 parts?.forEach { partElement ->
                     val part = partElement.jsonObject
-                    // Text
                     part["text"]?.jsonPrimitive?.content?.let { text ->
                         if (text.isNotEmpty()) emit(StreamEvent.TextDelta(text))
                     }
-                    // Function call
                     part["functionCall"]?.jsonObject?.let { fc ->
                         val name = fc["name"]?.jsonPrimitive?.content ?: return@let
                         val callId = "call_${name}_${System.currentTimeMillis()}"
@@ -165,7 +175,6 @@ class GeminiAdapter(
                     }
                 }
 
-                // Parse grounding metadata for citations (Gemini web search)
                 val groundingCitations = parseGroundingMetadata(candidate)
                 if (groundingCitations.isNotEmpty()) {
                     emit(StreamEvent.Citations(groundingCitations))
@@ -179,7 +188,7 @@ class GeminiAdapter(
                     doneEmitted = true
                 }
             } catch (e: Exception) {
-                // Skip malformed events
+                // Skip malformed events.
             }
         }
 
@@ -232,20 +241,31 @@ class GeminiAdapter(
 
             val response = client.newCall(request).execute()
             if (!response.isSuccessful) {
-                return@withContext AppResult.Error(message = "API error ${response.code}", code = ErrorCode.PROVIDER_ERROR)
+                return@withContext AppResult.Error(
+                    message = "API error ${response.code}",
+                    code = ErrorCode.PROVIDER_ERROR
+                )
             }
             val responseBody = response.body?.string() ?: return@withContext AppResult.Error(
-                message = "Empty response", code = ErrorCode.PROVIDER_ERROR
+                message = "Empty response",
+                code = ErrorCode.PROVIDER_ERROR
             )
             val jsonObj = json.parseToJsonElement(responseBody).jsonObject
             val content = jsonObj["candidates"]?.jsonArray?.firstOrNull()
                 ?.jsonObject?.get("content")?.jsonObject
                 ?.get("parts")?.jsonArray?.firstOrNull()
                 ?.jsonObject?.get("text")?.jsonPrimitive?.content
-                ?: return@withContext AppResult.Error(message = "No content in response", code = ErrorCode.PROVIDER_ERROR)
+                ?: return@withContext AppResult.Error(
+                    message = "No content in response",
+                    code = ErrorCode.PROVIDER_ERROR
+                )
             AppResult.Success(content.trim())
         } catch (e: Exception) {
-            AppResult.Error(message = "Error: ${e.message}", code = ErrorCode.UNKNOWN, exception = e)
+            AppResult.Error(
+                message = "Error: ${e.message}",
+                code = ErrorCode.UNKNOWN,
+                exception = e
+            )
         }
     }
 
@@ -311,7 +331,7 @@ class GeminiAdapter(
                         put("parts", buildJsonArray {
                             add(buildJsonObject {
                                 put("functionResponse", buildJsonObject {
-                                    put("name", msg.toolCallId) // Gemini uses tool name here
+                                    put("name", msg.toolCallId)
                                     put("response", buildJsonObject {
                                         put("result", msg.content)
                                     })

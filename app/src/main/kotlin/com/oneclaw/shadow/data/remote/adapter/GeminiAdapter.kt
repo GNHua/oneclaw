@@ -46,36 +46,56 @@ class GeminiAdapter(
     ): AppResult<List<AiModel>> = withContext(Dispatchers.IO) {
         try {
             val url = "${apiBaseUrl.trimEnd('/')}/models?key=$apiKey"
-            val request = Request.Builder().url(url).get().build()
-            val response = client.newCall(request).execute()
+val request = Request.Builder().url(url).get().build()
+val response = client.newCall(request).execute()
 
-            when {
-                response.isSuccessful -> {
-                    val body = response.body?.string()
-                        ?: return@withContext AppResult.Error(message = "Empty response body", code = ErrorCode.PROVIDER_ERROR)
-                    val parsed = json.decodeFromString<GeminiModelListResponse>(body)
-                    val models = parsed.models
-                        .filter { "generateContent" in it.supportedGenerationMethods }
-                        .map { dto ->
-                            val modelId = dto.name.removePrefix("models/")
-                            AiModel(id = modelId, displayName = dto.displayName, providerId = "", isDefault = false, source = ModelSource.DYNAMIC)
-                        }
-                    AppResult.Success(models)
-                }
-                response.code == 400 || response.code == 401 || response.code == 403 -> AppResult.Error(
-                    message = "Authentication failed. Please check your API key.", code = ErrorCode.AUTH_ERROR
+when {
+    response.isSuccessful -> {
+        val body = response.body?.string()
+            ?: return@withContext AppResult.Error(
+                message = "Empty response body",
+                code = ErrorCode.PROVIDER_ERROR
+            )
+
+        val parsed = json.decodeFromString<GeminiModelListResponse>(body)
+
+        val models = parsed.models
+            .filter { "generateContent" in it.supportedGenerationMethods }
+            .map { dto ->
+                val modelId = dto.name.removePrefix("models/")
+                AiModel(
+                    id = modelId,
+                    displayName = dto.displayName,
+                    providerId = "",
+                    isDefault = false,
+                    source = ModelSource.DYNAMIC
                 )
-                else -> AppResult.Error(message = "API error: ${response.code} ${response.message}", code = ErrorCode.PROVIDER_ERROR)
             }
-        } catch (e: java.net.UnknownHostException) {
-            AppResult.Error(message = "Cannot reach the server.", code = ErrorCode.NETWORK_ERROR, exception = e)
-        } catch (e: java.net.SocketTimeoutException) {
-            AppResult.Error(message = "Connection timed out.", code = ErrorCode.TIMEOUT_ERROR, exception = e)
-        } catch (e: Exception) {
-            AppResult.Error(message = "Unexpected error: ${e.message}", code = ErrorCode.UNKNOWN, exception = e)
-        }
+
+        val customModel = AiModel(
+            id = "gemini-3.5-flash-lite",
+            displayName = "Gemini 3.5 Flash Lite",
+            providerId = "",
+            isDefault = false,
+            source = ModelSource.DYNAMIC
+        )
+
+        AppResult.Success(
+            (models + customModel).distinctBy { it.id }
+        )
     }
 
+    response.code == 400 || response.code == 401 || response.code == 403 ->
+        AppResult.Error(
+            message = "Authentication failed. Please check your API key.",
+            code = ErrorCode.AUTH_ERROR
+        )
+
+    else -> AppResult.Error(
+        message = "API error: ${response.code} ${response.message}",
+        code = ErrorCode.PROVIDER_ERROR
+    )
+}
     override suspend fun testConnection(
         apiBaseUrl: String,
         apiKey: String

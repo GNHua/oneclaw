@@ -54,48 +54,31 @@ class GeminiAdapter(
                     val body = response.body?.string()
                         ?: return@withContext AppResult.Error(message = "Empty response body", code = ErrorCode.PROVIDER_ERROR)
                     val parsed = json.decodeFromString<GeminiModelListResponse>(body)
-                    val models = parsed.models
-                        .filter { "generateContent" in it.supportedGenerationMethods }
-                        .map { dto ->
-                            val modelId = dto.name.removePrefix("models/")
-                            AiModel(id = modelId, displayName = dto.displayName, providerId = "", isDefault = false, source = ModelSource.DYNAMIC)
-                        }
-                    AppResult.Success(models)
-                }
-                response.code == 400 || response.code == 401 || response.code == 403 -> AppResult.Error(
-                    message = "Authentication failed. Please check your API key.", code = ErrorCode.AUTH_ERROR
-                )
-                else -> AppResult.Error(message = "API error: ${response.code} ${response.message}", code = ErrorCode.PROVIDER_ERROR)
-            }
-        } catch (e: java.net.UnknownHostException) {
-            AppResult.Error(message = "Cannot reach the server.", code = ErrorCode.NETWORK_ERROR, exception = e)
-        } catch (e: java.net.SocketTimeoutException) {
-            AppResult.Error(message = "Connection timed out.", code = ErrorCode.TIMEOUT_ERROR, exception = e)
-        } catch (e: Exception) {
-            AppResult.Error(message = "Unexpected error: ${e.message}", code = ErrorCode.UNKNOWN, exception = e)
-        }
-    }
+                    val apiModels = parsed.models
+    .filter { "generateContent" in it.supportedGenerationMethods }
+    .map { dto ->
+        AiModel(
+            id = dto.name.removePrefix("models/"),
+            displayName = dto.displayName,
+            providerId = "",
+            isDefault = false,
+            source = ModelSource.DYNAMIC
+        )
+    }.toMutableList()
 
-    override suspend fun testConnection(
-        apiBaseUrl: String,
-        apiKey: String
-    ): AppResult<ConnectionTestResult> {
-        return when (val result = listModels(apiBaseUrl, apiKey)) {
-            is AppResult.Success -> AppResult.Success(
-                ConnectionTestResult(success = true, modelCount = result.data.size, errorType = null, errorMessage = null)
-            )
-            is AppResult.Error -> {
-                val errorType = when (result.code) {
-                    ErrorCode.AUTH_ERROR -> ConnectionErrorType.AUTH_FAILURE
-                    ErrorCode.NETWORK_ERROR -> ConnectionErrorType.NETWORK_FAILURE
-                    ErrorCode.TIMEOUT_ERROR -> ConnectionErrorType.TIMEOUT
-                    else -> ConnectionErrorType.UNKNOWN
-                }
-                AppResult.Success(ConnectionTestResult(success = false, modelCount = null, errorType = errorType, errorMessage = result.message))
-            }
-        }
-    }
-
+// Tambahan manual biar selalu ada
+if (apiModels.none { it.id == "gemini-3.5-flash-lite" }) {
+    apiModels.add(
+        AiModel(
+            id = "gemini-3.5-flash-lite",
+            displayName = "Gemini 3.5 Flash Lite",
+            providerId = "",
+            isDefault = false,
+            source = ModelSource.DYNAMIC
+        )
+    )
+}
+return@withContext AppResult.Success(apiModels)
     override fun sendMessageStream(
         apiBaseUrl: String,
         apiKey: String,
